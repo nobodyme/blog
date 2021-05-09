@@ -1,7 +1,6 @@
 ---
 title: Dynamic Programming
 date: "2018-08-22T08:40:32.169Z"
-description: Understanding Dynamic programming.
 ---
 
 
