@@ -37,7 +37,7 @@ import requests
 url = ‘https://www.reddit.com/r/wallpapers.json'
 response = requests.get(url)
 if not response.ok:
- print(“Error”, response.status\_code)
+ print(“Error”, response.status_code)
  exit()
 data = response.json()
 print(data)
@@ -71,8 +71,8 @@ PIP is the recursive acronym for “Pip install Packages” commonly used for in
 Go to the project folder and then type,
 
 ```
-\# creates directory called env
-virtualenv -p python3 env\# activates the env directory so that our program's packages will be installed in it
+# creates directory called env
+virtualenv -p python3 env# activates the env directory so that our program's packages will be installed in it
 source env/bin/activate
 ```
 
@@ -121,21 +121,21 @@ Although the second one is easier in the long run. For the purpose of our applic
 Now that we reliably get the data, let’s see how we can parse it for the information we need. We basically need the image’s url so that we can use it to download the picture. As we already know, JSON data is similar to a dictionary. So just searching for URL in the data and it’s location should help you understand how to obtain it.
 
 ```
-\# array of posts in the page
-data = response.json()\['data'\]\['children'\]
-\# get first post from array of posts
-first\_post = data\[0\]\['data'\]
-\# get the image url of the first post
-image\_url = first\_post\['url'\]
+# array of posts in the page
+data = response.json()['data']['children']
+# get first post from array of posts
+first_post = data[0]['data']
+# get the image url of the first post
+image_url = first_post['url']
 ```
 
 Now that we have the url of the image, let’s download that and store it in a file as well.
 
 ```
-image = requests.get(image\_url)
-if(image.status\_code == 200):
-    output\_filehandle = open('image1.jpg',mode='bx')
-    output\_filehandle.write(image.content)
+image = requests.get(image_url)
+if(image.status_code == 200):
+    output_filehandle = open('image1.jpg',mode='bx')
+    output_filehandle.write(image.content)
 ```
 
 Now we have got the image of the first post in the page. Depending upon a number of things our application could break resulting in an error.
@@ -149,21 +149,21 @@ import requests
 url = 'https://www.reddit.com/r/wallpapers.json'
 response = requests.get(url, headers={'User-agent': 'your-bot-name 0.1'})
 if not response.ok:
-    print("Error", response.status\_code)
+    print("Error", response.status_code)
     exit()
-data = response.json()\['data'\]\['children'\]
-first\_post = data\[0\]\['data'\]
-image\_url = first\_post\['url'\]
-image = requests.get(image\_url)
-\# checks url and sets appropriate extension for the image file
-if '.png' in image\_url:
+data = response.json()['data']['children']
+first_post = data[0]['data']
+image_url = first_post['url']
+image = requests.get(image_url)
+# checks url and sets appropriate extension for the image file
+if '.png' in image_url:
     extension = '.png'
-elif '.jpg' in image\_url or '.jpeg' in image\_url:
+elif '.jpg' in image_url or '.jpeg' in image_url:
     extension = '.jpeg'
-if(image.status\_code == 200):
+if(image.status_code == 200):
     try:
-        output\_filehandle = open(first\_post\['title'\] + extension, mode='bx')
-        output\_filehandle.write(image.content)
+        output_filehandle = open(first_post['title'] + extension, mode='bx')
+        output_filehandle.write(image.content)
     except:
         pass
 ```
@@ -184,24 +184,24 @@ import requests
 url = 'https://www.reddit.com/r/wallpapers.json'
 response = requests.get(url)
 if not response.ok:
-    print("Error", response.status\_code)
+    print("Error", response.status_code)
     exit()
-data = response.json()\['data'\]\['children'\]
-first\_post = data\[0\]\['data'\]
-image\_url = first\_post\['url'\]
-if '.png' in image\_url:
+data = response.json()['data']['children']
+first_post = data[0]['data']
+image_url = first_post['url']
+if '.png' in image_url:
     extension = '.png'
-elif '.jpg' in image\_url or '.jpeg' in image\_url:
+elif '.jpg' in image_url or '.jpeg' in image_url:
     extension = '.jpeg'
 else:
-    image\_url += '.jpeg'
+    image_url += '.jpeg'
     extension = '.jpeg'
-\# prevents thumbnails denoting removed images from being downloaded
-image = requests.get(image\_url, allow\_redirects=False)
-if(image.status\_code == 200):
+# prevents thumbnails denoting removed images from being downloaded
+image = requests.get(image_url, allow_redirects=False)
+if(image.status_code == 200):
     try:
-        output\_filehandle = open(first\_post\['title'\] + extension, mode='bx')
-        output\_filehandle.write(image.content)
+        output_filehandle = open(first_post['title'] + extension, mode='bx')
+        output_filehandle.write(image.content)
     except:
         pass
 ```
@@ -219,26 +219,26 @@ import requests
 url = 'https://www.reddit.com/r/wallpapers.json?limit=100'
 response = requests.get(url)
 if not response.ok:
-    print("Error", response.status\_code)
+    print("Error", response.status_code)
     exit()
-data = response.json()\['data'\]\['children'\]
+data = response.json()['data']['children']
 for i in range(len(data)):
-    current\_post = data\[i\]\['data'\]
-    image\_url = current\_post\['url'\]
-    if '.png' in image\_url:
+    current_post = data[i]['data']
+    image_url = current_post['url']
+    if '.png' in image_url:
         extension = '.png'
-    elif '.jpg' in image\_url or '.jpeg' in image\_url:
+    elif '.jpg' in image_url or '.jpeg' in image_url:
         extension = '.jpeg'
-    elif 'imgur' in image\_url:
-        image\_url += '.jpeg'
+    elif 'imgur' in image_url:
+        image_url += '.jpeg'
         extension = '.jpeg'
     else:
         continue
-    image = requests.get(image\_url, allow\_redirects=False)
-    if(image.status\_code == 200):
+    image = requests.get(image_url, allow_redirects=False)
+    if(image.status_code == 200):
         try:
-            output\_filehandle = open(current\_post\['title'\] + extension, mode='bx')
-            output\_filehandle.write(image.content)
+            output_filehandle = open(current_post['title'] + extension, mode='bx')
+            output_filehandle.write(image.content)
         except:
             pass
 ```
