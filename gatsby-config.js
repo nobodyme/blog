@@ -6,7 +6,7 @@ module.exports = {
       summary: `I experiement and break things.`,
     },
     description: `A starter blog demonstrating what Gatsby can do.`,
-    siteUrl: `https://nobodyme.github.io`,
+    siteUrl: `https://nobodyme.github.io/blog/`,
   },
   plugins: [
     `gatsby-plugin-image`,
