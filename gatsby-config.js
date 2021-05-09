@@ -5,7 +5,7 @@ module.exports = {
       name: `Naveen`,
       summary: `I experiement and break things.`,
     },
-    description: `A starter blog demonstrating what Gatsby can do.`,
+    description: `Personal blog documenting the learnings`,
     siteUrl: `https://nobodyme.github.io/blog/`,
   },
   plugins: [
@@ -13,8 +13,8 @@ module.exports = {
     {
       resolve: `gatsby-source-filesystem`,
       options: {
-        path: `${__dirname}/content/blog`,
-        name: `blog`,
+        path: `${__dirname}/content/`,
+        name: `content`,
       },
     },
     {
