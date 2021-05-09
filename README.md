@@ -1,1 +1,1 @@
-My personal blog. Forked from [Gatsby blog starter](https://github.com/gatsbyjs/gatsby-starter-blog).
+My [personal blog](https://nobodyme.github.io/blog/). Forked from [Gatsby blog starter](https://github.com/gatsbyjs/gatsby-starter-blog).
