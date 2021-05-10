@@ -94,10 +94,12 @@ So what do we know so far?</br>
 
 Why not code it up too?
 
-    minarr[0][0] = a[0][0];
+```C
+minarr[0][0] = a[0][0];
 
-    for(i=1;i<n;i++)
-      minarr[0][i] = minarr[0][i-1] + a[0][i];
+for(i=1;i<n;i++)
+  minarr[0][i] = minarr[0][i-1] + a[0][i];
+```
 
 where n is the number of rows
 
@@ -128,8 +130,10 @@ Similarly, we calculate the cost of reaching each column by adding the cell with
 
 We'll code that up too!
 
-    for(i=1;i<m;i++)
-      minarr[i][0] = minarr[i-1][0] + a[i][0];
+```C
+for(i=1;i<m;i++)
+  minarr[i][0] = minarr[i-1][0] + a[i][0];
+```
 
 where m is the number of columns
 
@@ -137,20 +141,25 @@ where m is the number of columns
 **Friend:** Now, how do we calculate the minimum cost to reach cell [1,1]?</br>
 **Me:** We know we can only traverse left, down or diagonally lower cell. Hence we can reach cell [1,1] only from cell [0,0] or [0,1] or [1,0]. So now that our table already has the minimum values to reach [0,0], [0,1] and [1,0], simply the minimum of those three values plus the cost of reaching cell [1,1] gives us our result.</br>
 
-So the `cost to reach cell [1,1] = a[1,1] + min(minarr[0,0], minarr[0,1], minarr[1,0])`</br>
-`minarr[1,1] = 8 + min(1,3,5)`</br>
-So, `minarr[1,1] = 9`</br>
+So the cost to reach cell,
+
+```
+[1,1] = a[1,1] + min(minarr[0,0], minarr[0,1], minarr[1,0])
+minarr[1,1] = 8 + min(1,3,5)
+So, minarr[1,1] = 9
+```
 
 Similarly we do for all cells, starting from 1,1.
 
 Let's code it up again,
 
-    for(i=1;i<n;i++)
-      for(j=1;j<m;j++)
-        minarr[i][j] = (a[i][j] + min(minarr[i-1][j-1],minarr[i][j-1],minarr[i-1][j]));
+```C
+for(i=1;i<n;i++)
+  for(j=1;j<m;j++)
+    minarr[i][j] = (a[i][j] + min(minarr[i-1][j-1],minarr[i][j-1],minarr[i-1][j]));
+```
 
-
- <table>
+<table>
 <tr><th>Table A </th> <th>Min cost</th></tr>
 <tr><td>
 
@@ -191,22 +200,23 @@ How would go on solving this problem? What would you store to make the calculati
 
 ***pseudo code*** (It's okay if you don't understand my friend's code) </br>
 
-    for(i=0;i<n-1;i++)
+```C
+for(i=0;i<n-1;i++)
+{
+  count = 1;
+  for(j=i+1,k=i;j<n,k<n-1;j++)
+  {
+    if(a[j] > a[k])
     {
-      count = 1;
-      for(j=i+1,k=i;j<n,k<n-1;j++)
-      {
-        if(a[j] > a[k])
-        {
-          k=j;
-	  count++;
-        }
-        if(count>maxi)
-          maxi = count;
-      }
+      k=j;
+count++;
     }
-    printf("\nMax-length = %d\n",maxi);
-
+    if(count>maxi)
+      maxi = count;
+  }
+}
+printf("\nMax-length = %d\n",maxi);
+```
 
 **Me:** Let's run it.</br>
 **Friend:** Uh? Okay.</br>
@@ -314,17 +324,19 @@ As we have learnt,
    - We intialize count array to 1
    - Then calculate count for every element
 
-    for(i=0;i<n;i++)
-    count[i] = 1;
+```C
+for(i=0;i<n;i++)
+count[i] = 1;
 
-    for(i=1;i<n;i++)
-    {
-     for(j=0;j<i;j++)
-     {
-     if(array[i] > array[j])
-      count[i] = max(count[i],count[j]+1);
-     }
-    }
+for(i=1;i<n;i++)
+{
+  for(j=0;j<i;j++)
+  {
+  if(array[i] > array[j])
+  count[i] = max(count[i],count[j]+1);
+  }
+}
+```
 
 After that we find the maximum of the count array and print it, [full code snippet is here](https://github.com/nobodyme/Dynamic-Programming/blob/master/longest-increasing-sub-sequence.C) and a look alike problem just with a [pair of numbers](https://github.com/nobodyme/dynamic-programming/blob/master/lis-pair.C).
 

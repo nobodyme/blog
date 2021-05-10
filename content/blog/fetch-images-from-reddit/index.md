@@ -32,7 +32,7 @@ It’s easier than you think, reddit follows the [OPEN-API standard](https://en.
 
 Now how do we obtain that data in code? Simple, just import the requests library,
 
-```
+```python
 import requests
 url = ‘https://www.reddit.com/r/wallpapers.json'
 response = requests.get(url)
@@ -47,7 +47,9 @@ print(data)
 
 Well if you google, you’d come up with something like do,
 
-`sudo pip install requests`
+```bash
+sudo pip install requests
+```
 
 That sure works, but what this does is, it install the requests library globally for your system. You’d think it’s convenient since it will be available for another program that uses requests as well, you wouldn't have to run the command again but think about the case where different programs use different versions of the same library. That’s a conflict you do not want to handle plus let’s say you’re sharing this code to a friend of yours or posting it on github, you would ideally like to have a list of the packages/libraries your code depends on, so to say, _“Hey, this is the list of packages you will need to run my code, so just install these”_. Convenient right? So that’s what we will do.
 
@@ -61,7 +63,7 @@ So let’s try and install something called a virtualenv, which let’s us creat
 
 So if you’re on ubuntu do follow the instructions below, if you’re on windows or mac you could [try this link here](https://packaging.python.org/guides/installing-using-pip-and-virtualenv/).
 
-```
+```bash
 sudo apt-get install virtualenv
 sudo apt-get install python3-pip
 ```
@@ -70,9 +72,10 @@ PIP is the recursive acronym for “Pip install Packages” commonly used for in
 
 Go to the project folder and then type,
 
-```
+```bash
 # creates directory called env
-virtualenv -p python3 env# activates the env directory so that our program's packages will be installed in it
+virtualenv -p python3 env
+# activates the env directory so that our program's packages will be installed in it instead of root
 source env/bin/activate
 ```
 
@@ -82,7 +85,7 @@ Now that our development environment is setup, let’s install the requests pack
 Installing requests module
 ==========================
 
-```
+```bash
 pip3 install requests
 ```
 
@@ -90,7 +93,7 @@ Now this will place the package and it’s dependencies in the local folder. Gre
 
 Now if we want to list the packages our program depends on, we can just do,
 
-```
+```bash
 pip3 freeze > requirements.txt
 ```
 
@@ -98,7 +101,7 @@ This lists out all the dependencies and puts it into a file called requirements.
 
 Just in case you want to install your friend’s program and he has sent you his file of dependencies, you can just do that by,
 
-```
+```bash
 pip3 install -r requirements.txt
 ```
 
@@ -120,7 +123,7 @@ Although the second one is easier in the long run. For the purpose of our applic
 
 Now that we reliably get the data, let’s see how we can parse it for the information we need. We basically need the image’s url so that we can use it to download the picture. As we already know, JSON data is similar to a dictionary. So just searching for URL in the data and it’s location should help you understand how to obtain it.
 
-```
+```python
 # array of posts in the page
 data = response.json()['data']['children']
 # get first post from array of posts
@@ -131,7 +134,7 @@ image_url = first_post['url']
 
 Now that we have the url of the image, let’s download that and store it in a file as well.
 
-```
+```python
 image = requests.get(image_url)
 if(image.status_code == 200):
     output_filehandle = open('image1.jpg',mode='bx')
@@ -144,7 +147,7 @@ If you look closely we have assumed that the image is of the type “jpg”, sec
 
 So our code now looks like,
 
-```
+```python
 import requests
 url = 'https://www.reddit.com/r/wallpapers.json'
 response = requests.get(url, headers={'User-agent': 'your-bot-name 0.1'})
@@ -179,7 +182,7 @@ Therefore in the second case, your program will try to download the HTML file as
 
 And sometimes the images uploaded are **removed** as well, the link will direct to a thumbnail denoting the image has been removed. We don’t want that to clutter our list of wallpapers. So let’s handle these cases in our code as well.
 
-```
+```python
 import requests
 url = 'https://www.reddit.com/r/wallpapers.json'
 response = requests.get(url)
@@ -208,13 +211,13 @@ if(image.status_code == 200):
 
 Now your code should work perfectly for all cases and now you check the image file that’s downloaded. Since we have successfully downloaded image of the first post, let’s do that for all posts. By default we get a list of 25 posts for more posts say 100, we could modify the url as,
 
-```
+```python
 url = '[https://www.reddit.com/r/wallpapers.json?&limit=10](https://www.reddit.com/r/wallpapers.json?&limit=10)0['](https://www.reddit.com/r/wallpapers.json')
 ```
 
 Now that our url is set let’s loop over all posts to retreive all images.
 
-```
+```python
 import requests
 url = 'https://www.reddit.com/r/wallpapers.json?limit=100'
 response = requests.get(url)
