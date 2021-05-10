@@ -274,6 +274,14 @@ a:focus {
   font-weight: var(--fontWeight-medium);
 }
 
+footer .meta {
+  font-weight: var(--fontWeight-normal);
+}
+
+footer span {
+  margin-left: var(--spacing-1);
+}
+
 /* Blog content */
 .blog-content {
   text-shadow: 0 0;
