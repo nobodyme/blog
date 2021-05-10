@@ -252,6 +252,6 @@ But as you know ideally we would want to supply data to the program as a user, w
 
 There are few other edge cases that you would face while handling different sets of data as well. For example, we set the file name to the title of the post, sometimes the titles may contain special characters which might not be a accepted file name format in your operating system. Sometimes the title might be too long that your OS doesn't permit it as a valid file name.
 
-You would see all of these improvements handled right here, in my [code on github](https://github.com/nobodyme/reddit-fetch/blob/master/grab_pictures.py). I will also post a snippet below.
+You would see all of these improvements handled right here, in my [code on github](https://github.com/nobodyme/reddit-fetch/blob/master/grab_pictures.py).
 
 You will also find a similar program which fetches the [comments of a reddit post](https://github.com/nobodyme/reddit-fetch/blob/master/fetch_comments.py) in a file in the same repo. Hope it is of some help. Put your questions below. Maybe give me a pull request if something can be improved. Cheers!
