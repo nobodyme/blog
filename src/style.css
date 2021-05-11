@@ -16,7 +16,7 @@ html {
 
 body {
   font-family: var(--font-body);
-  font-size: var(--fontSize-2);
+  font-size: var(--fontSize-1);
   color: var(--color-primary);
 }
 
@@ -196,8 +196,8 @@ a:focus {
 }
 
 .post-list-item {
-  margin-bottom: var(--spacing-16);
-  margin-top: var(--spacing-16);
+  margin-bottom: var(--spacing-10);
+  margin-top: var(--spacing-10);
 }
 
 .post-list-item p {
@@ -205,9 +205,9 @@ a:focus {
 }
 
 .post-list-item h2 {
-  font-size: var(--fontSize-4);
+  font-size: var(--fontSize-3);
   color: var(--color-primary);
-  margin-bottom: var(--spacing-2);
+  margin-bottom: var(--spacing-0);
   margin-top: var(--spacing-0);
 }
 
