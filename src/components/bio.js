@@ -32,19 +32,18 @@ const Bio = () => {
         className="bio-avatar"
         layout="fixed"
         formats={["AUTO", "WEBP", "AVIF"]}
-        src="../images/binoculars-240-icon.png"
+        src="../images/binoculars-80.png"
         width={50}
         height={50}
         quality={95}
         alt="Profile picture"
       />
-      <h2>The Curious Engineer</h2>
-      {/* {author?.name && (
+      {author?.name && (
         <p>
           Personal blog by <a href="https://github.com/nobodyme" target="_blank" rel="noopener noreferrer">{author.name}</a> <br></br>
           {author?.summary || null}
         </p>
-      )} */}
+      )}
     </div>
   )
 }

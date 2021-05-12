@@ -117,7 +117,7 @@ module.exports = {
         background_color: `#ffffff`,
         theme_color: `#663399`,
         display: `minimal-ui`,
-        icon: `src/images/binoculars-240-icon.png`, // This path is relative to the root of the site.
+        icon: `src/images/binoculars-80.png`, // This path is relative to the root of the site.
       },
     },
     `gatsby-plugin-react-helmet`,
