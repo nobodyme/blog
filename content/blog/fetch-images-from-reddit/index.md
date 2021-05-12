@@ -15,8 +15,7 @@ All we need to do is ask reddit to give us the pictures from the subreddits we w
 
 But how do we do that?
 
-Understanding APIs and JSON
-===========================
+### Understanding APIs and JSON
 
 What happens generally when you go to a link is that, your browser will send a request to the server like, _“Hey, can I wanna see the contents on this one, send this to me as HTML, please”_ and then server responds to the request as a HTML page like the one you’re viewing right now because HTML is more friendly to humans. But we want our program to fetch the pictures right? So we need a response that’s friendly to parse by code but how does our program talk to the reddit server? We want a interface which our program can talk to, just like we do through our browser. This is called an **API (application programming interface)** and every application these days have an interface where programs can talk to and fetch information, some publicly available, some private, some available with paid subscriptions for their services. What this API commonly returns is data in a format called **JSON** which stands for Javascript Object Notation and it is this format that our program will be easily able to parse and get us our wallpapers and it is just a bunch of key, pair values similar to a dictionary in python which you will all be familiar with.
 
@@ -53,8 +52,7 @@ sudo pip install requests
 
 That sure works, but what this does is, it install the requests library globally for your system. You’d think it’s convenient since it will be available for another program that uses requests as well, you wouldn't have to run the command again but think about the case where different programs use different versions of the same library. That’s a conflict you do not want to handle plus let’s say you’re sharing this code to a friend of yours or posting it on github, you would ideally like to have a list of the packages/libraries your code depends on, so to say, _“Hey, this is the list of packages you will need to run my code, so just install these”_. Convenient right? So that’s what we will do.
 
-Understanding VIRTUALENV and PIP
-================================
+### Understanding VIRTUALENV and PIP
 
 1.  We need an isolated environment where we can install libraries just for our program.
 2.  We will then need the list of libraries our code uses along with the exact version so that we can share it along with our code.
@@ -82,8 +80,7 @@ source env/bin/activate
 You should see a (env) sign before your prompt, if so, we are good to go.
 Now that our development environment is setup, let’s install the requests package.
 
-Installing requests module
-==========================
+### Installing requests module
 
 ```bash
 pip3 install requests
@@ -107,8 +104,7 @@ pip3 install -r requirements.txt
 
 Suppose you want to go outside our program’s environment, you can just do type, “deactivate” at the prompt.
 
-Edge Cases
-==========
+### Edge Cases
 
 So now that we have installed requests and everything is set, let’s run our program.
 
@@ -248,8 +244,7 @@ for i in range(len(data)):
 
 Now that’s it, we have got our sets of images downloaded and I added the else part so that the program doesn't break for cases that we still haven’t encountered. Now that you have the pictures downloaded you can now use Shotwell to [setup a desktop slideshow](http://shotwell-project.org/doc/html/share-background.html) by selecting all of these images in your machine.
 
-Conclusion
-==========
+### Conclusion
 
 But as you know ideally we would want to supply data to the program as a user, we can’t keep modifying the program if we wanted pictures from a different subreddit or more number pictures. Personally, I would even like to supply a series of subreddits to fetch from at a point and download each in a separate folder.
 

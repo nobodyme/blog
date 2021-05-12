@@ -234,6 +234,8 @@ a:focus {
 
 .bio {
   display: flex;
+  justify-content: center;
+  align-items: center;
   margin-bottom: var(--spacing-16);
 }
 
@@ -245,7 +247,8 @@ a:focus {
   margin-right: var(--spacing-4);
   margin-bottom: var(--spacing-0);
   min-width: 50px;
-  border-radius: 100%;
+  position: relative;
+  top: 10px;
 }
 
 .blog-post header h1 {

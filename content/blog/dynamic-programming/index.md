@@ -6,7 +6,7 @@ date: "2018-08-01T08:40:32.169Z"
 
 There were huge number of sources on the internet on this topic but still we (me and my friend) couldn't understand any of it for a very long time until we fiddled with code and tracked the output for every change in the input. So this repository is exactly created for people like us to make the transition from [greedy](https://en.wikipedia.org/wiki/Greedy_algorithm) to dynamic programming easier. This will just be an introduction to dynamic programming, so that one can pick it up from there. I have added additional sources for practice and other online tutorials that I found a little helpful at the end and will continue to do so as I find something new. It is for programmers who are comfortable with brute-force and might not the serve the purpose for absolute beginners. Contributions or suggestions are welcome.
 
-## Definition
+### Definition
 
 So what's dynamic programming? Let's first look at a more formal definition.
 
@@ -19,14 +19,14 @@ Before that, we need to identify whether a problem has the following properties,
   - [Overlapping Sub-problem](http://www.geeksforgeeks.org/dynamic-programming-set-1/)
   - [Optimal Substructure](http://www.geeksforgeeks.org/dynamic-programming-set-2-optimal-substructure-property/)
 
-## Problems:
+### Problems:
 
   - [Minimum cost problem](#problem-1)
   - [Longest increasing subsequence](#problem-2)
 
 
 
-## Minimum cost problem <a name="problem-1"></a>
+### Minimum cost problem <a name="problem-1"></a>
 
 Given a cost matrix cost[][] and a position (m, n) in cost[][], write a function that returns cost of minimum cost path to reach (m, n) from (0, 0). Each cell of the matrix represents a cost to traverse through that cell. Total cost of a path to reach (m, n) is sum of all the costs on that path (including both source and destination). You can only traverse down, right and diagonally lower cells from a given cell, i.e., from a given cell (i, j), cells (i+1, j), (i, j+1) and (i+1, j+1) can be traversed. You may assume that all costs are positive integers.
 
@@ -37,7 +37,7 @@ Given a cost matrix cost[][] and a position (m, n) in cost[][], write a function
 
 (forgive the highlighting of the first row it is of no special significance)
 
-**Solution:**
+#### Solution:
 
 **Me:** So how would you go on solving that?</br>
 **Friend:** Oh, the properties I read talked about saving the sub-problems to make the computations easier!</br>
@@ -62,7 +62,7 @@ So what do we know so far?</br>
   - We need to print the minimum cost of traversing to the given destination.</br>
   - And we start at the first cell.</br>
 
-**Breaking down the problem:**
+#### Breaking down the problem:
 
 **Me:** What is simply the cost of moving from [0,0] to [0,1]?</br>
 **Friend:** It's `2 + 1 = 3`</br>
@@ -181,12 +181,12 @@ Now that our table is filled, we simply return the cell of the given destination
 
 Hence by considering the elements one by one we have built up our solution or in DP terms we have acquired our solution in bottom up fashion(tabulation method) from the sub-problems. There's another approach to it called memoizatation. The difference between both is explained in the [article over here](http://www.geeksforgeeks.org/tabulation-vs-memoizatation/).
 
-## Longest increasing subsequence <a name="problem-2"></a>
+### Longest increasing subsequence <a name="problem-2"></a>
 
 The Longest Increasing Subsequence (LIS) problem is to find the length of the longest subsequence of a given sequence such that all elements of the subsequence are sorted in increasing order.
 For example, the length of LIS for {10, 12, 32, 2, 22, 23, 25, 30} is 6 and LIS is {10, 12, 22, 23, 25, 30}
 
-**Solution:**
+#### Solution:
 
 How would go on solving this problem? What would you store to make the calculations easier? Okay simply, how would you solve the above problem using **brute force** just like how you would perform a [selection sort](https://en.wikipedia.org/wiki/Selection_sort)!
 
@@ -234,7 +234,7 @@ At this point **count = 3**, from there on count won't get incremented because t
 
 **NOTE:** And my friend has set `count=1` and not 0 initially, because when we have a case where all numbers are same in the array i.e {2, 2, 2, 2}, we must return count as **1** since one element is the still a subarray of the larger one which is simply { 2 } therefore returning 0 would be wrong.
 
-**Dp solution:**
+#### DP solution:
 
 **Me:** So how would you code the same in dp, well actually it's easier.</br>
 **Friend:** Since you said we store counts of all variables, we initialize an array of same size of corresponding counts?</br>
@@ -340,24 +340,24 @@ for(i=1;i<n;i++)
 
 After that we find the maximum of the count array and print it, [full code snippet is here](https://github.com/nobodyme/Dynamic-Programming/blob/master/longest-increasing-sub-sequence.C) and a look alike problem just with a [pair of numbers](https://github.com/nobodyme/dynamic-programming/blob/master/lis-pair.C).
 
-## More to come
+### More to come
 
   - Minimum coin change
 
-## Points to remember
+### Points to remember
 
   - Dynamic programming is just like any like any other kind you get some, you don't get some practice makes it all better. I have lot to do too.
   - From my experience, it is similar to brute force but instead of exploring the whole input space, you find a way to store intermediate results that arise from the input and exhaustively explore that for the required result.
   - Yes, it is indeed a method of trading space for time. A recursive approach may utilize a little less space but dynamic programming approach is quicker.
 
-## Other resources
+### Other resources
   - [Hackerearth article explaining more on "Why dynamic programming"](https://www.hackerearth.com/practice/notes/dynamic-programming-i-1/)
   - [How to approach Dynamic Programming by Paul Baltescu on Quora](https://www.quora.com/What-are-some-good-ways-to-approach-a-dynamic-programming-question/answer/Paul-Baltescu)
   - [Geeks for geeks tutorials](http://www.geeksforgeeks.org/fundamentals-of-algorithms/#DynamicProgramming)
   - [Hackerearth article for problems involving grids](https://www.hackerearth.com/practice/notes/dynamic-programming-problems-involving-grids/)
 
 
-  ## Problems lists from various sites
+  ### Problems lists from various sites
 
   - [Practice problems - Geeks for Geeks](http://practice.geeksforgeeks.org/topics/Dynamic-Programming/)
   - [Problem list - top coder](https://apps.topcoder.com/forums/?module=Thread&start=0&threadID=674592)
