@@ -1,13 +1,16 @@
 module.exports = {
   pathPrefix: `/blog`,
   siteMetadata: {
-    title: `Home`,
+    title: `The Curious Engineer`,
     author: {
       name: `Naveen`,
       summary: `I experiement and break things.`,
     },
-    description: `Personal blog documenting the learnings`,
+    description: `The Curious Engineer - documenting the learnings`,
     siteUrl: `https://nobodyme.github.io/blog/`,
+    social: {
+      twitter: `_nobodyme_`
+    }
   },
   plugins: [
     {
