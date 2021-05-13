@@ -1,15 +1,25 @@
 module.exports = {
   pathPrefix: `/blog`,
   siteMetadata: {
-    title: `Home`,
+    title: `The Curious Engineer`,
     author: {
       name: `Naveen`,
       summary: `I experiement and break things.`,
     },
-    description: `Personal blog documenting the learnings`,
+    description: `The Curious Engineer - documenting the learnings`,
     siteUrl: `https://nobodyme.github.io/blog/`,
+    social: {
+      twitter: `_nobodyme_`
+    }
   },
   plugins: [
+    {
+      resolve: `gatsby-plugin-google-analytics`,
+      options: {
+        trackingId: `UA-196720033-1`,
+        head: true,
+      },
+    },
     `gatsby-plugin-image`,
     {
       resolve: `gatsby-source-filesystem`,
@@ -49,12 +59,6 @@ module.exports = {
     },
     `gatsby-transformer-sharp`,
     `gatsby-plugin-sharp`,
-    {
-      resolve: `gatsby-plugin-google-analytics`,
-      options: {
-        trackingId: `G-7Q9ELWZMH7`,
-      },
-    },
     {
       resolve: `gatsby-plugin-feed`,
       options: {
@@ -116,7 +120,7 @@ module.exports = {
         background_color: `#ffffff`,
         theme_color: `#663399`,
         display: `minimal-ui`,
-        icon: `src/images/gatsby-icon.png`, // This path is relative to the root of the site.
+        icon: `src/images/binoculars-80.png`, // This path is relative to the root of the site.
       },
     },
     `gatsby-plugin-react-helmet`,

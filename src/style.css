@@ -245,7 +245,31 @@ a:focus {
   margin-right: var(--spacing-4);
   margin-bottom: var(--spacing-0);
   min-width: 50px;
-  border-radius: 100%;
+}
+
+.title {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: var(--spacing-16);
+}
+
+.title-icon {
+  margin-right: var(--spacing-4);
+  margin-bottom: var(--spacing-0);
+  position: relative;
+  top: 10px;
+}
+
+.title-small {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-16);
+}
+
+.title-icon-small {
+  margin-right: var(--spacing-2);
+  margin-bottom: var(--spacing-0);
 }
 
 .blog-post header h1 {
