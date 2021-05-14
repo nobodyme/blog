@@ -10,7 +10,7 @@ const Layout = ({ location, title, children }) => {
   if (!isRootPath) {
     header = (
       <Link className="header-link-home" to="/">
-        <Title size="small"></Title>
+        <Title siteTitle={title} size="small"></Title>
       </Link>
     )
   }

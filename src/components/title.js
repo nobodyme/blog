@@ -1,8 +1,7 @@
 import React from 'react'
 import { StaticImage } from "gatsby-plugin-image"
 
-const Title = ({ size }) => {
-  console.log('size', size);
+const Title = ({ siteTitle, size }) => {
   if (size === "small") {
     return (
       <div className="title-small">
@@ -16,7 +15,7 @@ const Title = ({ size }) => {
           quality={95}
           alt="logo"
         />
-        <div>The Curious Engineer</div>
+        <div>{siteTitle}</div>
       </div>
     )
   } else {
@@ -32,7 +31,7 @@ const Title = ({ size }) => {
           quality={95}
           alt="logo"
         />
-        <h2>The Curious Engineer</h2>
+        <h2>{siteTitle}</h2>
       </div>
     )
   }

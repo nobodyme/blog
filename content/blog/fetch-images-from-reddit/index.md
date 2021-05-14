@@ -1,5 +1,5 @@
 ---
-title: Fetch images from reddit for your desktop wallpaper, python beginners.
+title: Fetch images from reddit for your desktop wallpaper, python beginners
 date: "2018-07-14T08:40:32.169Z"
 ---
 
