@@ -246,7 +246,7 @@ Now that’s it, we have got our sets of images downloaded and I added the else 
 
 ### Conclusion
 
-But as you know ideally we would want to supply data to the program as a user, we can’t keep modifying the program if we wanted pictures from a different subreddit or more number pictures. Personally, I would even like to supply a series of subreddits to fetch from at a point and download each in a separate folder.
+Ideally, we would want to supply data to the program as a user, we can’t keep modifying the program if we wanted pictures from a different subreddit or more number pictures. Personally, I would even like to supply a series of subreddits to fetch from at a point and download each in a separate folder.
 
 There are few other edge cases that you would face while handling different sets of data as well. For example, we set the file name to the title of the post, sometimes the titles may contain special characters which might not be a accepted file name format in your operating system. Sometimes the title might be too long that your OS doesn't permit it as a valid file name.
 

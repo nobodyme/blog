@@ -312,6 +312,19 @@ footer span {
   text-shadow: 0 0;
 }
 
+/* info, error boxes for md files */
+.error-box {
+  border: 1px solid var(--red-200);
+	background: var(--red-50);
+  padding: 20px;
+}
+
+.info-box {
+  border: 1px solid var(--blue-200);
+	background: var(--blue-50);
+  padding: 20px;
+}
+
 /* Media queries */
 @media (max-width: 42rem) {
   blockquote {
