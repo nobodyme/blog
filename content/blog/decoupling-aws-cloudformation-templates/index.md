@@ -1,6 +1,6 @@
 ---
 title: Decoupling AWS Cloudformation Templates
-date: "2021-05-14T20:08:57.486Z"
+date: "2021-05-15T20:08:57.486Z"
 ---
 
 While using [Cloudformation](https://aws.amazon.com/cloudformation/) templates for deploying our infrastructure, we had the face the fact that a Cloudformation stack can only contain a maximum of [200 resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cloudformation-limits.html)(now 500).
