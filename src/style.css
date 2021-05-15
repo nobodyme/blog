@@ -320,10 +320,6 @@ footer span {
     justify-content: center;
     margin: var(--spacing-2) var(--spacing-5) var(--spacing-8);
   }
-
-  .header-text {
-    margin-bottom: var(--spacing-3);
-  }
 }
 
 @media (max-width: 400px) {
@@ -336,6 +332,12 @@ footer span {
   .header-text {
     margin-top: var(--spacing-6);
     margin-bottom: var(--spacing-1);
+  }
+
+  .header-icon {
+    margin-right: var(--spacing-4);
+    position: relative;
+    top: 20px;
   }
 
   /* .header-social-icons {
