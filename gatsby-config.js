@@ -6,7 +6,7 @@ module.exports = {
       name: `Naveen`,
       summary: `I experiement and break things.`,
     },
-    description: `The Curious Engineer - documenting the learnings`,
+    description: `The Curious Engineer - documenting learning`,
     siteUrl: `https://nobodyme.github.io/blog/`,
     social: {
       twitter: `_nobodyme_`
@@ -32,8 +32,16 @@ module.exports = {
       resolve: `gatsby-source-filesystem`,
       options: {
         name: `images`,
-        path: `${__dirname}/src/images`,
+        path: `${__dirname}/src/assets/images`,
       },
+    },
+    {
+      resolve: `gatsby-plugin-react-svg`,
+      options: {
+        rule: {
+          include: `${__dirname}/src/assets/svg`,
+        }
+      }
     },
     {
       resolve: `gatsby-transformer-remark`,
@@ -107,6 +115,7 @@ module.exports = {
               }
             `,
             output: "/rss.xml",
+            image_url: `src/assets/images/binoculars-40.png`
           },
         ],
       },
@@ -120,7 +129,7 @@ module.exports = {
         background_color: `#ffffff`,
         theme_color: `#663399`,
         display: `minimal-ui`,
-        icon: `src/images/binoculars-80.png`, // This path is relative to the root of the site.
+        icon: `src/assets/images/binoculars-40.png`, // This path is relative to the root of the site.
       },
     },
     `gatsby-plugin-react-helmet`,
