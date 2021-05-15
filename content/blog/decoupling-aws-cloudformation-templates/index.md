@@ -3,11 +3,11 @@ title: Decoupling AWS Cloudformation Templates
 date: "2021-05-15T20:08:57.486Z"
 ---
 
-While using [Cloudformation](https://aws.amazon.com/cloudformation/) templates for deploying our infrastructure, we had the face the fact that a Cloudformation stack can only contain a maximum of [200 resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cloudformation-limits.html)(now 500).
+While using [Cloudformation](https://aws.amazon.com/cloudformation/) templates for deploying our infrastructure, we had to face the fact that a Cloudformation stack can only contain a maximum of [200 resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cloudformation-limits.html)(now 500).
 
 ### Working around the limit
 
-We decided to split our infrastructure into multiple stacks. CloudFormation has two main design patterns to achieve this, the [Nested Stack mode](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-stack.html) and the [Cross Stack Reference mode](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/walkthrough-crossstackref.html). We went with Nested Stack Mode and we decided to split our resources based on resource type. Similar resources were grouped in a single stack like shown below, </br>
+We decided to split our infrastructure into multiple stacks. CloudFormation has two main design patterns to achieve this, the [Nested Stack mode](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-stack.html) and the [Cross Stack Reference mode](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/walkthrough-crossstackref.html). We went with Nested Stack Mode and we decided to split our resources based on the resource type. Similar resources were grouped in a single stack like shown below, </br>
 
 - main-stack.yaml
   - backend-lambda-stack.yaml
@@ -83,7 +83,7 @@ While this worked well, there came the problem when we wanted to update the reso
 </div>
 </br>
 
-In our specific case, we wanted to pass an extra command line argument to our python script along with `jobId` and `role`.
+In our specific case, we wanted to pass an extra command-line argument to our python script along with `jobId` and `role`.
 
 
 Now, what do we do? </br>
@@ -95,20 +95,20 @@ One solution is to [follow this process](https://aws.amazon.com/premiumsupport/k
 
 Sure that works, but,
 - What if we want to update that resource again by adding another parameter? </br>
-- What if there are multiple stacks which uses that resource in the future? </br>
+- What if there are multiple stacks that use the same resource in the future? </br>
 
-Either way just repating the above method would not be the best long-term approach.
+Either way, just repeating the above method would not be the best long-term approach.
 
 ### How do we decouple them?
 
-We tried a few things and then something clicked, this problem was strinkingly similar to managing state in a react component. What do you do when you have to share state between two sibling components?
+We tried a few things and then something clicked, this problem was strikingly similar to managing `state` in a react component. What do you do when you have to share state between two sibling components?
 
 We [lift the state up](https://reactjs.org/docs/lifting-state-up.html) to the parent component and pass down the state as props to both the sibling. We tried to see if something similar would work. One difference is now we don't import the resource to be shared rather, we pass it down as a [parameter](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html) to a stack that needs it.
 
-The thing about parameters in cloudformation is that it's not always known beforehand and can change depending on the user's input. So when we supply a resource as a parameter, it shouldn't expect it to remain constant.
+The thing about parameters in Cloudformation is that it's not always known beforehand and can change depending on the user's input. So when we supply a resource as a parameter, Cloudformation shouldn't expect it to remain constant.
 
 1) We exported the resource to be shared as usual from NestedStackA.
-2) From the parent stack, we passed the output as paramter to the NestedStackB.
+2) From the parent stack, we passed the output as a parameter to the NestedStackB.
 3) The NestedStackB just referenced the resource from the parameter.
 
 **ParentStack**
