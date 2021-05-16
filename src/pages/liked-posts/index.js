@@ -6,36 +6,30 @@ import Layout from "../../components/layout"
 import Seo from "../../components/seo"
 
 import Heart from "../../assets/svg/heart.svg"
+import Shuttle from "../../assets/svg/shuttle.svg"
 
 const getEmoji = (reaction) => {
 
   switch (reaction) {
     case "love":
-      return (<Heart className="liked-post-reaction" width={25} height={25} />)
+      return (
+        <Heart className="liked-post-item-reaction" fill="red" width={25} height={25} />
+      )
     case "to-the-moon":
       return (
-        <StaticImage
-          className="liked-post-reaction"
-          layout="fixed"
-          formats={["AUTO", "WEBP", "AVIF"]}
-          src="../../assets/images/rocket.png"
-          width={30}
-          height={30}
-          quality={95}
-          alt="Profile picture"
-        />
+        <Shuttle className="liked-post-item-reaction" width={25} height={25} />
       )
     case "exploding-head":
       return (
         <StaticImage
-          className="liked-post-reaction"
+          className="liked-post-item-reaction"
           layout="fixed"
           formats={["AUTO", "WEBP", "AVIF"]}
           src="../../assets/images/exploding-head.png"
           width={30}
           height={30}
           quality={95}
-          alt="Profile picture"
+          alt="exploding-head-emoji"
         />
       )
     default:
@@ -50,21 +44,19 @@ const LikeIndex = ({ data, location }) => {
   return (
     <Layout location={location} title={siteTitle}>
       <Seo title={`${siteTitle} | Liked Posts`} />
-        <div class="liked-post-header">Liked Posts</div>
+        <div className="liked-page-header">Liked Posts</div>
         <hr/>
-        <div style={{marginTop: "20px"}}>
+        <div className="liked-post">
           <ol style={{ listStyle: `none` }}>
             {likedPosts.map(post => {
               return (
-                <li className="liked-post" key={post.id}>
-                  <a className="liked-post-link" href={post.link} target="_blank" rel="noopener noreferrer">
-                    <div style={{ display: "flex" }}>
-                      {getEmoji(post.reaction)}
-                      <div>
-                        <div className="liked-post-link-text">{post.title}</div>
+                <li className="liked-post-item" key={post.id}>
+                  <div>
+                    {getEmoji(post.reaction)}
+                  </div>
+                  <a className="liked-post-item-link" href={post.link} target="_blank" rel="noopener noreferrer">
+                        <div className="liked-post-item-link-text">{post.title}</div>
                         <small className="meta">{post.date}</small>
-                      </div>
-                    </div>
                   </a>
                 </li>
               )

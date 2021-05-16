@@ -15,17 +15,17 @@ const Header = ({ siteTitle }) => {
         <h3 className="header-text">{siteTitle}</h3>
       </Link>
       <div className="header-social">
-        <Link className="header-social-icons" to="/liked-posts">
-            <Heart width={25} height={25} />
+        <Link className="header-social-link" to="/liked-posts">
+            <Heart class="header-social-icon" width={25} height={25} />
         </Link>
-        <a className="header-social-icons" href="https://github.com/nobodyme" target="_blank" rel="noopener noreferrer">
-          <Github width={30} height={30}/>
+        <a className="header-social-link" href="https://github.com/nobodyme" target="_blank" rel="noopener noreferrer">
+          <Github class="header-social-icon" width={30} height={30}/>
         </a>
-        <a className="header-social-icons" href="https://twitter.com/_nobodyme_" target="_blank" rel="noopener noreferrer">
-          <Twitter width={25} height={25}/>
+        <a className="header-social-link" href="https://twitter.com/_nobodyme_" target="_blank" rel="noopener noreferrer">
+          <Twitter class="header-social-icon" width={25} height={25}/>
         </a>
-        <a className="header-social-icons" href="/blog/rss.xml" target="_blank" rel="noopener noreferrer">
-          <Rss width={28} height={28}/>
+        <a className="header-social-link" href="/blog/rss.xml" target="_blank" rel="noopener noreferrer">
+          <Rss class="header-social-icon" width={28} height={28}/>
         </a>
       </div>
     </div>

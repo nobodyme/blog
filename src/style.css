@@ -208,7 +208,7 @@ a:focus {
   justify-content: space-between;
 }
 
-.header-social-icons {
+.header-social-link {
   margin-right: var(--spacing-4);
   margin-bottom: var(--spacing-0);
   position: relative;
@@ -224,6 +224,10 @@ a:focus {
 .post-list-item {
   margin-bottom: var(--spacing-10);
   margin-top: var(--spacing-10);
+}
+
+.post-list-item:first-child {
+  margin-top: 0;
 }
 
 .post-list-item p {
@@ -303,33 +307,39 @@ footer span {
   padding: 20px;
 }
 
-/* liked post */
-.liked-post {
-  margin-bottom: var(--spacing-10);
-}
-
-.liked-post-header {
+/* liked page */
+.liked-page-header {
   font-size: var(--fontSize-2);
   color: var(--color-primary);
   font-weight: var(--fontWeight-medium);
   color: var(--color-text-lighter);
 }
 
-.liked-post-link-text {
+.liked-post {
+  margin-top: var(--spacing-3);
+}
+
+.liked-post-item {
+  margin-bottom: var(--spacing-10);
+  display: flex;
+  align-items: top;
+  justify-content: left;
+}
+
+.liked-post-item-link:hover {
+  text-decoration: none;
+}
+
+.liked-post-item-link-text {
   font-size: var(--fontSize-2);
   color: var(--color-primary);
   font-weight: var(--fontWeight-medium);
 }
 
-.liked-post-link:hover {
-  text-decoration: none;
-}
-
-.liked-post-reaction {
+.liked-post-item-reaction {
   margin-right: var(--spacing-4);
   position: relative;
   top: 5px;
-  fill: red;
 }
 
 
@@ -357,6 +367,10 @@ footer span {
     justify-content: center;
     margin: var(--spacing-2) var(--spacing-5) var(--spacing-8);
   }
+
+  .header-social-icon {
+    fill: var(--color-text-lighter);
+  }
 }
 
 @media (max-width: 400px) {
@@ -367,7 +381,7 @@ footer span {
   }
 
   .header-text {
-    margin-top: var(--spacing-6);
+    margin-top: var(--spacing-8);
     margin-bottom: var(--spacing-1);
   }
 
@@ -377,7 +391,7 @@ footer span {
     top: 20px;
   }
 
-  /* .header-social-icons {
-    display: none;
-  } */
+  .header-social-icon {
+    fill: var(--color-text-lighter);
+  }
 }
