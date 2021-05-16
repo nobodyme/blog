@@ -202,10 +202,17 @@ a:focus {
   top: 10px;
 }
 
-.header-social-icons{
+.header-social {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.header-social-icons {
+  margin-right: var(--spacing-4);
+  margin-bottom: var(--spacing-0);
+  position: relative;
+  top: 16px;
 }
 
 .global-content-wrapper {
@@ -295,6 +302,36 @@ footer span {
 	background: var(--blue-50);
   padding: 20px;
 }
+
+/* liked post */
+.liked-post {
+  margin-bottom: var(--spacing-10);
+}
+
+.liked-post-header {
+  font-size: var(--fontSize-2);
+  color: var(--color-primary);
+  font-weight: var(--fontWeight-medium);
+  color: var(--color-text-lighter);
+}
+
+.liked-post-link-text {
+  font-size: var(--fontSize-2);
+  color: var(--color-primary);
+  font-weight: var(--fontWeight-medium);
+}
+
+.liked-post-link:hover {
+  text-decoration: none;
+}
+
+.liked-post-reaction {
+  margin-right: var(--spacing-4);
+  position: relative;
+  top: 5px;
+  fill: red;
+}
+
 
 /* Media queries */
 @media (max-width: 42rem) {
