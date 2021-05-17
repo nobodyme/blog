@@ -124,11 +124,10 @@ Resources:
 
   NestedStackB:
     Type: AWS::CloudFormation::Stack
-    DependsOn: NestedStackA
     Properties:
       TemplateURL: "https://testbucket-bucket.s3.amazonaws.com/nestedStack-B.yaml"
       Parameters:
-        ABatchJobDefinition: !GetAtt NestedStackA.Outputs.ABatchJobDefinition
+        ABatchJobDefinition: !GetAtt NestedStackA.Outputs.BatchArn
 ```
 
 **NestedStackA**
