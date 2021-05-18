@@ -83,7 +83,8 @@ While this worked well, there came the problem when we wanted to update the reso
 </div>
 </br>
 
-In our specific case, we wanted to pass an extra command-line argument to our python script along with `jobId` and `role`.
+In our specific case, we wanted to pass an extra command-line argument to our python script along with `jobId` and `role` and that updated the output value or the logical id of the resource, since it created a new version of the batch definition. </br>
+(Note: Not all updates change the output value)
 
 
 Now, what do we do? </br>
@@ -103,7 +104,7 @@ Either way, just repeating the above method would not be the best long-term appr
 
 We tried a few things and then something clicked, this problem was strikingly similar to managing `state` in a react component. What do you do when you have to share state between two sibling components?
 
-We [lift the state up](https://reactjs.org/docs/lifting-state-up.html) to the parent component and pass down the state as props to both the sibling. We tried to see if something similar would work. One difference is now we don't import the resource to be shared rather, we pass it down as a [parameter](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html) to a stack that needs it.
+We [lift the state up](https://reactjs.org/docs/lifting-state-up.html) to the parent component and pass down the state as props to both the sibling. We tried to see if something similar would work. One difference is now we don't import the resource that we want rather, we pass it down as a [parameter](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html) to the stack that needs it and reference it from there.
 
 The thing about parameters in Cloudformation is that it's not always known beforehand and can change depending on the user's input. So when we supply a resource as a parameter, Cloudformation shouldn't expect it to remain constant.
 
