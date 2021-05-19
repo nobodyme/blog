@@ -47,5 +47,12 @@
     "link": "https://blog.usejournal.com/what-i-learned-in-my-first-two-years-as-a-software-engineer-4e374fdcf0fd",
     "reaction": "love",
     "tags": ["soft-skills", "motivation"]
+  },
+  {
+    "date": "2019-09-05T10:16:30.537Z",
+    "title": "Writing good component API",
+    "link": "https://sid.st/component-api/",
+    "reaction": "love",
+    "tags": ["react", "component-api-design", "design-patterns"]
   }
 ]
