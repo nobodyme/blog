@@ -169,7 +169,7 @@ if(image.status_code == 200):
 
 Now your program may work or may not still work as intended as we have two other edge cases to handle which you will only discover when you have tried different sets of data. If your program currently doesn't work well for you, you have a set of data that presents you with the edge case right at the beginning. Yes, it’s better you stumble upon these at first than building everything and wonder what went wrong. So what’s the error?
 
-The problem with these image links is that a lot of times image links on Reddit are from **Imgur** and **_sometimes_** Imgur links don’t open up as image files but rather as a page with a collection of images. Try the blow URLs yourself.
+The problem with these image links is that a lot of times image links on Reddit are from **Imgur** and **_sometimes_** Imgur links don’t open up as image files but rather as a page with a collection of images. Try the URLs below, yourself.
 
 1.  Normal url: [https://i.redd.it/qcqy40krxn911.png](https://i.redd.it/qcqy40krxn911.png) (or .jpeg with extensions)
 2.  Imgur url: [https://imgur.com/zXpT3vJ](https://imgur.com/zXpT3vJ)
@@ -252,4 +252,4 @@ There are few other edge cases that you would face while handling different sets
 
 You would see all of these improvements handled right here, in my [code on github](https://github.com/nobodyme/reddit-fetch/blob/master/grab_pictures.py).
 
-You will also find a similar program that fetches the [comments of a Reddit post](https://github.com/nobodyme/reddit-fetch/blob/master/fetch_comments.py) in a file in the same repo. Hope it is of some help. Put your questions below. Maybe give me a pull request if something can be improved. Cheers!
+You will also find a similar program that fetches the [comments of a Reddit post](https://github.com/nobodyme/reddit-fetch/blob/master/fetch_comments.py) in a file in the same repo. Hope it is of some help. Maybe give me a pull request if something can be improved. Cheers!
