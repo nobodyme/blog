@@ -61,5 +61,12 @@
     "link": "https://twitter.com/i/events/994601867987619840",
     "reaction": "love",
     "tags": ["UI", "design"]
+  },
+  {
+    "date": "2021-10-30T10:16:30.537Z",
+    "title": "Scaling hotstar for 25m concurrent users",
+    "link": "https://www.youtube.com/watch?v=QjvyiyH4rr0",
+    "reaction": "love",
+    "tags": ["Devops", "video", "talk", "scaling"]
   }
 ]
