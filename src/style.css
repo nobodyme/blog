@@ -345,6 +345,14 @@ footer span {
   top: 5px;
 }
 
+.giscus, .giscus-frame {
+  width: 100%;
+}
+
+.giscus-frame {
+  border: none;
+}
+
 
 /* Media queries */
 @media (max-width: 42rem) {

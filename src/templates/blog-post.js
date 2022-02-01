@@ -9,6 +9,31 @@ const BlogPostTemplate = ({ data, location }) => {
   const siteTitle = data.site.siteMetadata?.title || `Title`
   const { previous, next } = data
 
+  React.useEffect(() => {
+    const script = document.createElement('script');
+    const attributes = {
+      src: 'https://giscus.app/client.js',
+      id: 'giscus-script',
+      'data-repo': 'nobodyme/blog',
+      'data-repo-id': 'MDEwOlJlcG9zaXRvcnkzNjU3NTQxMTI=',
+      'data-category-id': 'DIC_kwDOFcz3AM4CA8kh',
+      'data-mapping': 'pathname',
+      'data-theme': 'light',
+      crossOrigin: 'anonymous',
+      async: '',
+    };
+
+    Object.entries(attributes).forEach(([name, value]) =>
+      script.setAttribute(name, value),
+    );
+    document.body.appendChild(script);
+
+    return () => {
+      const existingScript = document.body.querySelector('#giscus-script');
+      if (existingScript) document.body.removeChild(existingScript);
+    };
+  }, []);
+
   return (
     <Layout location={location} title={siteTitle}>
       <Seo
@@ -30,6 +55,7 @@ const BlogPostTemplate = ({ data, location }) => {
           className="blog-content"
         />
         <hr />
+        <div className="giscus"></div>
         <footer>
           {/* <Bio /> */}
         </footer>
