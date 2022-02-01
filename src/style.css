@@ -353,6 +353,10 @@ footer span {
   border: none;
 }
 
+.hr {
+  margin-bottom: 20px;
+}
+
 
 /* Media queries */
 @media (max-width: 42rem) {

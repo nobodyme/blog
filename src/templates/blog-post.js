@@ -3,37 +3,13 @@ import { Link, graphql } from "gatsby"
 
 import Layout from "../components/layout"
 import Seo from "../components/seo"
+import Comments from "../components/comments"
 
 const BlogPostTemplate = ({ data, location }) => {
   const post = data.markdownRemark
   const siteTitle = data.site.siteMetadata?.title || `Title`
   const { previous, next } = data
-
-  React.useEffect(() => {
-    const script = document.createElement('script');
-    const attributes = {
-      src: 'https://giscus.app/client.js',
-      id: 'giscus-script',
-      'data-repo': 'nobodyme/blog',
-      'data-repo-id': 'MDEwOlJlcG9zaXRvcnkzNjU3NTQxMTI=',
-      'data-category-id': 'DIC_kwDOFcz3AM4CA8kh',
-      'data-mapping': 'pathname',
-      'data-theme': 'light',
-      crossOrigin: 'anonymous',
-      async: '',
-    };
-
-    Object.entries(attributes).forEach(([name, value]) =>
-      script.setAttribute(name, value),
-    );
-    document.body.appendChild(script);
-
-    return () => {
-      const existingScript = document.body.querySelector('#giscus-script');
-      if (existingScript) document.body.removeChild(existingScript);
-    };
-  }, []);
-
+ 
   return (
     <Layout location={location} title={siteTitle}>
       <Seo
@@ -54,13 +30,12 @@ const BlogPostTemplate = ({ data, location }) => {
           itemProp="articleBody"
           className="blog-content"
         />
-        <hr />
-        <div className="giscus"></div>
-        <footer>
-          {/* <Bio /> */}
-        </footer>
+        {/* <footer>
+          <Bio />
+        </footer> */}
       </article>
       <nav className="blog-post-nav">
+        <hr className="hr"/>
         <ul
           style={{
             display: `flex`,
@@ -85,7 +60,9 @@ const BlogPostTemplate = ({ data, location }) => {
             )}
           </li>
         </ul>
+        <hr className="hr"/>
       </nav>
+      <Comments/>
     </Layout>
   )
 }
