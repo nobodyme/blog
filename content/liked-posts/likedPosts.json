@@ -72,7 +72,7 @@
   {
    "date": "2022-02-07T18:49:51.955Z",
    "title": "Configuring Eslint and Prettier for modern JS projects",
-   "link": "https://www.youtube.com/watch?v=QjvyiyH4rr0",
+   "link": "https://glebbahmutov.com/blog/configure-prettier-in-vscode/",
    "reaction": "love",
    "tags": ["tooling", "javascript", "typescript", "eslint", "prettier"]
   }
