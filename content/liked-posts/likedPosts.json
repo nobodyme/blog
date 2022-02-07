@@ -39,7 +39,7 @@
     "title": "Why is esbuild fast?",
     "link": "https://esbuild.github.io/faq/#why-is-esbuild-fast",
     "reaction": "to-the-moon",
-    "tags": ["esbuild", "motivation"]
+    "tags": ["esbuild", "tooling", "motivation"]
   },
   {
     "date": "2019-02-13T10:16:30.537Z",
@@ -68,5 +68,12 @@
     "link": "https://www.youtube.com/watch?v=QjvyiyH4rr0",
     "reaction": "love",
     "tags": ["Devops", "video", "talk", "scaling"]
+  },
+  {
+   "date": "2022-02-07T18:49:51.955Z",
+   "title": "Configuring Eslint and Prettier for modern JS projects",
+   "link": "https://www.youtube.com/watch?v=QjvyiyH4rr0",
+   "reaction": "love",
+   "tags": ["tooling", "javascript", "typescript", "eslint", "prettier"]
   }
 ]
