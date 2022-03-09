@@ -75,5 +75,12 @@
    "link": "https://glebbahmutov.com/blog/configure-prettier-in-vscode/",
    "reaction": "love",
    "tags": ["tooling", "javascript", "typescript", "eslint", "prettier"]
+  },
+  {
+    "date": "2022-03-09T12:32:06.383Z",
+    "title": "React Query",
+    "link": "https://www.youtube.com/watch?v=seU46c6Jz7E",
+    "reaction": "love",
+    "tags": ["react", "state-management", "javascript", "react-query"]
   }
 ]
