@@ -78,7 +78,7 @@
   },
   {
     "date": "2022-03-09T12:32:06.383Z",
-    "title": "React Query",
+    "title": "React Query: It’s Time to Break up with your \"Global State\"!",
     "link": "https://www.youtube.com/watch?v=seU46c6Jz7E",
     "reaction": "love",
     "tags": ["react", "state-management", "javascript", "react-query"]
