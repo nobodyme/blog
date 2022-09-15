@@ -82,5 +82,12 @@
     "link": "https://www.youtube.com/watch?v=seU46c6Jz7E",
     "reaction": "love",
     "tags": ["react", "state-management", "javascript", "react-query"]
+  },
+  {
+    "date": "2022-08-13T09:10:06.383Z",
+    "title": "Microservices – Please, don’t",
+    "link": "https://riak.com/posts/technical/microservices-please-dont/index.html?p=12525.html",
+    "reaction": "exploding-head",
+    "tags": ["microservices", "architecture", "monolith"]
   }
 ]
