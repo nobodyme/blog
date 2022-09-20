@@ -1,9 +1,9 @@
 ---
-title: Decoupling AWS Cloudformation Templates
+title: Decoupling AWS CloudFormation Templates
 date: "2021-05-15T20:08:57.486Z"
 ---
 
-While using [Cloudformation](https://aws.amazon.com/cloudformation/) templates for deploying our infrastructure, we had to face the fact that a Cloudformation stack can only contain a maximum of [200 resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cloudformation-limits.html)(now 500).
+While using [CloudFormation](https://aws.amazon.com/cloudformation/) templates for deploying our infrastructure, we had to face the fact that a CloudFormation stack can only contain a maximum of [200 resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cloudformation-limits.html)(now 500).
 
 ### Working around the limit
 
@@ -76,7 +76,7 @@ Resources:
           batchJob: !ImportValue "ABatchJobDefinition"
 ```
 
-While this worked well, there came the problem when we wanted to update the resource that is shared. In this case, it's the batch definition. Now whenever an update changed the output value of the shared resource, Cloudformation would complain that the [resource is in use by another stack](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-stack-exports.html) and therefore cannot be updated.
+While this worked well, there came the problem when we wanted to update the resource that is shared. In this case, it's the batch definition. Now whenever an update changed the output value of the shared resource, CloudFormation would complain that the [resource is in use by another stack](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-stack-exports.html) and therefore cannot be updated.
 
 <div class="error-box">
   Export ABatchJobDefinition cannot be updated as it is in use by main-stack-NestedStackB-1F4FO24RCWJGY
@@ -106,7 +106,7 @@ We tried a few things and then something clicked, this problem was strikingly si
 
 We [lift the state up](https://reactjs.org/docs/lifting-state-up.html) to the parent component and pass down the state as props to both the sibling. We tried to see if something similar would work. One difference is now we don't import the resource that we want rather, we pass it down as a [parameter](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html) to the stack that needs it and reference it from there.
 
-The thing about parameters in Cloudformation is that it's not always known beforehand and can change depending on the user's input. So when we supply a resource as a parameter, Cloudformation shouldn't expect it to remain constant.
+The thing about parameters in CloudFormation is that it's not always known beforehand and can change depending on the user's input. So when we supply a resource as a parameter, CloudFormation shouldn't expect it to remain constant.
 
 1) We exported the resource to be shared as usual from NestedStackA.
 2) From the parent stack, we passed the output as a parameter to the NestedStackB.
