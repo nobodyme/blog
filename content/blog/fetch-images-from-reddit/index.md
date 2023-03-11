@@ -57,22 +57,15 @@ That sure works, but what this does is, install the requests library globally fo
 1.  We need an isolated environment where we can install libraries just for our program.
 2.  We will then need the list of libraries our code uses along with the exact version so that we can share it along with our code.
 
-So let’s try and install something called a `virtualenv`, which lets us create this nice comfortable isolated environment for our program. _Of course you could also use_ [_pipenv_](https://docs.pipenv.org)_._
+If you python environment does not already have pip, [here's how you can install](https://pip.pypa.io/en/stable/installation/).
 
-So if you’re on ubuntu do follow the instructions below, if you’re on windows or mac you could [try this link here](https://packaging.python.org/guides/installing-using-pip-and-virtualenv/).
-
-```bash
-sudo apt-get install virtualenv
-sudo apt-get install python3-pip
-```
-
-PIP is the recursive acronym for “Pip install Packages” commonly used for installing python packages or libraries. So since both pip and virtualenv are installed, let's set up our development environment for our program.
+PIP is the recursive acronym for “Pip install Packages” commonly used for installing python packages or libraries. Now let's set up our development environment for our program.
 
 Go to the project folder and then type,
 
 ```bash
 # creates a directory called env
-virtualenv -p python3 env
+python3 -m venv env
 # activates the env directory so that our program's packages will be installed in it instead of the root
 source env/bin/activate
 ```
