@@ -122,6 +122,7 @@ module.exports = {
               }
             `,
             output: "/rss.xml",
+            title: "The Curious Engineer",
             image_url: `src/assets/images/binoculars-40.png`
           },
         ],
