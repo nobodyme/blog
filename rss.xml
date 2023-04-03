@@ -1,0 +1,898 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[The Curious Engineer]]></title><description><![CDATA[The Curious Engineer - documenting learning]]></description><link>https://nobodyme.github.io/blog</link><image><url>src/assets/images/binoculars-40.png</url><title>The Curious Engineer</title><link>https://nobodyme.github.io/blog</link></image><generator>GatsbyJS</generator><lastBuildDate>Mon, 03 Apr 2023 05:33:38 GMT</lastBuildDate><item><title><![CDATA[Decoupling AWS CloudFormation Templates]]></title><description><![CDATA[While using CloudFormation templates for deploying our infrastructure, we had to face the fact that a CloudFormation stack can only contain…]]></description><link>https://nobodyme.github.io/blog/decoupling-aws-cloudformation-templates/</link><guid isPermaLink="false">https://nobodyme.github.io/blog/decoupling-aws-cloudformation-templates/</guid><pubDate>Sat, 15 May 2021 20:08:57 GMT</pubDate><content:encoded>&lt;p&gt;While using &lt;a href=&quot;https://aws.amazon.com/cloudformation/&quot;&gt;CloudFormation&lt;/a&gt; templates for deploying our infrastructure, we had to face the fact that a CloudFormation stack can only contain a maximum of &lt;a href=&quot;https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cloudformation-limits.html&quot;&gt;200 resources&lt;/a&gt;(now 500).&lt;/p&gt;
+&lt;h3&gt;Working around the limit&lt;/h3&gt;
+&lt;p&gt;We decided to split our infrastructure into multiple stacks. CloudFormation has two main design patterns to achieve this, the &lt;a href=&quot;https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-stack.html&quot;&gt;Nested Stack mode&lt;/a&gt; and the &lt;a href=&quot;https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/walkthrough-crossstackref.html&quot;&gt;Cross Stack Reference mode&lt;/a&gt;. We went with Nested Stack Mode and we decided to split our resources based on the resource type. Similar resources were grouped in a single stack like shown below, &lt;/br&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;main-stack.yaml
+&lt;ul&gt;
+&lt;li&gt;backend-lambda-stack.yaml&lt;/li&gt;
+&lt;li&gt;api-gateway-stack.yaml&lt;/li&gt;
+&lt;li&gt;batch-stack.yaml&lt;/li&gt;
+&lt;li&gt;…&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Hence obviously, there came instances where one stack depended on the resources created by another stack, at that time we exported that particular resource and imported it in the stack that required it like shown in the example below,&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;ParentStack&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;AWSTemplateFormatVersion: &apos;2010-09-09&apos;
+Description: &apos;main-parent-stack&apos;
+
+Resources:
+  NestedStackA:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: &quot;https://testbucket-bucket.s3.amazonaws.com/nestedStack-A.yaml&quot;
+
+  NestedStackB:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: NestedStackA
+    Properties:
+      TemplateURL: &quot;https://testbucket-bucket.s3.amazonaws.com/nestedStack-B.yaml&quot;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;NestedStackA&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;AWSTemplateFormatVersion: &apos;2010-09-09&apos;
+Description: &apos;nested stack A&apos;
+
+Resources:
+  ABatchJobDefinition:
+    Type: AWS::Batch::JobDefinition
+    Properties:
+      ...
+      ...
+        Command:
+          - python3
+          - /app/script.py
+          - Ref::jobId
+          - Ref::role
+
+Outputs:
+  BatchArn:
+    Value:
+      Ref: ABatchJobDefinition
+    Export:
+      Name: &quot;ABatchJobDefinition&quot;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;NestedStackB&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;AWSTemplateFormatVersion: &apos;2010-09-09&apos;
+Description: &apos;nested stack B&apos;
+
+Resources:
+  NestedTestLambdaFunction:
+    ...
+    ...
+      Environment:
+        Variables:
+          batchJob: !ImportValue &quot;ABatchJobDefinition&quot;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;While this worked well, there came the problem when we wanted to update the resource that is shared. In this case, it’s the batch definition. Now whenever an update changed the output value of the shared resource, CloudFormation would complain that the &lt;a href=&quot;https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-stack-exports.html&quot;&gt;resource is in use by another stack&lt;/a&gt; and therefore cannot be updated.&lt;/p&gt;
+&lt;div class=&quot;error-box&quot;&gt;
+  Export ABatchJobDefinition cannot be updated as it is in use by main-stack-NestedStackB-1F4FO24RCWJGY
+&lt;/div&gt;
+&lt;/br&gt;
+&lt;p&gt;In our specific case, we wanted to pass an extra command-line argument to our python script along with &lt;code class=&quot;language-text&quot;&gt;jobId&lt;/code&gt; and &lt;code class=&quot;language-text&quot;&gt;role&lt;/code&gt; and that updated the output value or the logical id of the resource, since it created a new version of the batch definition. &lt;/br&gt;
+(Note: Not all updates change the output value)&lt;/p&gt;
+&lt;p&gt;Now, what do we do? &lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;One solution is to &lt;a href=&quot;https://aws.amazon.com/premiumsupport/knowledge-center/cloudformation-stack-export-name-error/&quot;&gt;follow this process&lt;/a&gt;,&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Update NestedStackB to replace the import statements with the actual output value and deploy it.&lt;/li&gt;
+&lt;li&gt;Now that the dependency has been removed, update NestedStackA with the additional parameter and deploy it.&lt;/li&gt;
+&lt;li&gt;Then again in NestedStackB replace the actual output value with the import statement like earlier and deploy it again.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Sure that works, but,&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;What if we want to update that resource again by adding another parameter? &lt;/br&gt;&lt;/li&gt;
+&lt;li&gt;What if there are multiple stacks that use the same resource in the future? &lt;/br&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Either way, just repeating the above method would not be the best long-term approach.&lt;/p&gt;
+&lt;h3&gt;How do we decouple them?&lt;/h3&gt;
+&lt;p&gt;We tried a few things and then something clicked, this problem was strikingly similar to managing &lt;code class=&quot;language-text&quot;&gt;state&lt;/code&gt; in a react component. What do you do when you have to share state between two sibling components?&lt;/p&gt;
+&lt;p&gt;We &lt;a href=&quot;https://reactjs.org/docs/lifting-state-up.html&quot;&gt;lift the state up&lt;/a&gt; to the parent component and pass down the state as props to both the sibling. We tried to see if something similar would work. One difference is now we don’t import the resource that we want rather, we pass it down as a &lt;a href=&quot;https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html&quot;&gt;parameter&lt;/a&gt; to the stack that needs it and reference it from there.&lt;/p&gt;
+&lt;p&gt;The thing about parameters in CloudFormation is that it’s not always known beforehand and can change depending on the user’s input. So when we supply a resource as a parameter, CloudFormation shouldn’t expect it to remain constant.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;We exported the resource to be shared as usual from NestedStackA.&lt;/li&gt;
+&lt;li&gt;From the parent stack, we passed the output as a parameter to the NestedStackB.&lt;/li&gt;
+&lt;li&gt;The NestedStackB just referenced the resource from the parameter.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;ParentStack&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;AWSTemplateFormatVersion: &apos;2010-09-09&apos;
+Description: &apos;main-parent-stack&apos;
+
+Resources:
+  NestedStackA:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: &quot;https://testbucket-bucket.s3.amazonaws.com/nestedStack-A.yaml&quot;
+
+  NestedStackB:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: &quot;https://testbucket-bucket.s3.amazonaws.com/nestedStack-B.yaml&quot;
+      Parameters:
+        ABatchJobDefinition: !GetAtt NestedStackA.Outputs.BatchArn&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;NestedStackA&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;AWSTemplateFormatVersion: &apos;2010-09-09&apos;
+Description: &apos;nested stack A&apos;
+
+Resources:
+  ABatchJobDefinition:
+    Type: AWS::Batch::JobDefinition
+    Properties:
+      ...
+      ...
+        Command:
+          - python3
+          - /app/script.py
+          - Ref::jobId
+          - Ref::role
+
+Outputs:
+  BatchArn:
+    Value:
+      Ref: ABatchJobDefinition
+    Export:
+      Name: &quot;ABatchJobDefinition&quot;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;NestedStackB&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;AWSTemplateFormatVersion: &apos;2010-09-09&apos;
+Description: &apos;nested stack B&apos;
+
+Parameters:
+  ABatchJobDefinition:
+      Type: String
+
+Resources:
+  NestedTestLambdaFunction:
+    ...
+    ...
+      Environment:
+        Variables:
+          batchJob: !Ref ABatchJobDefinition&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;And that worked, which we later confirmed with AWS Support to be the right way to go about sharing resources in the Nested Stack mode. This allowed us to continue to update resources in the stack without worrying about change.&lt;/p&gt;</content:encoded></item><item><title><![CDATA[Dynamic Programming]]></title><description><![CDATA[There were a huge number of sources on the internet on this topic but still, we (me and my friend) couldn’t understand any of it for a very…]]></description><link>https://nobodyme.github.io/blog/dynamic-programming/</link><guid isPermaLink="false">https://nobodyme.github.io/blog/dynamic-programming/</guid><pubDate>Wed, 01 Aug 2018 08:40:32 GMT</pubDate><content:encoded>&lt;p&gt;There were a huge number of sources on the internet on this topic but still, we (me and my friend) couldn’t understand any of it for a very long time until we fiddled with code and tracked the output for every change in the input. So this repository is exactly created for people like us to make the transition from &lt;a href=&quot;https://en.wikipedia.org/wiki/Greedy_algorithm&quot;&gt;greedy&lt;/a&gt; to dynamic programming easier. This will just be an introduction to dynamic programming so that one can pick it up from there. I have added additional sources for practice and other online tutorials that I found a little helpful at the end and will continue to do so as I find something new. It is for programmers who are comfortable with brute force and might not serve the purpose of absolute beginners. Contributions or suggestions are welcome.&lt;/p&gt;
+&lt;h3&gt;Definition&lt;/h3&gt;
+&lt;p&gt;So what’s dynamic programming? Let’s first look at a more formal definition.&lt;/p&gt;
+&lt;p&gt;Dynamic programming (also known as dynamic optimization) is a method for solving a complex problem by breaking it down into a collection of simpler subproblems, solving each of those subproblems just once, and storing their solutions. The next time the same subproblem occurs, instead of recomputing its solution, one simply looks up the previously computed solution, thereby saving computation time at the expense of a (hopefully) modest expenditure in storage space. (Each of the subproblem solutions is indexed in some way, typically based on the values of its input parameters, to facilitate its lookup)&lt;a href=&quot;https://en.wikipedia.org/wiki/Dynamic_programming&quot;&gt;(Source-Wiki)&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Or more simply, it is a technique to save intermediate results in a calculation in any comfortable format so that the result can be used for further computation instead of calculating it all over again at the arrival of additional input. Sounds simple enough? Yes, indeed it is, let’s have a look at an example to put it right through our skull.&lt;/p&gt;
+&lt;p&gt;Before that, we need to identify whether a problem has the following properties, in order to be solved by Dynamic Programming(DP)&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://www.geeksforgeeks.org/dynamic-programming-set-1/&quot;&gt;Overlapping Sub-problem&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://www.geeksforgeeks.org/dynamic-programming-set-2-optimal-substructure-property/&quot;&gt;Optimal Substructure&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Problems:&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;#problem-1&quot;&gt;Minimum cost problem&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#problem-2&quot;&gt;Longest increasing subsequence&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Minimum cost problem &lt;a name=&quot;problem-1&quot;&gt;&lt;/a&gt;&lt;/h3&gt;
+&lt;p&gt;Given a cost matrix cost[][] and a position (m, n) in cost[][], write a function that returns cost of minimum cost path to reach (m, n) from (0, 0). Each cell of the matrix represents a cost to traverse through that cell. The total cost of a path to reach (m, n) is the sum of all the costs on that path (including both source and destination). You can only traverse down, right and diagonally lower cells from a given cell, i.e., from a given cell (i, j), cells (i+1, j), (i, j+1) and (i+1, j+1) can be traversed. You may assume that all costs are positive integers.&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;1&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;3&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;4&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;8&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;(forgive the highlighting of the first row it is of no special significance)&lt;/p&gt;
+&lt;h4&gt;Solution:&lt;/h4&gt;
+&lt;p&gt;&lt;strong&gt;Me:&lt;/strong&gt; So how would you go on solving that?&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Oh, the properties I read talked about saving the sub-problems to make the computations easier!&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; What are the sub-problems here? &lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Oh, it’s too tough.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; No, it’s not we will work together.&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;How would you normally solve it, forgetting about code for a minute?&lt;/br&gt;
+You probably eye all the cells, adding the cost along the path till you reach the destination. But you don’t know if it’s minimum, so you start adding again by traversing in a different direction. Then maybe after considering all paths, you come up with a cost that gives you the least.&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;That’s pretty much it.&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;My friend interrupts,&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; But the above method only solves the problem for one particular destination, what if we want to calculate the total cost for reaching a different destination.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Good point!&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; That’s why we store the minimum cost for reaching each cell in the array from the first cell. That way when we fill up all cells we will be left with solutions of every cell.&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; I lost you there.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Haha, let me finish.&lt;/p&gt;
+&lt;p&gt;So what do we know so far?&lt;/br&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;There’s an array and we can move right, down and diagonally lower.&lt;/br&gt;&lt;/li&gt;
+&lt;li&gt;We need to print the minimum cost of traversing to the given destination.&lt;/br&gt;&lt;/li&gt;
+&lt;li&gt;And we start at the first cell.&lt;/br&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4&gt;Breaking down the problem:&lt;/h4&gt;
+&lt;p&gt;&lt;strong&gt;Me:&lt;/strong&gt; What is simply the cost of moving from [0,0] to [0,1]?&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; It’s &lt;code class=&quot;language-text&quot;&gt;2 + 1 = 3&lt;/code&gt;&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; What is the minimum cost of moving from [0,0] to [0,1]?&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Still 3, because there’s no other way we could reach [0,1] since we can only move right or down or diagonally lower. We can &lt;strong&gt;only&lt;/strong&gt; reach [0,1] from [0,0].&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Excellent! So what is the minimum cost of moving from [0,1] to [0,2]?&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Oh wait, the cost of moving from &lt;strong&gt;[0,0] to [0,1]&lt;/strong&gt; is &lt;strong&gt;3&lt;/strong&gt;, hence &lt;strong&gt;[0,1] to [0,2]&lt;/strong&gt; would be  &lt;code class=&quot;language-text&quot;&gt;3 + cost of getting to (0,2)&lt;/code&gt; which is &lt;code class=&quot;language-text&quot;&gt;3 + 3 = 6&lt;/code&gt;. &lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Now shall we store this obtained cost corresponding to each cell in a different array, so that we can return them, when the cell is the destination?&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Fair enough.&lt;/p&gt;
+&lt;table&gt;
+&lt;tr&gt;&lt;th&gt;Table A &lt;/th&gt; &lt;th&gt;Min cost&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;1&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;3&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;4&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;8&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/td&gt;&lt;td&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;1&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;3&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;6&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/td&gt;&lt;/tr&gt; &lt;/table&gt;
+&lt;p&gt;Why not code it up too?&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;c&quot;&gt;&lt;pre class=&quot;language-c&quot;&gt;&lt;code class=&quot;language-c&quot;&gt;minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; a&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;n&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+  minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; a&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;where n is the number of rows&lt;/p&gt;
+&lt;p&gt;We transfer the first element as it is to the &lt;code class=&quot;language-text&quot;&gt;min cost table&lt;/code&gt; and calculate the cost of others in the row.&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Friend:&lt;/strong&gt; Why not the columns? The cells in the first column have only one way of reaching them too, which is down from the first cell.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Yeah absolutely, that’s our next step.&lt;/p&gt;
+&lt;p&gt;Similarly, we calculate the cost of reaching each column by adding the cell with the previous ones in the column.&lt;/p&gt;
+&lt;table&gt;
+&lt;tr&gt;&lt;th&gt;Table A &lt;/th&gt; &lt;th&gt;Min cost&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;1&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;3&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;4&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;8&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/td&gt;&lt;td&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;1&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;3&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;6&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;6&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/td&gt;&lt;/tr&gt; &lt;/table&gt;
+&lt;p&gt;We’ll code that up too!&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;c&quot;&gt;&lt;pre class=&quot;language-c&quot;&gt;&lt;code class=&quot;language-c&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;m&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+  minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; a&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;where m is the number of columns&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Friend:&lt;/strong&gt; Now, how do we calculate the minimum cost to reach cell [1,1]?&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; We know we can only traverse left, down or diagonally lower cell. Hence we can reach cell [1,1] only from cell [0,0] or [0,1] or [1,0]. So now that our table already has the minimum values to reach [0,0], [0,1] and [1,0], simply the minimum of those three values plus the cost of reaching cell [1,1] gives us our result.&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;So the cost to reach the cell,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;[1,1] = a[1,1] + min(minarr[0,0], minarr[0,1], minarr[1,0])
+minarr[1,1] = 8 + min(1,3,5)
+So, minarr[1,1] = 9&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Similarly, we do for all cells, starting from 1,1.&lt;/p&gt;
+&lt;p&gt;Let’s code it up again,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;c&quot;&gt;&lt;pre class=&quot;language-c&quot;&gt;&lt;code class=&quot;language-c&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;n&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;m&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;a&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;min&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;table&gt;
+&lt;tr&gt;&lt;th&gt;Table A &lt;/th&gt; &lt;th&gt;Min cost&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;1&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;3&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;4&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;8&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/td&gt;&lt;td&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;1&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;3&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;6&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;9&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;6&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;10&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;8&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/td&gt;&lt;/tr&gt; &lt;/table&gt;
+&lt;p&gt;Now that our table is filled, we simply return the cell of the given destination in the minimum cost array. The full code is &lt;a href=&quot;https://github.com/nobodyme/Dynamic-Programming/blob/master/minimum-cost-path.C&quot;&gt;given here&lt;/a&gt;. Here is a &lt;a href=&quot;http://practice.geeksforgeeks.org/problems/largest-zigzag-sequence/0&quot;&gt;similar problem&lt;/a&gt;, try it on your own and another similar problem is added in the &lt;a href=&quot;https://github.com/nobodyme/dynamic-programming/blob/master/Count-all-paths.C&quot;&gt;repository&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Hence by considering the elements one by one we have built up our solution or in DP terms, we have acquired our solution in bottom-up fashion(tabulation method) from the sub-problems. There’s another approach to it called memoization. The difference between both is explained in the &lt;a href=&quot;http://www.geeksforgeeks.org/tabulation-vs-memoizatation/&quot;&gt;article over here&lt;/a&gt;.&lt;/p&gt;
+&lt;h3&gt;Longest increasing subsequence &lt;a name=&quot;problem-2&quot;&gt;&lt;/a&gt;&lt;/h3&gt;
+&lt;p&gt;The Longest Increasing Subsequence (LIS) problem is to find the length of the longest subsequence of a given sequence such that all elements of the subsequence are sorted in increasing order.
+For example, the length of LIS for {10, 12, 32, 2, 22, 23, 25, 30} is 6 and LIS is {10, 12, 22, 23, 25, 30}&lt;/p&gt;
+&lt;h4&gt;Solution:&lt;/h4&gt;
+&lt;p&gt;How would go on solving this problem? What would you store to make the calculations easier? Okay simply, how would you solve the above problem using &lt;strong&gt;brute force&lt;/strong&gt; just like how you would perform a &lt;a href=&quot;https://en.wikipedia.org/wiki/Selection_sort&quot;&gt;selection sort&lt;/a&gt;!&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;32&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;22&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;23&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;25&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;30&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;k,i&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;strong&gt;Friend:&lt;/strong&gt; I would compare every element with every other element, if it’s greater than the current one, I would increase the count variable and I would print the highest count, I get. Roughly I would code it something like this&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;pseudo-code&lt;/strong&gt;&lt;/em&gt; (It’s okay if you don’t understand my friend’s code) &lt;/br&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;c&quot;&gt;&lt;pre class=&quot;language-c&quot;&gt;&lt;code class=&quot;language-c&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;n&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+  count &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;k&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;n&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;k&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;n&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;a&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt; a&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;k&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+      k&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;j&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+count&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;count&lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt;maxi&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+      maxi &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; count&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;token function&quot;&gt;printf&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;\nMax-length = %d\n&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;maxi&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;Me:&lt;/strong&gt; Let’s run it.&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Uh? Okay.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; So what’s the output?&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; The program returns, &lt;code class=&quot;language-text&quot;&gt;max-length = 5&lt;/code&gt;, which I guess is {2, 22, 23, 24, 25}. But we know it’s 6 and the LIS is {10, 12, 22, 23, 25, 30}.&lt;/br&gt;
+Why does it fail to catch the above lis?&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Me:&lt;/strong&gt; Because while traversing {10, 12, 32, 22, 23, 25, 30} the code will run as follows,it will check,&lt;/br&gt;
+if(10&gt;12) yes—&gt; count is 2, then&lt;/br&gt;
+if(32&gt;12) yes—&gt; count is 3, then&lt;/br&gt;
+At this point &lt;strong&gt;count = 3&lt;/strong&gt;, from there on count won’t get incremented because the following elements are lesser than 32 and hence condition like (22&gt;32) will consecutively fail.&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Friend:&lt;/strong&gt; If only it knew that by &lt;strong&gt;avoiding 32&lt;/strong&gt; and traversing through the rest of the array we would obtain the result which is &lt;code class=&quot;language-text&quot;&gt;max-length = 6&lt;/code&gt;.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; This is exactly the information we store for our computation using DP. In brute force terms, we store the count variable for all possible alternatives of traversal in the array and then simply find the maximum of it (Not that brute force cannot solve the problem, a different approach might but definitely in exponential time).&lt;/p&gt;
+&lt;div class=&quot;info-box&quot;&gt;
+Note: And my friend has set count=1 and not 0 initially because when we have a case where all numbers are the same in the array i.e {2, 2, 2, 2}. We must return count as 1 since one element { 2 } is still a subarray of the larger one.
+&lt;/div&gt;
+&lt;h4&gt;DP solution:&lt;/h4&gt;
+&lt;p&gt;&lt;strong&gt;Me:&lt;/strong&gt; So how would you code the same in DP, well actually it’s easier.&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Since you said we store counts of all variables, we initialize an array of the same size of corresponding counts?&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Exactly, we first start by creating another array for storing the count for each member of the array as we discussed and initialize all of them to &lt;strong&gt;1&lt;/strong&gt;.&lt;/br&gt;&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;32&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;22&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;23&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;25&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;30&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;strong&gt;Friend:&lt;/strong&gt; Now we check in a similar way?&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Yeah but for now, lets us consider only the element &lt;strong&gt;10&lt;/strong&gt; exists in the array.&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Why?&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; To make it simpler?! Why else? Listen along. So what is the longest increasing subsequence then?&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; 1 of course and LIS is {10}.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; So now, say, we add 12 and set its initial count to 1&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;strong&gt;Friend:&lt;/strong&gt; We check &lt;strong&gt;if(12&gt;10)&lt;/strong&gt; so 12’s count gets incremented? &lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Yes, now that 12&gt;10, 12’s count becomes &lt;code class=&quot;language-text&quot;&gt;count of 10 + 1&lt;/code&gt; since count of 10 already represents the longest increasing subsequence that can be made with the existing elements. Count of 12 now represents {10} + {12} = {10 ,12} or simply &lt;code class=&quot;language-text&quot;&gt;count[i] = count[j]+1;&lt;/code&gt; which is 2&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Friend:&lt;/strong&gt; So let me clear this up, when 10 was alone LIS is 1 and now that 12 is added and we find {10, 12} could be LIS since 12&gt;10 and so we add count of 10’s to 12’s count and add 1 to include the number itself.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; That’s right and the array becomes,&lt;/br&gt;&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;Now let us consider 32, increment &lt;code class=&quot;language-text&quot;&gt;i to 32 and j to 10&lt;/code&gt; i.e. j to the starting element of the array and traverse from the beginning to see &lt;strong&gt;adding 32&lt;/strong&gt; provides a longer subsequence.
+&lt;/br&gt;The array becomes,&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;32&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;/br&gt;&lt;strong&gt;Friend:&lt;/strong&gt; Yes, it does prove longer. Since &lt;strong&gt;(32&gt;10)&lt;/strong&gt; therefore we increment 32’s count —&gt; count[i] = count[j]+1;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Me:&lt;/strong&gt; We check all numbers before 32 to see if they can be added to form a sequence with it, so increment j, continue filling in the boxes!&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://user-images.githubusercontent.com/22789194/27852855-3ce86814-6150-11e7-9a31-bcb108e1308d.gif&quot; alt=&quot;animated&quot;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;/br&gt;&lt;strong&gt;Friend&lt;/strong&gt;: Okay I will, So &lt;strong&gt;if(32&gt;12)&lt;/strong&gt; —&gt; 32’s count = 12’s count + 1 = (2+1) = 3&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;32&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;/br&gt;Similarly, &lt;strong&gt;considering element 2&lt;/strong&gt; the array becomes,&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;32&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;/br&gt;The array stays the same since each case checking &lt;strong&gt;if(2&gt;10)&lt;/strong&gt; , &lt;strong&gt;if(2&gt;12)&lt;/strong&gt; or &lt;strong&gt;if(2&gt;32)&lt;/strong&gt; fails, and it’s count variable remains unchanged.&lt;/p&gt;
+&lt;p&gt;&lt;/br&gt; Now I’m adding the next number, &lt;strong&gt;22&lt;/strong&gt; and check for 10, 12, 32, similar to the previous one, for 10 and 12, the count of 22 is incremented to 3 and with 32 it fails and remains as 3, and j is incremented to point 2.&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;32&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;22&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;/br&gt;Now &lt;strong&gt;if(22 &gt; 2)&lt;/strong&gt; —&gt; count of 22 becomes &lt;code class=&quot;language-text&quot;&gt;count[j]+1&lt;/code&gt; i.e. 2?
+&lt;/br&gt;&lt;strong&gt;Me:&lt;/strong&gt; Haha, glad you paused and asked, in short, &lt;strong&gt;No&lt;/strong&gt;, we know that count reflects the longest subsequence. By traversing other elements in the array, we obtained 3 as the longest subsequence for 22. So why lower it to 2? Hence while adding &lt;code class=&quot;language-text&quot;&gt;count[i] = count[j]+1&lt;/code&gt; make sure it benefits the cause. Therefore place &lt;code class=&quot;language-text&quot;&gt;count[i] = max(count[j]+1,count[i])&lt;/code&gt; ie with the maximum of two numbers to avoid such cases.&lt;/p&gt;
+&lt;p&gt;And similarly, the rest of the array is traversed and the array becomes,&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;32&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;22&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;23&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;25&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;30&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;4&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;6&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;Since the highest is 6, which gives the longest increasing subsequence, the video of the above traversal is &lt;a href=&quot;https://youtu.be/Ns4LCeeOFS4&quot;&gt;linked here(different example)&lt;/a&gt;. Let’s have a look at the code snippet of the same below.
+As we have learned,&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;We initialize the count array to 1&lt;/li&gt;
+&lt;li&gt;Then calculate the count for every element&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;c&quot;&gt;&lt;pre class=&quot;language-c&quot;&gt;&lt;code class=&quot;language-c&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;n&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+count&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;n&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;array&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt; array&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+  count&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;max&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;count&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;count&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;After that, we find the maximum of the count array and print it, &lt;a href=&quot;https://github.com/nobodyme/Dynamic-Programming/blob/master/longest-increasing-sub-sequence.C&quot;&gt;full code snippet is here&lt;/a&gt; and a look-alike problem just with a &lt;a href=&quot;https://github.com/nobodyme/dynamic-programming/blob/master/lis-pair.C&quot;&gt;pair of numbers&lt;/a&gt;.&lt;/p&gt;
+&lt;h3&gt;More to come&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Minimum coin change&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Points to remember&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Dynamic programming is just like any other kind, you get some, you don’t get some practice makes it all better. I have a lot to do too.&lt;/li&gt;
+&lt;li&gt;From my experience, it is similar to brute force but instead of exploring the whole input space, you find a way to store intermediate results that arise from the input and exhaustively explore that for the required result.&lt;/li&gt;
+&lt;li&gt;Yes, it is indeed a method of trading space for time. A recursive approach may utilize a little less space but dynamic programming approach is quicker.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Other resources&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.hackerearth.com/practice/notes/dynamic-programming-i-1/&quot;&gt;Hackerearth article explaining more on “Why dynamic programming”&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.quora.com/What-are-some-good-ways-to-approach-a-dynamic-programming-question/answer/Paul-Baltescu&quot;&gt;How to approach Dynamic Programming by Paul Baltescu on Quora&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://www.geeksforgeeks.org/fundamentals-of-algorithms/#DynamicProgramming&quot;&gt;Geeks for geeks tutorials&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.hackerearth.com/practice/notes/dynamic-programming-problems-involving-grids/&quot;&gt;Hackerearth article for problems involving grids&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Problems lists from various sites&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://practice.geeksforgeeks.org/topics/Dynamic-Programming/&quot;&gt;Practice problems - Geeks for Geeks&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://apps.topcoder.com/forums/?module=Thread&amp;#x26;start=0&amp;#x26;threadID=674592&quot;&gt;Problem list - top coder&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://codeforces.com/problemset/tags/dp?order=BY_SOLVED_DESC&quot;&gt;Problem sets - code forces&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.hackerrank.com/domains/algorithms/dynamic-programming&quot;&gt;Dp challenges - Hackerrank&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content:encoded></item><item><title><![CDATA[Fetch images from Reddit for your desktop wallpaper, python beginners]]></title><description><![CDATA[“There’s always somebody who has just begun, whom you can help and there’s always somebody who did the same mistake and can help you”. Just…]]></description><link>https://nobodyme.github.io/blog/fetch-images-from-reddit/</link><guid isPermaLink="false">https://nobodyme.github.io/blog/fetch-images-from-reddit/</guid><pubDate>Sat, 14 Jul 2018 08:40:32 GMT</pubDate><content:encoded>&lt;p&gt;&lt;em&gt;“There’s always somebody who has just begun, whom you can help and there’s always somebody who did the same mistake and can help you”.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;Just when I let that sink in, I called up my friend who wanted some wallpapers for her newly installed Ubuntu system. Me being the frequent lurker on Reddit loved the pictures in subreddits like &lt;a href=&quot;https://www.reddit.com/r/itookapicture/&quot;&gt;itookapicture&lt;/a&gt;, &lt;a href=&quot;https://www.reddit.com/r/CozyPlaces/&quot;&gt;cozyplaces&lt;/a&gt; and &lt;a href=&quot;https://www.reddit.com/r/wallpapers/&quot;&gt;wallpapers&lt;/a&gt; and wrote up a simple program to grab those and then set up as Desktop-slideshow using an app called &lt;a href=&quot;http://shotwell-project.org/doc/html/&quot;&gt;Shotwell&lt;/a&gt; when I was in the same position. So I just sent her over the link of the &lt;a href=&quot;https://github.com/nobodyme/reddit-fetch&quot;&gt;repo from github&lt;/a&gt;, while she was more than pleased to have it, she wanted to know how it does as well. I thought to myself, well she already knows the basics of python so it mustn’t be that hard. So I started off with &lt;em&gt;“so clone the GitHub repo and then do pip3 install -r requirements.txt, oh maybe use the virtualenv as well, so you don’t install the packages globally but just for the project and then we call the Reddit’s open-api …“&lt;/em&gt; and I realized she was already left scratching her head even before the coding part began.&lt;/p&gt;
+&lt;p&gt;That’s when I realized I was on the same page as well, I couldn’t even understand how all the code came together even when I was given the link to the GitHub repo a few years back. I wouldn’t know where to start, why certain things are done, blindly follow instructions and wouldn’t know how to fix it when it breaks. So for all you folks out there who just started learning python variables, if conditions, switch statements and for loops from some website, maybe this article will help you fill the missing parts that’ll get you going.&lt;/p&gt;
+&lt;p&gt;So what do we have on our plate?&lt;/p&gt;
+&lt;p&gt;All we need to do is ask Reddit to give us the pictures from the subreddits we want so that we could store them somewhere in a file and later use Shotwell for the slideshow.&lt;/p&gt;
+&lt;p&gt;But how do we do that?&lt;/p&gt;
+&lt;h3&gt;Understanding APIs and JSON&lt;/h3&gt;
+&lt;p&gt;What happens generally when you go to a link is that, your browser will send a request to the server like, &lt;em&gt;“Hey, can I wanna see the contents on this one, send this to me as HTML, please”&lt;/em&gt; and then the server responds to the request as an HTML page like the one you’re viewing right now because HTML is more friendly to humans. But we want our program to fetch the pictures right? So we need a response that’s friendly to parse by code but how does our program talk to the Reddit server? We want an interface that our program can talk to, just like we do through our browser. This is called an &lt;strong&gt;API (application programming interface)&lt;/strong&gt; and every application these days have an interface where programs can talk to and fetch information, some publicly available, some private, some available with paid subscriptions for their services. What this API commonly returns is data in a format called &lt;strong&gt;JSON&lt;/strong&gt; which stands for Javascript Object Notation and it is this format that our program will be easily able to parse and get us our wallpapers and it is just a bunch of key, pair values similar to a dictionary in python which you will all be familiar with.&lt;/p&gt;
+&lt;p&gt;So how do I get this JSON data from Reddit?&lt;/p&gt;
+&lt;p&gt;It’s easier than you think, Reddit follows the &lt;a href=&quot;https://en.wikipedia.org/wiki/Open_API&quot;&gt;OPEN-API standard&lt;/a&gt; and just placing .json after the link gives you all of the data in JSON format, maybe try this in your browser &lt;a href=&quot;https://www.reddit.com/r/wallpapers.json&quot;&gt;https://www.reddit.com/r/wallpapers.json&lt;/a&gt; those random data that you see is exactly what we need and if you look closely it will have all the information that you see on the web page in the form of a python dictionary.&lt;/p&gt;
+&lt;div&gt;
+&lt;img src=&quot;https://miro.medium.com/max/1400/1*uWXEspsNZwQFieM-cJBt4A.png&quot; width=&quot;100%&quot;&gt;
+&lt;center&gt;&lt;i&gt;Json data from reddit prettified using firefox&lt;/i&gt;&lt;/center&gt;
+&lt;div&gt;
+&lt;br&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;Now how do we obtain that data in code? Simple, just import the requests library,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; requests
+url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; ‘https&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;//&lt;/span&gt;www&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;reddit&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;com&lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt;r&lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt;wallpapers&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;json&apos;
+response &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;url&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;not&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ok&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+ &lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;“Error”&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+ exit&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+data &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;json&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;data&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;a href=&quot;http://docs.python-requests.org/en/master/&quot;&gt;Requests&lt;/a&gt; library just simplifies these HTTP calls for you, requests a URL returns a request object with a bunch of information which we can use to know if the request was successful like we can ask, Was the response ok(200)? Can we parse the data now? If not we can code our program to fail silently. That should print the data you saw on the browser right in your terminal or nope you would probably get an error stating &lt;strong&gt;“No module named requests”&lt;/strong&gt; &lt;em&gt;(or if you already have requests installed you would get a “Too many requests, error 429” which we will be handing down the line. Either way it’s good that you follow along without skipping to that)&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;Well if you google, you’d come up with something like do,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;&lt;span class=&quot;token function&quot;&gt;sudo&lt;/span&gt; pip &lt;span class=&quot;token function&quot;&gt;install&lt;/span&gt; requests&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;That sure works, but what this does is, install the requests library globally for your system. You’d think it’s convenient since it will be available for another program that uses requests as well, you wouldn’t have to run the command again but think about the case where different programs use different versions of the same library. That’s a conflict you do not want to handle plus let’s say you’re sharing this code to a friend of yours or posting it on GitHub, you would ideally like to have a list of the packages/libraries your code depends on, so to say, &lt;em&gt;“Hey, this is the list of packages you will need to run my code, so just install these”&lt;/em&gt;. Convenient right? So that’s what we will do.&lt;/p&gt;
+&lt;h3&gt;Understanding VIRTUALENV and PIP&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;We need an isolated environment where we can install libraries just for our program.&lt;/li&gt;
+&lt;li&gt;We will then need the list of libraries our code uses along with the exact version so that we can share it along with our code.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;If you python environment does not already have pip, &lt;a href=&quot;https://pip.pypa.io/en/stable/installation/&quot;&gt;here’s how you can install&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;PIP is the recursive acronym for “Pip install Packages” commonly used for installing python packages or libraries. Now let’s set up our development environment for our program.&lt;/p&gt;
+&lt;p&gt;Go to the project folder and then type,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;# creates a directory called env&lt;/span&gt;
+python3 &lt;span class=&quot;token parameter variable&quot;&gt;-m&lt;/span&gt; venv &lt;span class=&quot;token function&quot;&gt;env&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# activates the env directory so that our program&apos;s packages will be installed in it instead of the root&lt;/span&gt;
+&lt;span class=&quot;token builtin class-name&quot;&gt;source&lt;/span&gt; env/bin/activate&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;You should see an (env) sign before your prompt, if so, we are good to go.
+Now that our development environment is set up, let’s install the requests package.&lt;/p&gt;
+&lt;h3&gt;Installing requests module&lt;/h3&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;pip3 &lt;span class=&quot;token function&quot;&gt;install&lt;/span&gt; requests&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Now, this will place the package and its dependencies in the local folder. Great we have our package installed isolated for our program.&lt;/p&gt;
+&lt;p&gt;Now if we want to list the packages our program depends on, we can just do,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;pip3 freeze &lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt; requirements.txt&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This lists out all the dependencies and puts them into a file called requirements.txt. So now you can send over this file and say, &lt;em&gt;“Hey just install the ones in these files and my program will work fine”&lt;/em&gt;.&lt;/p&gt;
+&lt;p&gt;Just in case you want to install your friend’s program and he has sent you his file of dependencies, you can just do that by,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;pip3 &lt;span class=&quot;token function&quot;&gt;install&lt;/span&gt; &lt;span class=&quot;token parameter variable&quot;&gt;-r&lt;/span&gt; requirements.txt&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Suppose you want to go outside our program’s environment, you can just do type, “deactivate” at the prompt.&lt;/p&gt;
+&lt;h3&gt;Edge Cases&lt;/h3&gt;
+&lt;p&gt;So now that we have installed requests and everything is set, let’s run our program.&lt;/p&gt;
+&lt;p&gt;You would either see the data printed on your terminal or you would probably be greeted with this error message on testing for quite a while &lt;strong&gt;{‘message’: ‘Too Many Requests’, ‘error’: 429}&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;There are certain limits on how much you can access the Reddit API and your python code sets up some default user-agent for accessing the API. Since many people would probably use the default one, you quickly run out with the number of times you can request the data and that error is just Reddit’s way of telling you, &lt;em&gt;“Hey, you’re sending too many requests my way”&lt;/em&gt;. There are two ways to mitigate that,&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;You can set up a custom header when you request data from the API like, &lt;code class=&quot;language-text&quot;&gt;response = requests.get(url, headers={&apos;User-agent&apos;: &apos;your-bot-name 0.1&apos;})&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Or use the &lt;a href=&quot;http://praw.readthedocs.io/en/stable/getting_started/quick_start.html&quot;&gt;reddit’s PRAW library&lt;/a&gt; by creating client ID and app ID with Reddit.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Although the second one is easier in the long run. For the purpose of our application, we will stick with the former.&lt;/p&gt;
+&lt;p&gt;Now that we reliably get the data, let’s see how we can parse it for the information we need. We need the image’s URL so that we can use it to download the picture. As we already know, JSON data is similar to a dictionary. So just searching for URLs in the data and its location should help you understand how to obtain it.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;# array of posts in the page&lt;/span&gt;
+data &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;json&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;children&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# get first post from array of posts&lt;/span&gt;
+first_post &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; data&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# get the image url of the first post&lt;/span&gt;
+image_url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; first_post&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;url&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Now that we have the URL of the image, let’s download that and store it in a file as well.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;image &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image_url&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;200&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    output_filehandle &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;image1.jpg&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;mode&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;bx&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    output_filehandle&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;write&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;content&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Now we have got the image of the first post on the page. Depending upon a number of things our application could break resulting in an error.&lt;/p&gt;
+&lt;p&gt;If you look closely we have assumed that the image is of the type “jpg”, secondly, we assume that a file called “image1.jpg” is not already present. Now although the first case might not throw you an error, you won’t be able to open up the image since it may not be of the right format and the second case will throw &lt;strong&gt;&lt;em&gt;file already exists&lt;/em&gt;&lt;/strong&gt; error. And for our application we are going to have the tile of the post as the file name of our image.&lt;/p&gt;
+&lt;p&gt;So our code now looks like,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; requests
+url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;https://www.reddit.com/r/wallpapers.json&apos;&lt;/span&gt;
+response &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;url&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; headers&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;User-agent&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;your-bot-name 0.1&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;not&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ok&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;Error&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    exit&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+data &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;json&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;children&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+first_post &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; data&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+image_url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; first_post&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;url&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+image &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image_url&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# checks url and sets appropriate extension for the image file&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.png&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.png&apos;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpg&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url &lt;span class=&quot;token keyword&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;200&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;try&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        output_filehandle &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;first_post&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;title&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; extension&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; mode&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;bx&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+        output_filehandle&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;write&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;content&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;except&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;pass&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Now your program may work or may not still work as intended as we have two other edge cases to handle which you will only discover when you have tried different sets of data. If your program currently doesn’t work well for you, you have a set of data that presents you with the edge case right at the beginning. Yes, it’s better you stumble upon these at first than building everything and wonder what went wrong. So what’s the error?&lt;/p&gt;
+&lt;p&gt;The problem with these image links is that a lot of times image links on Reddit are from &lt;strong&gt;Imgur&lt;/strong&gt; and &lt;strong&gt;&lt;em&gt;sometimes&lt;/em&gt;&lt;/strong&gt; Imgur links don’t open up as image files but rather as a page with a collection of images. Try the URLs below, yourself.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Normal url: &lt;a href=&quot;https://i.redd.it/qcqy40krxn911.png&quot;&gt;https://i.redd.it/qcqy40krxn911.png&lt;/a&gt; (or .jpeg with extensions)&lt;/li&gt;
+&lt;li&gt;Imgur url: &lt;a href=&quot;https://imgur.com/zXpT3vJ&quot;&gt;https://imgur.com/zXpT3vJ&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Therefore in the second case, your program will try to download the HTML file as binary. On trial and error by opening the image on a new tab or by appending “.jpeg” to the URL you will find that it opens up as an image file just like the others if it already doesn’t open as one.&lt;/p&gt;
+&lt;p&gt;And sometimes the images uploaded are &lt;strong&gt;removed&lt;/strong&gt; as well, the link will direct to a thumbnail denoting the image has been removed. We don’t want that to clutter our list of wallpapers. So let’s handle these cases in our code as well.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; requests
+url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;https://www.reddit.com/r/wallpapers.json&apos;&lt;/span&gt;
+response &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;url&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;not&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ok&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;Error&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    exit&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+data &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;json&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;children&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+first_post &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; data&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+image_url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; first_post&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;url&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.png&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.png&apos;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpg&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url &lt;span class=&quot;token keyword&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    image_url &lt;span class=&quot;token operator&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt;
+    extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# prevents thumbnails denoting removed images from being downloaded&lt;/span&gt;
+image &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image_url&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; allow_redirects&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token boolean&quot;&gt;False&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;200&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;try&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        output_filehandle &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;first_post&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;title&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; extension&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; mode&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;bx&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+        output_filehandle&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;write&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;content&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;except&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;pass&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Now your code should work perfectly for all cases and now you check the image file that’s downloaded. Since we have successfully downloaded the image of the first post, let’s do that for all posts. By default we get a list of 25 posts for more posts say 100, we could modify the URL as,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;[https://www.reddit.com/r/wallpapers.json?&amp;amp;limit=10](https://www.reddit.com/r/wallpapers.json?&amp;amp;limit=10)0[&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;https&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;//&lt;/span&gt;www&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;reddit&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;com&lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt;r&lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt;wallpapers&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;json&apos;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Now that our URL is set let’s loop overall posts to retrieve all images.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; requests
+url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;https://www.reddit.com/r/wallpapers.json?limit=100&apos;&lt;/span&gt;
+response &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;url&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;not&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ok&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;Error&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    exit&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+data &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;json&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;children&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt; i &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;data&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    current_post &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; data&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+    image_url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; current_post&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;url&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.png&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.png&apos;&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpg&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url &lt;span class=&quot;token keyword&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;imgur&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        image_url &lt;span class=&quot;token operator&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt;
+        extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;continue&lt;/span&gt;
+    image &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image_url&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; allow_redirects&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token boolean&quot;&gt;False&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;200&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;try&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+            output_filehandle &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;current_post&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;title&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; extension&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; mode&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;bx&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+            output_filehandle&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;write&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;content&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;except&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;token keyword&quot;&gt;pass&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Now that’s it, we have got our sets of images downloaded and I added the else part so that the program doesn’t break for cases that we still haven’t encountered. Now that you have the pictures downloaded you can now use Shotwell to &lt;a href=&quot;http://shotwell-project.org/doc/html/share-background.html&quot;&gt;set up a desktop slideshow&lt;/a&gt; by selecting all of these images in your machine.&lt;/p&gt;
+&lt;h3&gt;Conclusion&lt;/h3&gt;
+&lt;p&gt;Ideally, we would want to supply data to the program as a user, we can’t keep modifying the program if we wanted pictures from a different subreddit or more number pictures. Personally, I would even like to supply a series of subreddits to fetch from at a point and download each in a separate folder.&lt;/p&gt;
+&lt;p&gt;There are few other edge cases that you would face while handling different sets of data as well. For example, we set the file name to the title of the post, sometimes the titles may contain special characters which might not be an accepted file name format in your operating system. Sometimes the title might be too long that your OS doesn’t permit it as a valid file name.&lt;/p&gt;
+&lt;p&gt;You would see all of these improvements handled right here, in my &lt;a href=&quot;https://github.com/nobodyme/reddit-fetch/blob/master/grab_pictures.py&quot;&gt;code on github&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;You will also find a similar program that fetches the &lt;a href=&quot;https://github.com/nobodyme/reddit-fetch/blob/master/fetch_comments.py&quot;&gt;comments of a Reddit post&lt;/a&gt; in a file in the same repo. Hope it is of some help. Maybe give me a pull request if something can be improved. Cheers!&lt;/p&gt;</content:encoded></item></channel></rss>
