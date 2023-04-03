@@ -1,8 +1,8 @@
-Had to debug a production outage, 
+Had to debug a production outage today, 
 Checking the httpd logs, figured the outage is due to 100% disk utilization, and server has gone for a graceful shutdown.
 Examining the disk usage via `df -h`, showed the root volume at 100%
 
-Looking into root volume however,
+Looking into root volume, however
 `du -h --max-depth=1`
 
 - /usr - 13G
@@ -16,14 +16,12 @@ Looking into root volume however,
 - /run - 189M
 - /home - 2.2M
 
-Everything well below the limit,
+We found that everything was well below the limit.
 This was no where near 100%
 
-Why does df show, the `/` is at 100%,
+Why does df show, the `/` is at 100%?
 
-Turns out that process still hold memory, if the file it's using/opened has been deleted and you can find this by,
-`lsof +L1`
+Turns out that processes still hold memory, if the file they're using/opened has been deleted while the process is still running.
 
-We recently deleted a huge log file > 50G due to a different issue, and fixed it and that still wasn't released by the process.
-That's what we exactly found in the output,
-So all we had to do was restart the process, and we found that utilization came down as we expected.
+To identify such processes, the `lsof +L1` command can be used. 
+In this particular case, we had recently deleted a large log file of over 50G, but the process was still holding onto it. Once we identified the process and restarted it, the disk utilization returned to expected levels.
