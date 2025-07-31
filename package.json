@@ -50,11 +50,11 @@
   },
   "scripts": {
     "build": "rm -rf public && rm -rf .cache && gatsby build --prefix-paths",
-    "develop": "gatsby develop",
+    "develop": "npx gatsby develop",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "start": "npm run develop",
-    "serve": "gatsby serve --prefix-paths -o",
-    "clean": "gatsby clean",
+    "serve": "npx gatsby serve --prefix-paths -o",
+    "clean": "npx gatsby clean",
     "test": "echo \"Write tests! -> https://gatsby.dev/unit-testing\" && exit 1",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d public"
