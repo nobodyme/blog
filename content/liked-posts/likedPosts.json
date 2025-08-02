@@ -89,5 +89,13 @@
     "link": "https://riak.com/posts/technical/microservices-please-dont/index.html?p=12525.html",
     "reaction": "exploding-head",
     "tags": ["microservices", "architecture", "monolith"]
+  },
+  {
+    "date": "2022-06-02T10:00:00.000Z",
+    "title": "Introducing Contextual Retrieval",
+    "link": "https://www.anthropic.com/news/contextual-retrieval",
+    "reaction": "love",
+    "tags": ["RAG", "generative-ai", "research"]
   }
+  
 ]
