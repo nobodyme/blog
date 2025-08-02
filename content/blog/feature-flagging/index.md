@@ -14,14 +14,13 @@ For those of you who don't know, a feature can be turned on only for a subset of
 
 ### The problem
 
-First thought was: can we store all of this in the DB, say when `flag-1` is turned on for `70%` of users? Each flag has an association with every user whether it is `on` or `off`?
+First idea: 
+- Store everything in the DB, say when `flag-1` is turned on for `70%` of users,
+- Each flag has an association with every user whether it is `on` or `off` for that user
 
-Sure, but what happens when we now want to, 
-- Decrease it to `30%` for the same flag?
-  Go through the entire list and update each user row so that it reflects the new change?
-
-- Even worse, what happens when new users get added?
-  Go through all your feature flags and the users list associated with each of them and update each value?
+Sure, but this doesn't scale,
+- Changing 70% → 30% requires scanning/updating large user sets
+- New users added, demand backfills across all existing flags to maintain the target percentage
 
 So, I quickly realised we needed a stateless solution since maintaining state is cumbersome in this case. However, with a stateless solution, we should ensure,
 
@@ -30,7 +29,9 @@ So, I quickly realised we needed a stateless solution since maintaining state is
 
 So, how do we actually solve this?
 
-First thought was, can we convert the user email into a large pseudo-random number?
+After seeing a discussion about how large hash-like numbers can be treated as uniformly distributed, the core idea emerged
+
+First thought was, can we convert the user email into these large pseudo-random number, this will serve as the basis for bucketing users into the rollout percentage
 
 ```python
 user_hash = hashlib.sha1("abc@gmail.com".encode("utf-8")).hexdigest()
