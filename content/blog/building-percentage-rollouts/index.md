@@ -22,7 +22,7 @@ Sure, but I quickly realised this doesn't scale,
 - Changing 70% → 30% requires scanning/updating large user sets in the DB
 - New users added, demand backfills across all existing flags to maintain the target percentage
 
-So, I quickly realised we needed a stateless solution since maintaining state is cumbersome in this case. However, with a stateless solution, we should ensure,
+So it became obvious that we needed a stateless solution since maintaining state is cumbersome in this case. However, with a stateless solution, we should ensure,
 
 1) **Stickiness**: The same user should land on the same side of the threshold every time. If flag-1 is at, say, 70%, a user who’s “in” stays in across sessions and as new users join. The outcome shouldn’t flap between logins.
 2) **Cheap to compute**: Which side of the threshold the user falls on should be easily computable (ideally O(1)); if it’s slow, that latency cascades to the endpoints behind the flag
