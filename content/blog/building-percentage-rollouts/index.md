@@ -18,7 +18,7 @@ When thinking about building this out, my first idea was,
 - Store everything in the DB, say when `flag-1` is turned on for `70%` of users,
 - Each flag has an association with every user whether it is `on` or `off` for that user
 
-Sure, but this doesn't scale,
+Sure, but I quickly realised this doesn't scale,
 - Changing 70% → 30% requires scanning/updating large user sets in the DB
 - New users added, demand backfills across all existing flags to maintain the target percentage
 
