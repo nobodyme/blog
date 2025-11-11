@@ -314,6 +314,10 @@ footer span {
   margin-bottom: 0.75rem;
 }
 
+.blog-content p {
+  margin: var(--spacing-0) var(--spacing-0) var(--spacing-4) var(--spacing-0);
+}
+
 /* info, error boxes for md files */
 .error-box {
   border: 1px solid var(--red-200);

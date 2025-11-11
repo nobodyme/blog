@@ -3,7 +3,7 @@ title: Building, Breaking and Tuning - My experience at the AWS AI League
 date: "2025-11-09T07:15:00.000Z"
 ---
 
-I promised a lot of folks I'd write a blog if I win, so here's me penning this down after finishing 2nd in the AWS AI League. Before we begin, here's a little brief about the competition itself, it consists of two rounds,
+I promised a lot of folks I'd write a blog if I win the [AWS AI league](https://aws.amazon.com/blogs/aws/aws-ai-league-learn-innovate-and-compete-in-our-new-ultimate-ai-showdown/), so here's me penning this down after finishing 2nd. Before we begin, here's a little brief about the competition itself, it consists of two rounds,
 
 1) You are given a 72 hours to fine-tune a Llama 3.2 8B model to the given domain using AWS Sagemaker Jumpstart. The fine-tuned model when submitted is evaluated and rated against the Llama 3.2 70B model using LLM as a judge using a fixed set of 50 undisclosed questions. If your fine-tuned model's answer is better, you get a point. Participants are ranked based on these points in the leaderboard.
 2) For the second round, top 5 candidates from the first round are chosen. This time, participants get to craft a system prompt that their fine-tuned model (from the previous round) takes in to answer the question. In this round, the answers are evaluated by human judges (40%), LLM (40%) and audience (20%). The winner is decided based on these points after 5 questions.
