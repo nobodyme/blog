@@ -18,7 +18,7 @@ While I was familiar with data preparation, I realised that I needed to learn mo
 
 ![hyperparameters shown from the blog](hyperparameters.png)
 
-Plus reading about these hyperparameters experiments from [Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments](https://lightning.ai/pages/community/lora-insights/) and [Practical Tips for Finetuning LLMs Using LoRA](https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms) made me realise that these hyperparameters are inherently dependant upon the data, what works for one set may not necessarily work for another set but it also gave me an idea on what parameters to experiment, particularly the insight about enabling LoRA for more layers proved very effective.
+Plus reading about these hyperparameters experiments from [Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments](https://lightning.ai/pages/community/lora-insights/) and [Practical Tips for Finetuning LLMs Using LoRA](https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms) made me realise that these parameters are inherently dependant upon the data, what works for one set may not necessarily work for another set but it also gave me an idea on what parameters to experiment, particularly the insight about enabling LoRA for more layers proved very effective.
 
 You can find my raw notes that I took while reading these articles and [more over here](TODO)
 
@@ -38,7 +38,7 @@ Talking about data prepation, both these blogs talk about generating data throug
 - [Advanced-AWS-LLMs-League-Dataset-Generator](https://partyrock.aws/u/TheRayG/IInyME_vt/Advanced-AWS-LLMs-League-Dataset-Generator) both by AWS themselves
 - [LLMs-Datasets-Generator](https://partyrock.aws/u/JiaweiLin/IvPiedcHN/LLMs-Datasets-Generator)
 
-I tried QnACrafter and even modified it slightly to [suit my usecase] for the event(https://partyrock.aws/u/nobodymenav/hZpzbBFCU/QnACrafter2025-SLED).
+I tried QnACrafter and even modified it slightly to [suit my usecase](https://partyrock.aws/u/nobodymenav/hZpzbBFCU/QnACrafter2025-SLED) for the event.
 
 But what if synthetic data generation doesn't work?
 
@@ -55,20 +55,26 @@ The exact usecase to fine-tune our model was given on the competition day, altho
 ![Domain details](domain.png)
 
 I honestly did not know what SLED even encompasses. So, I set out to find it.
-First I tried my modified, [QnACrafter app](https://partyrock.aws/u/nobodymenav/hZpzbBFCU/QnACrafter2025-SLED). It auto selects different aspects when given a topic is given (one can also manually specify topics) and prepares question and answers for it, that gave me a hint but I wanted to dig deeper. A combination of few aspects from party rock and googling. I asked chatgpt for more such topics, using this prompt,
+First I tried my modified, [QnACrafter app](https://partyrock.aws/u/nobodymenav/hZpzbBFCU/QnACrafter2025-SLED). It auto selects different aspects when a topic is given (one can also manually specify topics) and prepares question and answers for it, that gave me a hint but I wanted to dig deeper. A combination of few aspects from party rock and googling. I asked chatgpt for more such topics, using this prompt below,
 
 ```
-US State government, Local and Education - understand citizen needs in plain language. Handle complex scenarios like "I want to open a food truck" or "My neighbor's tree fell on my property" while providing step-by-step guidance through permit applications and licensing. Datasets generated should include realistic user queries and appropriate concise and helpful answer like an assistant from US gov public services
+US State government, Local and Education - understand citizen needs in plain language. 
+Handle complex scenarios like "I want to open a food truck" or "My neighbor's tree fell on my property" while providing step-by-step guidance through permit applications and licensing.
+Datasets generated should include realistic user queries and appropriate concise and helpful answer like an assistant from US gov public services
 
 I am building a dataset that will help US citizens in navigation government bureaucracy
 What all aspects should I cover, I have a few, listed below.
 
-Business Licensing & Permits, Property Rights & Disputes, Education Services, Public Services & Utilities, Public Health, Public Transport, 311 requests, building permits, health and food inspection, business registration, property and assessment, public works and ROW permits, trees and neighbour hood issues, fire inspection and permits, benefits and human services, education, transportation and DMV, Courts & clerks, Community legal aid guide, Street use / right‑of‑way, Food vending & food truck, Stormwater & drainage
+Business Licensing & Permits, Property Rights & Disputes, Education Services, Public Services & Utilities, Public Health, 
+Public Transport, 311 requests, building permits, health and food inspection, business registration, property and assessment, 
+public works and ROW permits, trees and neighbour hood issues, fire inspection and permits, benefits and human services, 
+education, transportation and DMV, Courts & clerks, Community legal aid guide, Street use / right‑of‑way, 
+Food vending & food truck, Stormwater & drainage
 
 I want you to think about all such aspects a citizen will reach out to State and local government officals, just like I have written,
 
 Categorize them, example, 
-1) Business
+1. Business
 - (topic related to business why they would reach out, like) business licensing
 - business permits
 
@@ -91,7 +97,7 @@ It responded with the topic and subtopics below, exactly what I was looking for,
 ...
 ```
 
-Full set of topics can be [found here](TODO). I generated to about 144 topics. The idea was to feed in these topics to QnACrafter and copy the generated answers but by default it only accepts 4 at a time. Customizing the app to accept more resulted in partial generation, I am assuming due to rate limiting. So, I quickly realized this is going to be time consuming and that it would be easier to write a python script instead that works with LLM models instead. So, that's what I did, you can [find that here](TODO).
+Full set of topics can be [found here](TODO). I generated to about 144 topics. The idea was to feed in these topics to QnACrafter and copy the generated answers but by default it only accepts 4 at a time. Customizing the app to accept more resulted in partial generation, I am assuming due to rate limiting. So, I quickly realized this is going to be time consuming and that it would be easier to write a python script instead that works with LLM models. So, that's what I did, you can [find that here](TODO).
 
 The script takes in a list of topics, and generates N of questions for each topic. Each question is then passed onto another answer prompt which generates the answer. This gave me [my first dataset](TODO), roughly 850 odd instruction set. 
 
@@ -155,6 +161,6 @@ While the LLMs favoured the answer by my model, humans did not and that reflecte
 
 ## Learnings
 
-At the end you build for humans, so it would have been wise to choose the training data to human preference than just judging by the LLM evaluation score. If I were to do it again, I'd probably have a vote with non-participants and choose the one they like best. I realised even format of the response played a big role. Some of my datasets had answers beginning with `### ANSWER` or `### RESPONSE` and that reflected in the type of outputs it produced as well. To anyone taking this up again, look for these small things to have a edge in the final round, all top 5 participants are probably going to have the facts right for a given question, so how you differentiate your answer better from them is going to be the key.
+At the end you build for humans, so it would have been wise to choose the training data to human preference than just judging by the LLM evaluation score. If I were to do it again, I'd probably have a vote with non-participants and choose the one they like best. I realised even format of the response played a big role. Some of my datasets had answers beginning with `### ANSWER` or `### RESPONSE` and that reflected in the type of outputs it produced as well. To anyone taking this up again, look for these small things to have a edge in the final round, all top 5 participants are probably going to have the facts right for a given question, so how you differentiate your answer to better align with human preference is going to be the key.
 
 Looking at the bigger picture, I learnt a lot about fine-tuning in less than 2 weeks, excited to see where I can put these skills to use in real projects.
