@@ -5,7 +5,7 @@ date: "2025-11-09T07:15:00.000Z"
 
 I promised a lot of folks I'd write a blog if I win, so here's me penning this down after finishing 2nd in the AWS AI League. Before we begin, here's a little brief about the competition itself, it consists of two rounds,
 
-1) You are given a 72 hours to fine-tune a Llama 3.2 8B model to the given domain using AWS Sagemaker Jumpstart. The fine-tuned model when submitted is evaluated and rated against the Llama 3.2 70B model using LLM as a judge using a fixed set of 50 questions. If your fine-tuned model's answer is better, you get a point. Participants are ranked based on these points in the leaderboard.
+1) You are given a 72 hours to fine-tune a Llama 3.2 8B model to the given domain using AWS Sagemaker Jumpstart. The fine-tuned model when submitted is evaluated and rated against the Llama 3.2 70B model using LLM as a judge using a fixed set of 50 undisclosed questions. If your fine-tuned model's answer is better, you get a point. Participants are ranked based on these points in the leaderboard.
 2) For the second round, top 5 candidates from the first round are chosen. This time, participants get to craft a system prompt that their fine-tuned model (from the previous round) takes in to answer the question. In this round, the answers are evaluated by human judges (40%), LLM (40%) and audience (20%). The winner is decided based on these points after 5 questions.
 
 ## Preparation
@@ -20,14 +20,14 @@ While I was familiar with data preparation, I realised that I needed to learn mo
 
 Plus reading about these hyperparameters experiments from [Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments](https://lightning.ai/pages/community/lora-insights/) and [Practical Tips for Finetuning LLMs Using LoRA](https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms) made me realise that these parameters are inherently dependant upon the data, what works for one set may not necessarily work for another set but it also gave me an idea on what parameters to experiment, particularly the insight about enabling LoRA for more layers proved very effective.
 
-You can find my raw notes that I took while reading these articles and [more over here](TODO)
+You can find my raw notes that I took while reading these articles and [more over here](https://github.com/nobodyme/aws-ai-league/blob/main/resources.md)
 
 Since, I had time, I thought why not write scripts to automate these. So, I wrote them for,
 1) Deploying the base model
 2) Uploading dataset to s3
 3) Deploying the finetuned models with the given array of hyperparameters (so I don't have to experiment one by one)
 4) Evaluation against the base model or a previously finetuned model to check if I made it worse or not (I thought this will be faster than submitting to the leaderboard)
-Even wrote scripts for increasing service quota limits for required instances, if not already present. You can [find them all here](TODO). 
+Even wrote scripts for increasing service quota limits for required instances, if not already present. You can [find them all here](https://github.com/nobodyme/aws-ai-league/tree/main/jumpstart). 
 By doing these, I thought I'll just concentrate on preparing a good dataset on the event day.
 
 **SPOILER ALERT**: None of these were useful in the competition, since we weren't given access to jupyter notebook or AWS access key and secret key for the account. So, everything had to be done manually through the console.
@@ -44,7 +44,7 @@ But what if synthetic data generation doesn't work?
 
 I will then have to look at actual sources in the internet, but data can be in different formats like pdf, webpage or csv?
 
-So, I looked for tools that allow us to scrape data from any available source format with minimal effort which is when I landed on [synthetic-data-kit](https://github.com/meta-llama/synthetic-data-kit) from Meta, which seems to be built exactly for this purpose, a CLI app that one can run locally and will produce questions and answer pairs in the format of your choice. It also checks for duplicates and evaluates whether the generated pair is of high quality. Seemed like a perfect fit. It internally uses LLM behind the scenes to generate these datasets and allows prompt customization as well. One thing it lacked was direct Azure OpenAI model support, I quickly modified the code to add that and built a thin wrapper on top of it to automate even further, you can find the [source code here](TODO).
+So, I looked for tools that allow us to scrape data from any available source format with minimal effort which is when I landed on [synthetic-data-kit](https://github.com/meta-llama/synthetic-data-kit) from Meta, which seems to be built exactly for this purpose, a CLI app that one can run locally and will produce questions and answer pairs in the format of your choice. It also checks for duplicates and evaluates whether the generated pair is of high quality. Seemed like a perfect fit. It internally uses LLM behind the scenes to generate these datasets and allows prompt customization as well. One thing it lacked was direct Azure OpenAI model support, I quickly modified the code to add that and built a thin wrapper on top of it to automate even further, you can find the [source code here](https://github.com/nobodyme/aws-ai-league/tree/main/data-preparation/synthetic-data-kit).
 
 So, at this point, I was clear on how to prepare data and what hyperparameters to experiment with and all set for the competition.
 
@@ -97,22 +97,22 @@ It responded with the topic and subtopics below, exactly what I was looking for,
 ...
 ```
 
-Full set of topics can be [found here](TODO). I generated to about 144 topics. The idea was to feed in these topics to QnACrafter and copy the generated answers but by default it only accepts 4 at a time. Customizing the app to accept more resulted in partial generation, I am assuming due to rate limiting. So, I quickly realized this is going to be time consuming and that it would be easier to write a python script instead that works with LLM models. So, that's what I did, you can [find that here](TODO).
+Full set of topics can be [found here](https://github.com/nobodyme/aws-ai-league/blob/main/data-preparation/generate-data-gpt/topics.py). I generated to about 144 topics. The idea was to feed in these topics to QnACrafter and copy the generated answers but by default it only accepts 4 at a time. Customizing the app to accept more resulted in partial generation, I am assuming due to rate limiting. So, I quickly realized this is going to be time consuming and that it would be easier to write a python script instead that works with LLM models. So, that's what I did, you can [find that here](https://github.com/nobodyme/aws-ai-league/tree/main/data-preparation/generate-data-gpt).
 
-The script takes in a list of topics, and generates N of questions for each topic. Each question is then passed onto another answer prompt which generates the answer. This gave me [my first dataset](TODO), roughly 850 odd instruction set. 
+The script takes in a list of topics, and generates N of questions for each topic. Each question is then passed onto another answer prompt which generates the answer. This gave me [my first dataset](https://github.com/nobodyme/aws-ai-league/blob/main/data/first-dataset.jsonl), roughly 870 odd instruction set.
 
 After the competition many asked me, how I de-duplicated by dataset. Well, with this process I didn't have to. My topics were diverse enough and I only generated 6 questions per topic that I didn't need to do de-duplication at all.
 
-I uploaded the dataset with the base hyperparameter configuration, by this time, 5 hours had already passed, I haven't even looked at the leaderboard yet. The model scored just 31.8% but I decided to perform all the hyperparameter tuning experiments that I learned about before discarding the dataset entirely. 
+I uploaded the dataset with the base hyperparameter configuration, by this time, 5 hours had already passed, I haven't even looked at the leaderboard yet. The model scored just **31.8%** but I decided to perform all the hyperparameter tuning experiments that I learned about before discarding the dataset entirely. 
 
 - Started with increasing epoch from 1 - 5. The evaluation percentage increased and started to decrease at 5 so maintained the **epoch at 4**. 
-- Enabling LoRA modules for all layers instead of the default query and key gave me the biggest jump, got me to **86%** at epoch 3 and **88%** at epoch 4 with lora_r at 8 and lora_alpha at 16.
+- Enabling LoRA modules for all layers instead of the default query and key gave me the biggest jump, got me to **86%** at epoch 3 and **88%** at **epoch 4** with **lora_r at 8** and **lora_alpha at 16**.
 
 So, the same dataset that got me 31% also fetched me 88% just by tuning the parameters, in other words my fine-tuned LLM is already answering 44/50 questions better than the 70B model.
 
 ![alt text](tuning-scores.png)
 
-Here's the link to the [full experimentation sheet](TODO).
+Here's the link to the [full experimentation sheet](https://github.com/nobodyme/aws-ai-league/blob/main/data/Finetune.xlsx).
 
 After this, I tried a lot of variations with the dataset. 
 
@@ -125,7 +125,7 @@ After this, I tried a lot of variations with the dataset.
 
 By this time, I was out of ideas to experiment with datasets but I continued experimenting with various other exotic hyperparameter configurations.
 
-One tuning configuration with `lora_r - 156` and `lora alpha 128` yielded, 0.001% more than my current best model but looking at the eval / train loss under performance metric jumpstart I realised this model overfits a bit.
+One tuning configuration with `lora_r - 156` and `lora alpha 128` yielded, 0.001% more than my current best model but later looking at the eval / train loss under performance metric on jumpstart I realised this model overfits a bit.
 Unfortunately I couldn't beat this model and since AWS copies the model with the highest score for the next round, this ended up being my model for the finals. You can find the comparison of the parameters below.
 
 ![overfit-model performance metrics](overfit-model.png)
@@ -155,7 +155,7 @@ Offer suggestion tacfully when appropriate to improve outcomes.
 Engage in productive collaboration with the user.
 ```
 
-While the LLMs favoured the answer by my model, humans did not and that reflected heavily on the scoreboard. The general consensus talking to the audience after the show was that my LLM did not empathize with the user which I why they did not favour it. Looking at my training data (which already empathizes with the user) and final round output, I had a feeling I botched this with my prompt forcing it to be too concise. Nevertheless, I was pretty happy to finish in the second place and loved the overall experience with the league itself. I love debugging in general and I viewed this AI league as a gamified version of debugging a black box(evaluator LLM) and I really played it like a game from the first day with all my experiements.
+While the LLMs favoured the answer by my model, humans did not and that reflected heavily on the scoreboard. The general consensus talking to the audience after the show was that my LLM did not empathize with the user which is why they did not favour it. Looking at my training data (which already empathizes with the user) and final round output, I had a feeling I botched this with my prompt forcing it to be too concise. Nevertheless, I was pretty happy to finish in the second place and loved the overall experience with the league itself. I love debugging in general and I viewed this AI league as a gamified version of debugging a black box(evaluator LLM) and I really played it like a game from the first day with all my little experiements.
 
 ![finalists group photo](finalists.png)
 
