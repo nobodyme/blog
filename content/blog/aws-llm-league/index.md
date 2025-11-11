@@ -18,7 +18,7 @@ While I was familiar with data preparation, I realised that I needed to learn mo
 
 ![hyperparameters shown from the blog](hyperparameters.png)
 
-Plus reading about these hyperparameters experiments from [Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments](https://lightning.ai/pages/community/lora-insights/) and [Practical Tips for Finetuning LLMs Using LoRA](https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms) made me realise that these parameters are inherently dependant upon the data, what works for one set may not necessarily work for another set but it also gave me an idea on what parameters to experiment, particularly the insight about enabling LoRA for more layers proved very effective. You can find my raw notes that I took while reading these articles and [more over here](https://github.com/nobodyme/aws-ai-league/blob/main/resources.md)
+Plus reading about these hyperparameters experiments from [Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments](https://lightning.ai/pages/community/lora-insights/) and [Practical Tips for Finetuning LLMs Using LoRA](https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms) made me realise that these parameters are inherently dependant upon the data, what works for one set may not necessarily work for another set but it also gave me an idea on what parameters to experiment, particularly the insight about enabling LoRA for more layers proved very effective. You can find my [raw notes](https://github.com/nobodyme/aws-ai-league/blob/main/resources.md) that I took while reading these articles and [more over here](https://github.com/nobodyme/aws-ai-league/blob/main/resources.md)
 
 Crux of what I learnt,
 - An epoch is a hyperparameter representing one complete pass through the entire training dataset during the model training process
@@ -129,13 +129,13 @@ After this, I tried a lot of variations with the dataset.
 
 By this time, I was out of ideas to experiment with datasets but I continued experimenting with various other exotic hyperparameter configurations.
 
-One tuning configuration with **lora_r = 156** and **lora alpha = 128** yielded, 0.001% more than my current best model but later looking at the eval / train loss under performance metric on jumpstart I realised this model overfits a bit. You can find the comparison of the parameters below.
+One tuning configuration with **lora_r = 256** and **lora alpha = 128** yielded, 0.001% more than my current best model but later looking at the eval / train loss under performance metric on jumpstart I realised this model overfits a bit. You can find the comparison of the parameters below.
 
 ![performance metrics](perf-metrics.png)
 
 Good rule of thumb is to have the eval loss close to training loss, which you can observe in the best model. This means the model generalizes well, otherwise it means the model is overfitting, i.e memorizing training data, such a model won't fare well with new questions outside training data spec.
 
-I did not check the metrics before submitting and unfortunately I couldn't beat this model and since AWS copies the model with the highest score for the next round, this ended up being my model for the finals. (Yes, I reached out if they could change the model chosen immediately after the first round, organizers said they couldn't)
+I did not check the metrics before submitting despite knowing that a higher value of r is likely to produce a model that overfits. Unfortunately, I couldn't beat this model and since AWS copies the model with the highest score for the next round, this ended up being my model for the finals. (Yes, I reached out if they could change the model chosen immediately after the first round, organizers said they couldn't)
 
 Anyway, this is how the leaderboard looked at the end of 72 hours of the first round where I ended up finishing first.
 
