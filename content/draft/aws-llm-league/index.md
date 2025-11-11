@@ -97,7 +97,7 @@ The script takes in a list of topics, and generates N of questions for each topi
 
 After the competition many asked me, how I de-duplicated by dataset. Well, with this process I didn't have to. My topics were diverse enough and I only generated 6 questions per topic that I didn't need to do de-duplication at all.
 
-I uploaded the dataset with the base hyperparameter configuration, by this time, 5 hours had already passed, I haven't even looked at the leaderboard yet. The model scored 31.8% and put me in the second place on the leaderboard but I decided to perform all the hyperparameter tuning experiments that I learned about before discarding the dataset entirely. 
+I uploaded the dataset with the base hyperparameter configuration, by this time, 5 hours had already passed, I haven't even looked at the leaderboard yet. The model scored just 31.8% but I decided to perform all the hyperparameter tuning experiments that I learned about before discarding the dataset entirely. 
 
 - Started with increasing epoch from 1 - 5. The evaluation percentage increased and started to decrease at 5 so maintained the **epoch at 4**. 
 - Enabling LoRA modules for all layers instead of the default query and key gave me the biggest jump, got me to **86%** at epoch 3 and **88%** at epoch 4 with lora_r at 8 and lora_alpha at 16.
