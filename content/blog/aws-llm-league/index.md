@@ -20,6 +20,12 @@ While I was familiar with data preparation, I realised that I needed to learn mo
 
 Plus reading about these hyperparameters experiments from [Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments](https://lightning.ai/pages/community/lora-insights/) and [Practical Tips for Finetuning LLMs Using LoRA](https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms) made me realise that these parameters are inherently dependant upon the data, what works for one set may not necessarily work for another set but it also gave me an idea on what parameters to experiment, particularly the insight about enabling LoRA for more layers proved very effective. You can find my raw notes that I took while reading these articles and [more over here](https://github.com/nobodyme/aws-ai-league/blob/main/resources.md)
 
+Crux of what I learnt,
+- An epoch is a hyperparameter representing one complete pass through the entire training dataset during the model training process
+- lora_r (rank) ranges from 4 to 256, with 8, 16, and 32 being common choices (determines the number of trainable parameters in the adaptation layers - high value meaning longer training time and more adaptability)
+- lora_alpha is a scaling factor that controls the magnitude of the LoRA weight updates, controls impact of adaptations and is generally 2x of lora_r but above blog suggests successes with 0.5x of lora_r too.
+- r too large or epoch too large could result in overfitting
+
 Since, I had time, I thought why not write scripts to automate these. So, I wrote them for,
 1) Deploying the base model
 2) Uploading dataset to s3
@@ -96,7 +102,7 @@ It responded with the topic and subtopics below, exactly what I was looking for,
 
 Full set of topics can be [found here](https://github.com/nobodyme/aws-ai-league/blob/main/data-preparation/generate-data-gpt/topics.py). I generated to about 144 topics. The idea was to feed in these topics to QnACrafter and copy the generated answers but by default it only accepts 4 at a time. Customizing the app to accept more resulted in partial generation, I am assuming due to rate limiting. So, I quickly realized this is going to be time consuming and that it would be easier to write a python script instead that works with LLM models. So, that's what I did, you can [find that here](https://github.com/nobodyme/aws-ai-league/tree/main/data-preparation/generate-data-gpt).
 
-The script takes in a list of topics, and generates N of questions for each topic. Each question is then passed onto another answer prompt which generates the answer. This gave me [my first dataset](https://github.com/nobodyme/aws-ai-league/blob/main/data/first-dataset.jsonl), roughly 870 odd instruction set.
+The script used **gpt-4o** and takes in a list of topics, and generates N of questions for each topic. Each question is then passed onto another answer prompt which generates the answer. This gave me [my first dataset](https://github.com/nobodyme/aws-ai-league/blob/main/data/first-dataset.jsonl), roughly 870 odd instruction set.
 
 After the competition many asked me, how I de-duplicated by dataset. Well, with this process I didn't have to. My topics were diverse enough and I only generated 6 questions per topic that I didn't need to do de-duplication at all.
 
@@ -118,17 +124,18 @@ After this, I tried a lot of variations with the dataset.
 - Generated summary based question and answer pair and combined it with my first dataset. Once again, I observed that it performed worse.
 - Generated more topics with ChatGPT and used by script to prepare more question/answer pairs for those topics. This improved my score and took me to **90%**
 - Any further topic generation also did not improve the scoreboard.
+- I also tried switching from gpt4o to 5-mini, although the questions generated were even more realistic for the same prompt, the score still dropped, suggesting that the evaluation set had simpler question equivalent to what 4o generated.
 - Then, my **highest score** came from simply appending refusal type datasets to my first dataset. By refusal I mean, refusing to answer anything irrelevant or aiding harmful intent like giving away personal information of a neighbour etc. This got me upto **94%**.
 
 By this time, I was out of ideas to experiment with datasets but I continued experimenting with various other exotic hyperparameter configurations.
 
-One tuning configuration with `lora_r - 156` and `lora alpha 128` yielded, 0.001% more than my current best model but later looking at the eval / train loss under performance metric on jumpstart I realised this model overfits a bit. You can find the comparison of the parameters below.
+One tuning configuration with **lora_r = 156** and **lora alpha = 128** yielded, 0.001% more than my current best model but later looking at the eval / train loss under performance metric on jumpstart I realised this model overfits a bit. You can find the comparison of the parameters below.
 
-[performance metrics](perf-metrics.png)
+![performance metrics](perf-metrics.png)
 
 Good rule of thumb is to have the eval loss close to training loss, which you can observe in the best model. This means the model generalizes well, otherwise it means the model is overfitting, i.e memorizing training data, such a model won't fare well with new questions outside training data spec.
 
-I did not check before submitting and unfortunately I couldn't beat this model and since AWS copies the model with the highest score for the next round, this ended up being my model for the finals. (Yes, I reached out if they could change the model chosen immediately after the first round, they said they couldn't)
+I did not check the metrics before submitting and unfortunately I couldn't beat this model and since AWS copies the model with the highest score for the next round, this ended up being my model for the finals. (Yes, I reached out if they could change the model chosen immediately after the first round, organizers said they couldn't)
 
 Anyway, this is how the leaderboard looked at the end of 72 hours of the first round where I ended up finishing first.
 
