@@ -3,22 +3,22 @@ title: Building, Breaking and Tuning - My experience at the AWS AI League
 date: "2025-11-09T07:15:00.000Z"
 ---
 
-I promised a lot of folks I'd write a blog if I win, so here's me penning this down after finishing 2nd in the competition. Before we begin, here's a little brief about the competition itself. The AWS AI league consists of two rounds,
+I promised a lot of folks I'd write a blog if I win, so here's me penning this down after finishing 2nd in the AWS AI League. Before we begin, here's a little brief about the competition itself, it consists of two rounds,
 
-1) You are given a 72 hours to fine tune a Llama 3.2 8B model to the given domain using AWS Sagemaker Jumpstart. The finetuned model when submitted is evaluated and rated against the Llama 3.2 70B model using LLM as a judge using a fixed set of 50 questions. If your finetuned LLM's answer is better, you get a point. Participants are ranked based on these points in the leaderboard.
-2) For the second round, top 5 candidates from the first round are chosen. This time, participants get to craft a system prompt that their finetuned model (from the previous round) takes in to answer the question. In this round, the answers are evaluated by human judges (40%), LLM (40%) and audience (20%). The winner is decided based on these points after 5 questions.
+1) You are given a 72 hours to fine-tune a Llama 3.2 8B model to the given domain using AWS Sagemaker Jumpstart. The fine-tuned model when submitted is evaluated and rated against the Llama 3.2 70B model using LLM as a judge using a fixed set of 50 questions. If your fine-tuned model's answer is better, you get a point. Participants are ranked based on these points in the leaderboard.
+2) For the second round, top 5 candidates from the first round are chosen. This time, participants get to craft a system prompt that their fine-tuned model (from the previous round) takes in to answer the question. In this round, the answers are evaluated by human judges (40%), LLM (40%) and audience (20%). The winner is decided based on these points after 5 questions.
 
 ## Preparation
 
-Although I have been working with LLMs for the past couple of years, prior to this event, I have only finetuned a model once that too with help. So, I set out to understand it deeply before the competition and started my prep one week prior.
+Although I have been working with LLMs for the past couple of years, prior to this event, I have only fine-tuned a model once that too with help. So, I set out to understand it deeply before the competition and started my prep one week prior.
 
-For starters this [video series by AWS](https://www.youtube.com/watch?v=gZP9N86b248&list=PLBm5soQMjeJ0-h5Dfp_iUFyjUDDbxM8S4&index=7) helped me get familiar with sagemaker and model finetuning. I also looked at several LLM leagues of the past, stumbled upon a blog from the winner of the, [Singaporean AI league](https://medium.com/@andyphuawc/my-secret-sauce-for-the-inaugural-singapore-nationwide-aws-large-language-models-league-llml-983d02e63cb3) and the blog from [first round winner](https://github.com/taswhe/2024-sg-lol-papaoutai) from the same league. Both these blogs talk about data preparation and hyperparameters tuning and what worked for them. I noted them all down religiously. 
+For starters this [video series by AWS](https://www.youtube.com/watch?v=gZP9N86b248&list=PLBm5soQMjeJ0-h5Dfp_iUFyjUDDbxM8S4&index=7) helped me get familiar with sagemaker and model finetuning. I also looked at several LLM leagues of the past, stumbled upon a blog from the winner of the, [Singaporean AI league](https://medium.com/@andyphuawc/my-secret-sauce-for-the-inaugural-singapore-nationwide-aws-large-language-models-league-llml-983d02e63cb3) and the blog from [first round winner](https://github.com/taswhe/2024-sg-lol-papaoutai) from the same league. Both these blogs talk about data preparation and hyperparameters tuning and what worked for them. I noted them all down religiously. For those of you who don't know, hyperparameters are basically like configuration settings that you can adjust while fine-tuning a model.
 
-While I was familiar with data preparation, I realised that I needed to learn more about hyperparameters, that's when I stumbled upon this [blog from AWS](https://aws.amazon.com/blogs/machine-learning/fine-tune-llama-3-for-text-generation-on-amazon-sagemaker-jumpstart/) which was good starting point. The information about time taken for each instance size and config pair to finetune a model at the end of the page was a cherry on the top.
+While I was familiar with data preparation, I realised that I needed to learn more about hyperparameters, that's when I stumbled upon this [blog from AWS](https://aws.amazon.com/blogs/machine-learning/fine-tune-llama-3-for-text-generation-on-amazon-sagemaker-jumpstart/) which was good starting point. In addition, the information about time taken for each instance size and config pair to fine-tune a model at the end of the page was a cherry on the top.
 
 ![hyperparameters shown from the blog](hyperparameters.png)
 
-Plus reading about these hyperparameters experiments from [Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments](https://lightning.ai/pages/community/lora-insights/) and [Practical Tips for Finetuning LLMs Using LoRA](https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms) made me realise that these hyperparameters are inherently dependant upon the data, what works for one set may not necessarily work for another set but it also gave me an idea on what parameters to experiment, particularly the insight about enabling LoRA for more layers.
+Plus reading about these hyperparameters experiments from [Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments](https://lightning.ai/pages/community/lora-insights/) and [Practical Tips for Finetuning LLMs Using LoRA](https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms) made me realise that these hyperparameters are inherently dependant upon the data, what works for one set may not necessarily work for another set but it also gave me an idea on what parameters to experiment, particularly the insight about enabling LoRA for more layers proved very effective.
 
 You can find my raw notes that I took while reading these articles and [more over here](TODO)
 
@@ -48,9 +48,9 @@ So, I looked for tools that allow us to scrape data from any available source fo
 
 So, at this point, I was clear on how to prepare data and what hyperparameters to experiment with and all set for the competition.
 
-## Round 1 - Fine Tuning
+## Round 1 - Fine-Tuning
 
-The exact usecase to finetune our model was given on the competition day, although we were told the overall domain as "SLED" earlier.
+The exact usecase to fine-tune our model was given on the competition day, although we were told the overall domain as "SLED" earlier.
 
 ![Domain details](domain.png)
 
@@ -91,13 +91,18 @@ It responded with the topic and subtopics below, exactly what I was looking for,
 ...
 ```
 
-Full set of topics can be [found here](TODO). The idea was to feed in these topics to QnACrafter and copy the generated answers but by default it only accepts 4 at a time. Customizing the app to accept more resulted in partial generation, I am assuming due to rate limiting. So, I quickly realized this is going to be time consuming and that it would be easier to write a python script instead that works with LLM models instead. So, that's what I did, you can [find that here]().
+Full set of topics can be [found here](TODO). I generated to about 144 topics. The idea was to feed in these topics to QnACrafter and copy the generated answers but by default it only accepts 4 at a time. Customizing the app to accept more resulted in partial generation, I am assuming due to rate limiting. So, I quickly realized this is going to be time consuming and that it would be easier to write a python script instead that works with LLM models instead. So, that's what I did, you can [find that here](TODO).
 
-The script takes in a list of topics, and generates N of questions for each topic. The question is then passed onto another answer prompt which generates an answer for each question. This gave me [my first dataset](TODO).
+The script takes in a list of topics, and generates N of questions for each topic. Each question is then passed onto another answer prompt which generates the answer. This gave me [my first dataset](TODO), roughly 850 odd instruction set. 
 
-I uploaded the dataset with the base hyperparameter configuration by this time 5 hours has already passed, I haven't even looked at the leaderboard thus far. The model scored 31.8% and put me in the second place in the leaderboard but I decided to perform all the hyperparameter tuning experiments that I learned about before discarding the dataset entirely. 
+After the competition many asked me, how I de-duplicated by dataset. Well, with this process I didn't have to. My topics were diverse enough and I only generated 6 questions per topic that I didn't need to do de-duplication at all.
 
-Started with increasing epoch from 1 - 5. The evaluation percentage started to decrease at 5 so maintained that at 4. Enabling LoRA modules for all layers instead of the default query and key gave me the biggest jump. The same dataset that got me 31% also fetched me 88% just by tuning the parameters, in other words my finetuned LLM is already answering 44/50 questions better than the 70B model.
+I uploaded the dataset with the base hyperparameter configuration, by this time, 5 hours had already passed, I haven't even looked at the leaderboard yet. The model scored 31.8% and put me in the second place on the leaderboard but I decided to perform all the hyperparameter tuning experiments that I learned about before discarding the dataset entirely. 
+
+- Started with increasing epoch from 1 - 5. The evaluation percentage increased and started to decrease at 5 so maintained the **epoch at 4**. 
+- Enabling LoRA modules for all layers instead of the default query and key gave me the biggest jump, got me to **86%** at epoch 3 and **88%** at epoch 4 with lora_r at 8 and lora_alpha at 16.
+
+So, the same dataset that got me 31% also fetched me 88% just by tuning the parameters, in other words my fine-tuned LLM is already answering 44/50 questions better than the 70B model.
 
 ![alt text](tuning-scores.png)
 
@@ -114,7 +119,7 @@ After this, I tried a lot of variations with the dataset.
 
 By this time, I was out of ideas to experiment with datasets but I continued experimenting with various other exotic hyperparameter configurations.
 
-One tuning configuration with `lora - 156` and `lora alpha 128` yielded, 0.001% more than my current best model but looking at the eval / train loss under performance metric jumpstart I realised this model overfits a bit.
+One tuning configuration with `lora_r - 156` and `lora alpha 128` yielded, 0.001% more than my current best model but looking at the eval / train loss under performance metric jumpstart I realised this model overfits a bit.
 Unfortunately I couldn't beat this model and since AWS copies the model with the highest score for the next round, this ended up being my model for the finals. You can find the comparison of the parameters below.
 
 ![overfit-model performance metrics](overfit-model.png)
@@ -152,4 +157,4 @@ While the LLMs favoured the answer by my model, humans did not and that reflecte
 
 At the end you build for humans, so it would have been wise to choose the training data to human preference than just judging by the LLM evaluation score. If I were to do it again, I'd probably have a vote with non-participants and choose the one they like best. I realised even format of the response played a big role. Some of my datasets had answers beginning with `### ANSWER` or `### RESPONSE` and that reflected in the type of outputs it produced as well. To anyone taking this up again, look for these small things to have a edge in the final round, all top 5 participants are probably going to have the facts right for a given question, so how you differentiate your answer better from them is going to be the key.
 
-Looking at the bigger picture, I learnt a lot about finetuning in less than 2 weeks, excited to see where I can put these skills to use in real projects.
+Looking at the bigger picture, I learnt a lot about fine-tuning in less than 2 weeks, excited to see where I can put these skills to use in real projects.
