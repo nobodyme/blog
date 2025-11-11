@@ -106,16 +106,16 @@ Here's the link to the [full experimentation sheet](TODO).
 After this, I tried a lot of variations with the dataset. 
 
 - If you observe my previous dataset was generic but we know laws can be different from state to state, so I generated locality specific data which fetched me just **15%** with my best hyperparameter configuration. I understood that the evaluation is not locality specific and discarded it entirely.
-- Then, I thought maybe rest of those 6 questions are in spanish since US has a sizable spanish population, this also did not improve my score.
-- Generated summary based question and answer pair and combined it with my first dataset, once again I observed that it performed worse.
-- Generated more topics with GPT and appended those question/answer pairs, I saw some improvement, took me to **90%**
-- I mixed and match a lot of variations of these. At the end I had about 15 versions of dataset to no avail.
-- Then, my highest score came from simply appending refusal type datasets to my first dataset. By refusal I mean, refusing to answer anything irrelevant or aiding harmful intent like giving away personal information of a neighbour etc. This got me upto **94%**.
+- Then, I thought maybe rest of those 6 questions are in spanish since US has a sizable spanish population. This also did not improve my score.
+- Generated summary based question and answer pair and combined it with my first dataset. Once again, I observed that it performed worse.
+- Generated more topics with ChatGPT and used by script to prepare more question/answer pairs for those topics. This improved my score and took me to **90%**
+- Any further topic generation also did not improve the scoreboard.
+- Then, my **highest score** came from simply appending refusal type datasets to my first dataset. By refusal I mean, refusing to answer anything irrelevant or aiding harmful intent like giving away personal information of a neighbour etc. This got me upto **94%**.
 
 By this time, I was out of ideas to experiment with datasets but I continued experimenting with various other exotic hyperparameter configurations.
 
 One tuning configuration with `lora - 156` and `lora alpha 128` yielded, 0.001% more than my current best model but looking at the eval / train loss under performance metric jumpstart I realised this model overfits a bit.
-Unfortunately I couldn't beat this model and this ended up being my model for the second round, since AWS copies the model with the highest score for the next round. You can find the comparison of the parameters below. If I had a choice I would have probably picked the other model.
+Unfortunately I couldn't beat this model and since AWS copies the model with the highest score for the next round, this ended up being my model for the finals. You can find the comparison of the parameters below.
 
 ![overfit-model performance metrics](overfit-model.png)
 
@@ -154,4 +154,4 @@ The general consensus talking to the audience after the show was that my LLM did
 
 What did I learn from it?
 
-At the end you build for humans, so it would have been wise to choose the training data to human preference than just judging by the LLM evaluation score. If I were to do it again, I'd probably have a vote with non-participants and choose the one they like best. I realised even format of the response play a big role. Some of my datasets have the answer beginning with `### ANSWER` or `### RESPONSE` and that reflected in the type of outputs it gave as well. To my future self or anyone taking this up again, look for these small things to have a edge in the final round. All of top 5 participants are probably going to have the facts right for a given question, so how do you differentiate your answer better?
+At the end you build for humans, so it would have been wise to choose the training data to human preference than just judging by the LLM evaluation score. If I were to do it again, I'd probably have a vote with non-participants and choose the one they like best. I realised even format of the response played a big role. Some of my datasets had answers beginning with `### ANSWER` or `### RESPONSE` and that reflected in the type of outputs it produced as well. To anyone taking this up again, look for these small things to have a edge in the final round, all top 5 participants are probably going to have the facts right for a given question, so how you differentiate your answer better from them is going to be the key.
