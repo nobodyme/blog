@@ -93,7 +93,7 @@ It responded with the topic and subtopics below, exactly what I was looking for,
 
 Full set of topics can be [found here](TODO). The idea was to feed in these topics to QnACrafter and copy the generated answers but by default it only accepts 4 at a time. Customizing the app to accept more resulted in partial generation, I am assuming due to rate limiting. So, I quickly realized this is going to be time consuming and that it would be easier to write a python script instead that works with LLM models instead. So, that's what I did, you can [find that here]().
 
-The script takes in a list of topics, and generates N of questions for each topic. The question is then passed onto another answer prompt which generates an answer for each question. This gave me [my first dataset]().
+The script takes in a list of topics, and generates N of questions for each topic. The question is then passed onto another answer prompt which generates an answer for each question. This gave me [my first dataset](TODO).
 
 I uploaded the dataset with the base hyperparameter configuration by this time 5 hours has already passed, I haven't even looked at the leaderboard thus far. The model scored 31.8% and put me in the second place in the leaderboard but I decided to perform all the hyperparameter tuning experiments that I learned about before discarding the dataset entirely. 
 
@@ -132,7 +132,7 @@ So, this is how the leaderboard looked at the end of 72 hours of the first round
 
 ## Final Round - Prompt Engineering
 
-All our models from the previous round is put to test infront of the audience with human and LLM judges alike. I had the opportunity to witness AI league final round for another domain in the morning, where I observed humans preferring shorter, succient answers, at least that's what I thought. So, I planned to prepare a prompt that gives concise answers too.
+All our models from the previous round is put to test infront of the audience with human and LLM judges alike. I had the opportunity to witness AI league final round for another domain in the morning, where I observed humans preferring shorter, succient answers (at least that's what I thought). So, I planned to prepare a prompt that gives concise answers too.
 
 We were given access to the site where the questions appear, we had the ability to tweak the **system prompt** that goes into the model, **temperature** and **top_p**. One had about 60 seconds for each question and we were allowed to generate answers any number of times and submit your best answer.
 
@@ -144,14 +144,12 @@ Offer suggestion tacfully when appropriate to improve outcomes.
 Engage in productive collaboration with the user.
 ```
 
-While the LLMs favoured the answer by my model, humans did not and that reflected heavily on the scoreboard. Nevertheless, I was pretty happy to finish in the second place and loved the overall experience with the league itself. I love debugging in general and I saw this AI league as a gamified version of debugging a black box (evaluator LLM) and I really played it like a game from the first day with all my experiements.
+While the LLMs favoured the answer by my model, humans did not and that reflected heavily on the scoreboard. The general consensus talking to the audience after the show was that my LLM did not empathize with the user which I why they did not favour it. Looking at my training data (which already empathizes with the user) and final round output, I had a feeling I botched this with my prompt forcing it to be too concise. Nevertheless, I was pretty happy to finish in the second place and loved the overall experience with the league itself. I love debugging in general and I viewed this AI league as a gamified version of debugging a black box(evaluator LLM) and I really played it like a game from the first day with all my experiements.
 
 ![finalists group photo](finalists.png)
 
 ## Learnings
 
-The general consensus talking to the audience after the show was that my LLM did not emphathize with the user which I why they did not favour it. Looking at my training data and final round output, I had a feeling I botched this with my prompt forcing it to be too concise. 
-
-What did I learn from it?
-
 At the end you build for humans, so it would have been wise to choose the training data to human preference than just judging by the LLM evaluation score. If I were to do it again, I'd probably have a vote with non-participants and choose the one they like best. I realised even format of the response played a big role. Some of my datasets had answers beginning with `### ANSWER` or `### RESPONSE` and that reflected in the type of outputs it produced as well. To anyone taking this up again, look for these small things to have a edge in the final round, all top 5 participants are probably going to have the facts right for a given question, so how you differentiate your answer better from them is going to be the key.
+
+Looking at the bigger picture, I learnt a lot about finetuning in less than 2 weeks, excited to see where I can put these skills to use in real projects.
