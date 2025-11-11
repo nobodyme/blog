@@ -18,9 +18,7 @@ While I was familiar with data preparation, I realised that I needed to learn mo
 
 ![hyperparameters shown from the blog](hyperparameters.png)
 
-Plus reading about these hyperparameters experiments from [Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments](https://lightning.ai/pages/community/lora-insights/) and [Practical Tips for Finetuning LLMs Using LoRA](https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms) made me realise that these parameters are inherently dependant upon the data, what works for one set may not necessarily work for another set but it also gave me an idea on what parameters to experiment, particularly the insight about enabling LoRA for more layers proved very effective.
-
-You can find my raw notes that I took while reading these articles and [more over here](https://github.com/nobodyme/aws-ai-league/blob/main/resources.md)
+Plus reading about these hyperparameters experiments from [Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments](https://lightning.ai/pages/community/lora-insights/) and [Practical Tips for Finetuning LLMs Using LoRA](https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms) made me realise that these parameters are inherently dependant upon the data, what works for one set may not necessarily work for another set but it also gave me an idea on what parameters to experiment, particularly the insight about enabling LoRA for more layers proved very effective. You can find my raw notes that I took while reading these articles and [more over here](https://github.com/nobodyme/aws-ai-league/blob/main/resources.md)
 
 Since, I had time, I thought why not write scripts to automate these. So, I wrote them for,
 1) Deploying the base model
@@ -41,9 +39,7 @@ Talking about data prepation, both these blogs talk about generating data throug
 I tried QnACrafter and even modified it slightly to [suit my usecase](https://partyrock.aws/u/nobodymenav/hZpzbBFCU/QnACrafter2025-SLED) for the event.
 
 But what if synthetic data generation doesn't work?
-
 I will then have to look at actual sources in the internet, but data can be in different formats like pdf, webpage or csv?
-
 So, I looked for tools that allow us to scrape data from any available source format with minimal effort which is when I landed on [synthetic-data-kit](https://github.com/meta-llama/synthetic-data-kit) from Meta, which seems to be built exactly for this purpose, a CLI app that one can run locally and will produce questions and answer pairs in the format of your choice. It also checks for duplicates and evaluates whether the generated pair is of high quality. Seemed like a perfect fit. It internally uses LLM behind the scenes to generate these datasets and allows prompt customization as well. One thing it lacked was direct Azure OpenAI model support, I quickly modified the code to add that and built a thin wrapper on top of it to automate even further, you can find the [source code here](https://github.com/nobodyme/aws-ai-league/tree/main/data-preparation/synthetic-data-kit).
 
 So, at this point, I was clear on how to prepare data and what hyperparameters to experiment with and all set for the competition.
@@ -57,45 +53,41 @@ The exact usecase to fine-tune our model was given on the competition day, altho
 I honestly did not know what SLED even encompasses. So, I set out to find it.
 First I tried my modified, [QnACrafter app](https://partyrock.aws/u/nobodymenav/hZpzbBFCU/QnACrafter2025-SLED). It auto selects different aspects when a topic is given (one can also manually specify topics) and prepares question and answers for it, that gave me a hint but I wanted to dig deeper. A combination of few aspects from party rock and googling. I asked chatgpt for more such topics, using this prompt below,
 
-```
-US State government, Local and Education - understand citizen needs in plain language. 
+> US State government, Local and Education - understand citizen needs in plain language. 
 Handle complex scenarios like "I want to open a food truck" or "My neighbor's tree fell on my property" while providing step-by-step guidance through permit applications and licensing.
 Datasets generated should include realistic user queries and appropriate concise and helpful answer like an assistant from US gov public services
-
-I am building a dataset that will help US citizens in navigation government bureaucracy
+>
+> I am building a dataset that will help US citizens in navigation government bureaucracy
 What all aspects should I cover, I have a few, listed below.
-
-Business Licensing & Permits, Property Rights & Disputes, Education Services, Public Services & Utilities, Public Health, 
+>
+> Business Licensing & Permits, Property Rights & Disputes, Education Services, Public Services & Utilities, Public Health, 
 Public Transport, 311 requests, building permits, health and food inspection, business registration, property and assessment, 
 public works and ROW permits, trees and neighbour hood issues, fire inspection and permits, benefits and human services, 
 education, transportation and DMV, Courts & clerks, Community legal aid guide, Street use / right‑of‑way, 
 Food vending & food truck, Stormwater & drainage
-
-I want you to think about all such aspects a citizen will reach out to State and local government officals, just like I have written,
-
-Categorize them, example, 
-1. Business
-- (topic related to business why they would reach out, like) business licensing
-- business permits
-
-And so on, for all possible things one would likely reach out
-```
+>
+>I want you to think about all such aspects a citizen will reach out to State and local government officals, just like I have written,
+>
+>Categorize them, example, 
+>1. Business
+>- (topic related to business why they would reach out, like) business >licensing
+>- business permits
+>
+>And so on, for all possible things one would likely reach out
 
 It responded with the topic and subtopics below, exactly what I was looking for,
 
-```
-1. Business & Commerce
-- Business formation (LLC/DBA, Secretary of State filings)
-- General business license / local tax receipt
-- Industry licenses (food service, salon, contractor, childcare, auto dealer)
-...
-
-2. Building, Construction & Permitting
-- Building/alteration permits; plan review
-- Mechanical/electrical/plumbing permits
-- Occupancy and fire safety certificates
-...
-```
+> 1. Business & Commerce
+> - Business formation (LLC/DBA, Secretary of State filings)
+> - General business license / local tax receipt
+> - Industry licenses (food service, salon, contractor, childcare, auto dealer)
+> ...
+>
+> 2. Building, Construction & Permitting
+> - Building/alteration permits; plan review
+> - Mechanical/electrical/plumbing permits
+> - Occupancy and fire safety certificates
+> ...
 
 Full set of topics can be [found here](https://github.com/nobodyme/aws-ai-league/blob/main/data-preparation/generate-data-gpt/topics.py). I generated to about 144 topics. The idea was to feed in these topics to QnACrafter and copy the generated answers but by default it only accepts 4 at a time. Customizing the app to accept more resulted in partial generation, I am assuming due to rate limiting. So, I quickly realized this is going to be time consuming and that it would be easier to write a python script instead that works with LLM models. So, that's what I did, you can [find that here](https://github.com/nobodyme/aws-ai-league/tree/main/data-preparation/generate-data-gpt).
 
@@ -147,13 +139,12 @@ All our models from the previous round is put to test infront of the audience wi
 
 We were given access to the site where the questions appear, we had the ability to tweak the **system prompt** that goes into the model, **temperature** and **top_p**. One had about 60 seconds for each question and we were allowed to generate answers any number of times and submit your best answer.
 
-```
-You are a knowledgeable, efficient, and direct AI assistant that helps US residents navigate public services reducing friction.
+> You are a knowledgeable, efficient, and direct AI assistant that helps US residents navigate public services reducing friction.
 Utilize multi-step reasoning to provide concise answers, focusing on key current information in plain language and short sentences. Avoid jargon; if you must use a legal term, define it.
 If multiple questions are asked, split them up and address in order that yields the most logical and accurate response.
 Offer suggestion tacfully when appropriate to improve outcomes.
 Engage in productive collaboration with the user.
-```
+
 
 While the LLMs favoured the answer by my model, humans did not and that reflected heavily on the scoreboard. The general consensus talking to the audience after the show was that my LLM did not empathize with the user which is why they did not favour it. Looking at my training data (which already empathizes with the user) and final round output, I had a feeling I botched this with my prompt forcing it to be too concise. Nevertheless, I was pretty happy to finish in the second place and loved the overall experience with the league itself. I love debugging in general and I viewed this AI league as a gamified version of debugging a black box(evaluator LLM) and I really played it like a game from the first day with all my little experiements.
 
