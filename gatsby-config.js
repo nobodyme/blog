@@ -14,11 +14,13 @@ module.exports = {
   },
   plugins: [
     {
-      resolve: `gatsby-plugin-google-analytics`,
+      resolve: `gatsby-plugin-google-gtag`,
       options: {
-        trackingId: `UA-196720033-1`,
-        head: true,
-      },
+        // You can add multiple tracking ids and a pageview event will be fired for all of them.
+        trackingIds: [
+          "G-RTEDBEVJXZ"
+        ],
+      }
     },
     `gatsby-plugin-image`,
     {
