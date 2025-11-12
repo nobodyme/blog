@@ -25,6 +25,7 @@ The crux of what I learnt,
 - `lora_r` (rank) ranges from 4 to 256, with 8, 16, and 32 being common choices (determines the number of trainable parameters in the adaptation layers - high value meaning longer training time and more adaptability)
 - `lora_alpha` is a scaling factor that controls the magnitude of the LoRA weight updates, controls impact of adaptations and is generally kept 2x of lora_r (though above blog also notes successes with 0.5x of lora_r)
 - Setting lora_r or number of epoch too high can lead to overfitting
+- `learning_rate` rate at which model weights are updated after working through each batch of training examples (regret not experimenting with learning rate in this competition)
 
 Then, since, I had time, I thought why not automate some of these, so that I can just focus on preparing the dataset on the event day, like,
 1) Deploying the base model
