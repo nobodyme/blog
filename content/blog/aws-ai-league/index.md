@@ -159,7 +159,7 @@ Offer suggestion tacfully when appropriate to improve outcomes.
 Engage in productive collaboration with the user
 ```
 
-While the LLMs favoured the answer by my model, humans did not and that reflected heavily on the scoreboard. The general consensus from the audience after the show was that my LLM didn't empathize with the user which is why they did not favour it. Looking at my training data (which already empathizes with the user) and final round output, I suspect I botched this by forcing the prompt to make responses too concise. Nevertheless, I was pretty happy to finish in the second place and loved the overall experience with the league itself. I love debugging in general and I viewed this AI league as a gamified version of debugging a black box (evaluator LLM) and I really played it like a game from day one with all my little experiements.
+While the LLMs favoured the answer by my model, humans did not and that reflected heavily on the scoreboard. The general consensus from the audience after the show was that my LLM didn't empathize with the user which is why they did not favour it. Looking at my training data (which already empathizes with the user) and final round output, I suspect I botched this by forcing the prompt to make responses too concise and direct. Nevertheless, I was pretty happy to finish in the second place and loved the overall experience with the league itself. I love debugging in general and I viewed this AI league as a gamified version of debugging a black box (evaluator LLM) and I really played it like a game from day one with all my little experiements.
 
 ![finalists group photo](finalists.png)
 
