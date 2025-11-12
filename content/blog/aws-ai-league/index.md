@@ -21,7 +21,7 @@ While I was familiar with data preparation, I realised that I needed to learn mo
 Plus, reading about these hyperparameters experiments from [Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments](https://lightning.ai/pages/community/lora-insights/) and [Practical Tips for Finetuning LLMs Using LoRA](https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms) made me realise that these parameters are inherently dependent on the data, what works for one set may not necessarily work for another set but it also gave me an idea on what parameters to experiment with; particularly the insight about enabling LoRA for more layers proved very effective. You can find my [raw notes](https://github.com/nobodyme/aws-ai-league/blob/main/resources.md) that I took while reading these articles and [more over here](https://github.com/nobodyme/aws-ai-league/blob/main/resources.md)
 
 The crux of what I learnt,
-- An `epoch` is a hyperparameter representing one complete pass through the entire training dataset during the model training process
+- An `epoch` is a hyperparameter representing one complete pass through the entire training dataset during the model training process. The plan was to increase epoch slowly from 1 to see which yeilds the best result.
 - `lora_r` (rank) ranges from 4 to 256, with 8, 16, and 32 being common choices (determines the number of trainable parameters in the adaptation layers - high value meaning longer training time and more adaptability)
 - `lora_alpha` is a scaling factor that controls the magnitude of the LoRA weight updates, controls impact of adaptations and is generally kept 2x of lora_r (though above blog also notes successes with 0.5x of lora_r)
 - Setting lora_r or number of epoch too high can lead to overfitting
@@ -103,11 +103,11 @@ It responded with the topic and subtopics below, exactly what I was looking for,
 
 The full set of generated topics can be [found here](https://github.com/nobodyme/aws-ai-league/blob/main/data-preparation/generate-data-gpt/topics.py). I generated roughly 140 topics. The idea was to feed in these topics to QnACrafter and copy the generated answers but by default it only accepts 4 aspects/topics at a time. Customizing the app to accept more resulted in partial generation, likely due to rate limiting. So, I quickly realized this is going to be time consuming and that it would be easier to write a python script instead to generate the dataset. So that's what I did, you can [find the script here](https://github.com/nobodyme/aws-ai-league/tree/main/data-preparation/generate-data-gpt).
 
-The script uses **gpt-4o** and takes in a list of topics, and generates N of questions for each topic. Each question is then passed onto another answer prompt which generates the answer. This produced [my first dataset](https://github.com/nobodyme/aws-ai-league/blob/main/data/first-dataset.jsonl), roughly 870 odd question-answer pairs.
+The script uses **gpt-4o** and takes in a list of topics, and generates N number of questions for each topic. Each question is then passed onto another answer prompt which generates the answer. This produced [my first dataset](https://github.com/nobodyme/aws-ai-league/blob/main/data/first-dataset.jsonl), roughly 870 odd question-answer pairs.
 
 After the competition, many asked how I handled dataset de-duplication. I actually didn’t need a separate de-duplication step, since my approach naturally avoided it. I generated only a handful of questions per topic (about six), and a separate LLM call to generate an answer per question, there was little to no overlap.
 
-Then, I uploaded the dataset with the base hyperparameter configuration. By this time, 5 hours had already passed, I haven't even looked at the leaderboard yet. The model scored just **31.8%**, but I decided to perform all the hyperparameter experiments that I learnt about before discarding the dataset.
+Then, I uploaded the dataset with the base hyperparameter configuration. By this time, 5 hours had already passed, I haven't even looked at the leaderboard yet. The model scored just **31.8%**, but already put me second in the leaderboard at that time. I then, decided to perform all the hyperparameter experiments that I learnt about before discarding the dataset.
 
 - I started by increasing **epochs** from 1 to 5. The evaluation percentage increased and started to decrease at 5 so I maintained the **epoch at 4**. 
 - Enabling LoRA modules for all layers (instead of just query and key) gave me the biggest jump: **86%** at epoch 3 and **88%** at **epoch 4** with **lora_r=8** and **lora_alpha=16**
@@ -127,7 +127,7 @@ After this, I tried a lot of variations with the dataset.
 - Generated and appended summary-based question-answer pairs. Once again, I observed that it performed worse.
 - Generated more topics with ChatGPT and used the same script to prepare more question/answer pairs for those topics. This improved my score and took me to **90%**
 - Any further topic generation also did not improve the scoreboard.
-- I also tried switching from gpt4o to 5-mini, although the questions generated by 5-mini were even more realistic for the same prompt, the score still dropped, suggesting that the evaluation set had simpler question similar to what 4o generated.
+- I also tried switching from gpt4o to 5-mini for generating the dataset, although the questions generated by 5-mini were even more realistic for the same prompt, the score still dropped, suggesting that the evaluation set had simpler question similar to what 4o generated.
 - Then, my **highest score** came from simply appending refusal type datasets. By refusal I mean, refusing to answer anything irrelevant or aiding harmful intent like giving away personal information of a neighbour etc. This got me upto **94%**. You can find my [final dataset here](https://github.com/nobodyme/aws-ai-league/blob/main/data/final-dataset.jsonl).
 
 By this time, I was out of ideas to experiment with datasets but I continued experimenting with various other exotic hyperparameter configurations.
