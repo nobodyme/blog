@@ -18,7 +18,7 @@ While I was familiar with data preparation, I realised that I needed to learn mo
 
 ![hyperparameters shown from the blog](hyperparameters.png)
 
-Plus, reading about these hyperparameters experiments from [Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments](https://lightning.ai/pages/community/lora-insights/) and [Practical Tips for Finetuning LLMs Using LoRA](https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms) made me realise that these parameters are inherently dependent on the data, what works for one set may not necessarily work for another set but it also gave me an idea on what parameters to experiment with; particularly the insight about enabling LoRA for more layers proved very effective. You can find my [raw notes](https://github.com/nobodyme/aws-ai-league/blob/main/resources.md) that I took while reading these articles and [more over here](https://github.com/nobodyme/aws-ai-league/blob/main/resources.md)
+Plus, reading about these hyperparameters experiments from [Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments](https://lightning.ai/pages/community/lora-insights/) and [Practical Tips for Finetuning LLMs Using LoRA](https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms) made me realise that these parameters are inherently dependent on the data, what works for one set may not necessarily work for another set but it also gave me an idea on what parameters to experiment with.
 
 The crux of what I learnt,
 - An `epoch` is a hyperparameter representing one complete pass through the entire training dataset during the model training process. The plan was to increase epoch slowly from 1 to see which yeilds the best result.
@@ -26,6 +26,7 @@ The crux of what I learnt,
 - `lora_alpha` is a scaling factor that controls the magnitude of the LoRA weight updates, controls impact of adaptations and is generally kept 2x of lora_r (though above blog also notes successes with 0.5x of lora_r)
 - Setting lora_r or number of epoch too high can lead to overfitting
 - `learning_rate` rate at which model weights are updated after working through each batch of training examples (regret not experimenting with learning rate in this competition)
+- Finally, enable LoRA for more layers i.e. setting target_modules hyperparameter to `q_proj,v_proj,k_proj,o_proj,gate_proj,up_proj,down_proj` instead of the default `q_proj,v_proj` proved very effective and almost doubled my score. This video from [3Blue1Brown](https://www.youtube.com/watch?v=eMlx5fFNoYc) will help you understand why. You can find more of these in my [raw notes over here](https://github.com/nobodyme/aws-ai-league/blob/main/resources.md)
 
 Then, since, I had time, I thought why not automate some of these, so that I can just focus on preparing the dataset on the event day, like,
 1) Deploying the base model
@@ -48,7 +49,7 @@ I tried QnACrafter and even modified it slightly to [suit my usecase](https://pa
 But what if synthetic data generation doesn't work?
 Then I'd have to look at actual sources on the internet-but data can be in different formats like PDF, webpages or CSV
 
-So, I looked for tools that allow us to scrape data from any available source format with minimal effort which is when I landed on [synthetic-data-kit](https://github.com/meta-llama/synthetic-data-kit) from Meta, which seems to be built exactly for this purpose, a CLI app that one can run locally to produce questions-answer pairs in the format of your choice. It also checks for duplicates and evaluates whether each generated pair is high quality. Seemed like a perfect fit. It internally uses LLM behind the scenes to generate these datasets and allows prompt customization as well. One limitation was the lack of direct Azure OpenAI model support, so I added it and built a thin wrapper to automate further; you can find the [source code here](https://github.com/nobodyme/aws-ai-league/tree/main/data-preparation/synthetic-data-kit).
+So, I looked for tools that allow us to scrape data from any available source format with minimal effort which is when I landed on [synthetic-data-kit](https://github.com/meta-llama/synthetic-data-kit) from Meta, which seems to be built exactly for this purpose, a CLI app that one can run locally to produce questions-answer pairs in the format of your choice. It also checks for duplicates and evaluates whether each generated pair is high quality. Seemed like a perfect fit. It internally uses LLM behind the scenes to generate these datasets and allows prompt customization as well. One limitation was the lack of direct Azure OpenAI model support, since I had access to that, I added that support and built a thin wrapper to automate further; you can find the [source code here](https://github.com/nobodyme/aws-ai-league/tree/main/data-preparation/synthetic-data-kit).
 
 At this point, I was clear on how to prepare data and which hyperparameters to experiment with, and all set for the competition.
 
