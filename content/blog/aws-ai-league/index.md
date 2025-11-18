@@ -3,7 +3,11 @@ title: Building, Breaking, and Tuning - My Experience at the AWS AI League
 date: "2025-11-09T07:15:00.000Z"
 ---
 
-I promised a lot of folks I'd write a blog if I won the [AWS AI League](https://aws.amazon.com/blogs/aws/aws-ai-league-learn-innovate-and-compete-in-our-new-ultimate-ai-showdown/), so here I am writing this after finishing 2nd. Before we begin, here's a little brief about the competition itself, it consists of two rounds:
+I promised a lot of folks I'd write a blog if I won the [AWS AI League](https://aws.amazon.com/blogs/aws/aws-ai-league-learn-innovate-and-compete-in-our-new-ultimate-ai-showdown/), so here I am writing this after finishing 2nd.
+
+![](./ai-league-second-place.jpg)
+
+Before we begin, here's a little brief about the competition itself, it consists of two rounds:
 
 1) You are given 72 hours to fine-tune a Llama 3.2 8B model for the given domain using AWS SageMaker JumpStart. When submitted, the fine-tuned model is evaluated against a base Llama 3.2 70B model, with an LLM as a judge, using a fixed set of 50 undisclosed questions. If your fine-tuned model's answer is better, you get a point. Participants are ranked based on these points in the leaderboard.
 2) For the second round, the top 5 candidates from the first round are chosen. This time, participants craft a system prompt that their fine-tuned model (from the previous round) uses to answer the question. In this round, answers are evaluated by human judges (40%), an LLM (40%) and the audience (20%). The winner is decided based on these points after 5 questions.
@@ -16,19 +20,20 @@ For starters, this [video series by AWS](https://www.youtube.com/watch?v=gZP9N86
 
 While I was familiar with data preparation, I realised that I needed to learn more about hyperparameters-that's when I stumbled upon this [blog from AWS](https://aws.amazon.com/blogs/machine-learning/fine-tune-llama-3-for-text-generation-on-amazon-sagemaker-jumpstart/) which was a good starting point. In addition, the table at the end showing fine-tuning times for each instance-size and configuration pair was the cherry on top.
 
-![hyperparameters shown from the blog](hyperparameters.png)
+![](hyperparameters.png)
 
 Plus, reading about these hyperparameters experiments from [Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments](https://lightning.ai/pages/community/lora-insights/) and [Practical Tips for Finetuning LLMs Using LoRA](https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms) made me realise that these parameters are inherently dependent on the data, what works for one set may not necessarily work for another set but it also gave me an idea on what parameters to experiment with.
 
-The crux of what I learnt,
-- An `epoch` is a hyperparameter representing one complete pass through the entire training dataset during the model training process. The plan was to increase epoch slowly from 1 to see which yeilds the best result.
+The crux of what I learnt from these articles,
+- Even 1000 high quality examples is good enough to fine-tune a model
+- An `epoch` is a hyperparameter representing one complete pass through the entire training dataset during the model training process. So, the plan was to increase epoch slowly from 1 to see which yeilds the best result.
 - `lora_r` (rank) ranges from 4 to 256, with 8, 16, and 32 being common choices (determines the number of trainable parameters in the adaptation layers - high value meaning longer training time and more adaptability)
 - `lora_alpha` is a scaling factor that controls the magnitude of the LoRA weight updates, controls impact of adaptations and is generally kept 2x of lora_r (though above blog also notes successes with 0.5x of lora_r)
 - Setting lora_r or number of epoch too high can lead to overfitting
 - `learning_rate` rate at which model weights are updated after working through each batch of training examples (regret not experimenting with learning rate in this competition)
-- Finally, enable LoRA for more layers i.e. setting target_modules hyperparameter to `q_proj,v_proj,k_proj,o_proj,gate_proj,up_proj,down_proj` instead of the default `q_proj,v_proj` proved very effective and almost doubled my score. This video from [3Blue1Brown](https://www.youtube.com/watch?v=eMlx5fFNoYc) will help you understand why. You can find more of these in my [raw notes over here](https://github.com/nobodyme/aws-ai-league/blob/main/resources.md)
+- Finally, enabling LoRA for more layers i.e. setting target_modules hyperparameter to `q_proj, v_proj, k_proj, o_proj, gate_proj, up_proj, down_proj` instead of the default `q_proj, v_proj`. This proved very effective and almost doubled my score. This video from [3Blue1Brown](https://www.youtube.com/watch?v=eMlx5fFNoYc) will help you understand why. You can find more of these in my [raw notes over here](https://github.com/nobodyme/aws-ai-league/blob/main/resources.md)
 
-Then, since, I had time, I thought why not automate some of these, so that I can just focus on preparing the dataset on the event day, like,
+Then, since, I had time, I thought why not automate some of these like,
 1) Deploying the base model
 2) Uploading dataset to s3
 3) Deploying the fine-tuned models with the given array of hyperparameters (so I didn't have to experiment one by one)
@@ -49,7 +54,7 @@ I tried QnACrafter and even modified it slightly to [suit my usecase](https://pa
 But what if synthetic data generation doesn't work?
 Then I'd have to look at actual sources on the internet-but data can be in different formats like PDF, webpages or CSV
 
-So, I looked for tools that allow us to scrape data from any available source format with minimal effort which is when I landed on [synthetic-data-kit](https://github.com/meta-llama/synthetic-data-kit) from Meta, which seems to be built exactly for this purpose, a CLI app that one can run locally to produce questions-answer pairs in the format of your choice. It also checks for duplicates and evaluates whether each generated pair is high quality. Seemed like a perfect fit. It internally uses LLM behind the scenes to generate these datasets and allows prompt customization as well. One limitation was the lack of direct Azure OpenAI model support, since I had access to that, I added that support and built a thin wrapper to automate further; you can find the [source code here](https://github.com/nobodyme/aws-ai-league/tree/main/data-preparation/synthetic-data-kit).
+So, I looked for tools that allow us to scrape data from any available source format with minimal effort which is when I landed on [synthetic-data-kit](https://github.com/meta-llama/synthetic-data-kit) from Meta, which seems to be built exactly for this purpose, a CLI app that one can run locally to produce questions-answer pairs with PDF, csv or html as the source. It also checks for duplicates and evaluates whether each generated pair is high quality. Seemed like a perfect fit. It internally uses LLM behind the scenes to generate these datasets and allows prompt customization as well. One limitation was the lack of direct Azure OpenAI model support, since I had access to that, I added that support and built a thin wrapper to automate further; you can find the [source code here](https://github.com/nobodyme/aws-ai-league/tree/main/data-preparation/synthetic-data-kit).
 
 At this point, I was clear on how to prepare data and which hyperparameters to experiment with, and all set for the competition.
 
@@ -57,7 +62,7 @@ At this point, I was clear on how to prepare data and which hyperparameters to e
 
 The exact usecase to fine-tune our model was revealed on competition day, although we had already been told that the overall domain as "SLED" (State, Local and Education)
 
-![Domain details](domain.png)
+![](domain.png)
 
 I honestly did not know what SLED encompassed. So, I set out to find it.
 First I tried my modified, [QnACrafter app](https://partyrock.aws/u/nobodymenav/hZpzbBFCU/QnACrafter2025-SLED). It auto selects different aspects when a topic is given (one can also manually specify aspects) and prepares question and answers for it, that gave me a hint but I wanted to dig deeper. Using a combination of generated aspects from PartyRock and a bit of googling, I wrote a few-shot prompt for ChatGPT to give me more SLED topics (the exact prompt below)
@@ -115,7 +120,7 @@ Then, I uploaded the dataset with the base hyperparameter configuration. By this
 
 So, the same dataset that got me 31% also fetched me 88% just by tuning the parameters, in other words my fine-tuned LLM is already answering 44/50 questions better than the 70B model.
 
-![alt text](tuning-scores.png)
+![](tuning-scores.png)
 
 Here's the link to the [full experimentation sheet](https://github.com/nobodyme/aws-ai-league/blob/main/data/Finetune.xlsx).
 
@@ -130,12 +135,13 @@ After this, I tried a lot of variations with the dataset.
 - Any further topic generation also did not improve the scoreboard.
 - I also tried switching from gpt4o to 5-mini for generating the dataset, although the questions generated by 5-mini were even more realistic for the same prompt, the score still dropped, suggesting that the evaluation set had simpler question similar to what 4o generated.
 - Then, my **highest score** came from simply appending refusal type datasets. By refusal I mean, refusing to answer anything irrelevant or aiding harmful intent like giving away personal information of a neighbour etc. This got me upto **94%**. You can find my [final dataset here](https://github.com/nobodyme/aws-ai-league/blob/main/data/final-dataset.jsonl).
+- Since this got me upto 94%, I did not use the synthetic-data-kit that I had previously tweaked
 
 By this time, I was out of ideas to experiment with datasets but I continued experimenting with various other exotic hyperparameter configurations.
 
 One configuration with **lora_r=256** and **lora alpha=128** pushed the score further, yielding just **0.001%** more than my current best model but later looking at the eval/train loss metric on jumpstart I realised this model was overfitting. You can find the comparison of the parameters below.
 
-![performance metrics](perf-metrics.png)
+![](perf-metrics.png)
 
 A good rule of thumb is to keep eval loss close to training loss, which you can observe in the best model. This means the model generalizes well, otherwise it means the model is overfitting, i.e memorizing training data, such a model won't fare well with new questions outside training data spec.
 
@@ -143,14 +149,14 @@ I did not check the metrics before submitting, despite knowing that a higher `lo
 
 Anyway, here's how the leaderboard looked at the end of 72 hours of the first round, where I ended up finishing first.
 
-![leaderboard](leaderboard.png)
+![](leaderboard.png)
 
 
 ## Final Round - Prompt Engineering
 
-All our models from the previous round is put to test infront of the audience, with human and LLM judges. I had the opportunity to witness AI league final round for another domain in the morning, where I observed humans preferring shorter, succinct answers (at least that's what I thought). So, I planned to prepare a prompt that gives concise answers too.
+Based on the leaderboard, top 5 candidates along with their fine-tuned model from the previous round are put to test infront of the audience, with human and LLM judges. I had the opportunity to witness AI league final round for another domain in the morning, where I observed humans preferring shorter, succinct answers (at least that's what I thought). So, I planned to prepare a prompt that gives concise answers too.
 
-We were given access to the site where the questions appear, we had the ability to tweak the **system prompt** that goes into the model, **temperature** and **top_p**. We had about 60 seconds for each question and we were allowed to generate answers multiple times and submit our best one. The prompt I used is pasted below,
+Participants were given access to the site where the questions appear, had the ability to tweak the **system prompt** that goes into the model, **temperature** and **top_p**. We had about 60 seconds for each question and were allowed to generate answers multiple times and submit our best one. The prompt I used is pasted below,
 
 ```
 You are a knowledgeable, efficient, and direct AI assistant that helps US residents navigate public services reducing friction.
@@ -162,10 +168,12 @@ Engage in productive collaboration with the user
 
 While the LLMs favoured the answer by my model, humans did not and that reflected heavily on the scoreboard. The general consensus from the audience after the show was that my LLM didn't empathize with the user which is why they did not favour it. Looking at my training data (which already empathizes with the user) and final round output, I suspect I botched this by forcing the prompt to make responses too concise and direct. Nevertheless, I was pretty happy to finish in the second place and loved the overall experience with the league itself. I love debugging in general and I viewed this AI league as a gamified version of debugging a black box (evaluator LLM) and I really played it like a game from day one with all my little experiements.
 
-![finalists group photo](finalists.png)
+![<center style="margin-top:8px;color:#808086">Photo with the finalists and judges<center>](finalists.png)
 
 ## Learnings
 
 At the end of the day, you build for humans, so it would have been wiser to choose the training data aligned to human preference rather than just judging by the LLM evaluation score. If I were to do it again, I'd probably have a vote with non-participants and choose the one they like best. I realised even the response format played a big role. Some of my datasets had answers beginning with `### ANSWER` or `### RESPONSE` and that reflected in the type of outputs it produced as well. To anyone taking this up again, look for these small things to have an edge in the final round, all top 5 participants are probably going to have the facts right for a given question, so how you differentiate your answer to better align with human preference is going to be the key.
+
+Signing up for prompt engineering classes with [Priyadharsini](https://www.linkedin.com/in/priyadharsini-m-v/) who became our winner.
 
 Looking at the bigger picture, I learnt a lot about fine-tuning in less than 2 weeks, excited to see where I can put these skills to use in real projects.
