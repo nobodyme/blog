@@ -23,6 +23,11 @@ const BlogIndex = ({ data, location }) => {
     <Layout location={location} title={siteTitle}>
       <Seo title={`${siteTitle} | Home`} />
       <ol className="post-list">
+        <div style={{ marginBottom: "20px" }}>
+          <h3>Hi, I'm Naveen 👋</h3>
+          <div style={{ color: 'rgb(95 103 110)', marginBottom: "20px" }}>Engineer, architect, and habitual tinkerer building highly performant systems then turning the scars into posts</div>
+          <hr></hr>
+        </div>
         {posts.map(post => {
           const title = post.frontmatter.title || post.fields.slug
 
@@ -53,31 +58,31 @@ const BlogIndex = ({ data, location }) => {
           )
         })}
       </ol>
-    </Layout>
+    </Layout >
   )
 }
 
 export default BlogIndex
 
 export const pageQuery = graphql`
-  query {
-    site {
-      siteMetadata {
-        title
-      }
+        query {
+          site {
+          siteMetadata {
+          title
+        }
     }
-    allMarkdownRemark(sort: { fields: [frontmatter___date], order: DESC }) {
-      nodes {
-        excerpt
+        allMarkdownRemark(sort: {fields: [frontmatter___date], order: DESC }) {
+          nodes {
+          excerpt
         fields {
           slug
         }
         frontmatter {
           date(formatString: "MMMM DD, YYYY")
-          title
-          description
+        title
+        description
         }
       }
     }
   }
-`
+        `
