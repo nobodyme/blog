@@ -5,13 +5,19 @@ date: "2025-14-09T10:05:00.000Z"
 
 One evening, I was told, we have a client in line who wanted automatic lyric video generation for a given song and to confirm the technical feasibility of it in **two days**. The input being the song itself in say, mp3 or wav and lyrics as txt file. The goal was to produce a music lyric video where video is in the background and lyrics is in the foreground. There was one additional constraint, use everything in AWS or that can be hosted in AWS since this is going to be a AWS funded project.
 
-Given the time constraint and goal being just testing feasibility, I decided to get the end to end flow working before thinking about improving quality of output. 
+Given the time constraint and goal being just ensuring feasibility, I decided to get the end to end flow working before thinking about improving quality of output. 
 
 First things first, breaking this down into subproblems.
-- How to sync/align the lyrics to the song?
 - How to generate the said lyric video?
+- How to sync/align the lyrics to the song?
 - Once video is generated, how to overlay/merge the lyric and audio in the video?
 
+## How to generate the said lyric video?
+
+Found a couple of models in AWS that's readily available and capable of generating video, Nova Reels and Luma AI. Given the time constraints, instead of breaking my head right now on what's better, I tested LumaAI, fair enough, it was able to follow instructions but it has it's limitations, for example, it was only able to generate video of 3 or 9 seconds. So, for generating a video for an entire song, one would have to split up into scenes and provide the model with instructions.
+
+But how about scene cohesion?
+How can one make sure the next scene 
 
 ## How to sync/align the lyrics to the song?
 

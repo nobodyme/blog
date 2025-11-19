@@ -7,32 +7,25 @@
     "tags": ["react", "react-hooks"]
   },
   {
-    "date": "2021-03-16T10:16:30.537Z",
+    "date": "2020-02-04T10:16:30.537Z",
     "title": "Why Discord is switching from Go to Rust?",
-    "link": "https://blog.discord.com/why-discord-is-switching-from-go-to-rust-a190bbca2b1f",
+    "link": "https://discord.com/blog/why-discord-is-switching-from-go-to-rust",
     "reaction": "love",
     "tags": ["discord", "rust"]
   },
   {
-    "date": "2021-03-16T10:16:30.537Z",
+    "date": "2019-05-17T10:16:30.537Z",
     "title": "Using Rust to Scale Elixir for 11 Million Concurrent Users",
-    "link": "https://blog.discord.com/using-rust-to-scale-elixir-for-11-million-concurrent-users-c6f19fc029d3",
+    "link": "https://blog.discord.com/using-rust-to-scale-elixir-for-11-million-concurrent-users",
     "reaction": "exploding-head",
     "tags": ["discord", "rust", "data-structure"]
   },
   {
-    "date": "2021-04-05T10:16:30.537Z",
+    "date": "2007-05-15T10:16:30.537Z",
     "title": "Tech Talk: Linus Torvalds on git",
     "link": "https://www.youtube.com/watch?v=4XpnKHJAok8",
     "reaction": "to-the-moon",
     "tags": ["git", "linus", "video", "talk"]
-  },
-  {
-    "date": "2021-05-05T10:16:30.537Z",
-    "title": "Counting Objects",
-    "link": "https://github.blog/2015-09-22-counting-objects/",
-    "reaction": "exploding-head",
-    "tags": ["github", "data-structure"]
   },
   {
     "date": "2021-03-12T10:16:30.537Z",
@@ -91,11 +84,10 @@
     "tags": ["microservices", "architecture", "monolith"]
   },
   {
-    "date": "2022-06-02T10:00:00.000Z",
+    "date": "2024-09-19T10:00:00.000Z",
     "title": "Introducing Contextual Retrieval",
     "link": "https://www.anthropic.com/news/contextual-retrieval",
     "reaction": "love",
     "tags": ["RAG", "generative-ai", "research"]
   }
-  
 ]
