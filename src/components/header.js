@@ -16,7 +16,7 @@ const Header = ({ siteTitle }) => {
         <h3 className="header-text">{siteTitle}</h3>
       </Link>
       <div className="header-social">
-        <Link className="header-social-link" style={{ color: 'black' }} to="/liked-posts">
+        <Link className="header-social-link" to="/liked-posts">
           <Heart className="header-social-icon" width={35} height={35} />
         </Link>
         <a className="header-social-link" href="https://github.com/nobodyme" target="_blank" rel="noopener noreferrer">
