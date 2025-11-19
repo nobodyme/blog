@@ -168,7 +168,7 @@ Engage in productive collaboration with the user
 
 While the LLMs favoured the answer by my model, humans did not and that reflected heavily on the scoreboard. The general consensus from the audience after the show was that my LLM didn't empathize with the user which is why they did not favour it. Looking at my training data (which already empathizes with the user) and final round output, I suspect I botched this by forcing the prompt to make responses too concise and direct. Nevertheless, I was pretty happy to finish in the second place and loved the overall experience with the league itself. I love debugging in general and I viewed this AI league as a gamified version of debugging a black box (evaluator LLM) and I really played it like a game from day one with all my little experiements.
 
-![<center style="margin-top:8px;color:#808086">Photo with the finalists<center>](finalists.png)
+![<center style="margin-top:8px;color:#808086">Photo with the finalists and judges<center>](finalists.png)
 
 ## Learnings
 
