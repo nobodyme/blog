@@ -1,9 +1,9 @@
 ---
-title: Lyrical Video Generation using AI
+title: Lyric Video Generation using AI
 date: "2025-11-21T10:05:00.000Z"
 ---
 
-One evening, I was told we had a client who wanted automatic lyrical video generation for a given song. I had **two days** to confirm that it was technically feasible. The input being the song itself(mp3/wav) and the lyrics as a .txt file. The goal was to produce a video with lyrics in the foreground and video in the background. There was one additional constraint: use only services/models in AWS or that can be hosted on AWS, since this was going to be an AWS-funded project.
+One evening, I was told we had a client who wanted automatic lyric video generation for a given song. I had **two days** to confirm that it was technically feasible. The input being the song itself(mp3/wav) and the lyrics as a .txt file. The goal was to produce a video with lyrics in the foreground and video in the background. There was one additional constraint: use only services/models in AWS or that can be hosted on AWS, since this was going to be an AWS-funded project.
 
 Given the time constraint and the goal of just ensuring feasibility, I decided to get the end-to-end flow working before thinking about improving the quality of the output.
 
