@@ -4,9 +4,9 @@ module.exports = {
     title: `The Curious Engineer`,
     author: {
       name: `Naveen`,
-      summary: `I experiement and break things.`,
+      summary: `I experiment and break things.`,
     },
-    description: `The Curious Engineer - documenting learning`,
+    description: `Engineer, architect, and habitual tinkerer building highly performant systems then turning the scars into posts`,
     siteUrl: `https://nobodyme.github.io/blog/`,
     social: {
       twitter: `_nobodyme_`

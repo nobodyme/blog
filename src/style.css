@@ -378,6 +378,11 @@ footer span {
   margin-bottom: 20px;
 }
 
+.header-social-icon {
+  fill: var(--color-heading);  /* this doesn't do the job */
+  color: var(--color-heading);
+}
+
 
 /* Media queries */
 @media (max-width: 42rem) {
@@ -406,6 +411,7 @@ footer span {
 
   .header-social-icon {
     fill: var(--color-text-lighter);
+    color: var(--color-text-lighter);
   }
 }
 
@@ -429,5 +435,6 @@ footer span {
 
   .header-social-icon {
     fill: var(--color-text-lighter);
+    color: var(--color-text-lighter);
   }
 }

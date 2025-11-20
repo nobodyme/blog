@@ -23,9 +23,13 @@ const BlogIndex = ({ data, location }) => {
     <Layout location={location} title={siteTitle}>
       <Seo title={`${siteTitle} | Home`} />
       <ol className="post-list">
+        <div style={{ marginBottom: "20px" }}>
+          <h3 style={{ marginTop: "0px" }}><a href="https://www.linkedin.com/in/naveen-kumar-b11464128/" target="_blank" rel="noopener noreferrer">Hi, I'm Naveen</a> 👋</h3>
+          <div style={{ color: 'rgb(95 103 110)', marginBottom: "20px" }}>Engineer, architect, and habitual tinkerer building highly performant systems then turning the scars into posts</div>
+          <hr></hr>
+        </div>
         {posts.map(post => {
           const title = post.frontmatter.title || post.fields.slug
-
           return (
             <li className="post-list-item" key={post.fields.slug}>
               <article
@@ -42,6 +46,7 @@ const BlogIndex = ({ data, location }) => {
                 </header>
                 <section>
                   <p
+                    style={{ color: 'rgb(95 103 110)' }}
                     dangerouslySetInnerHTML={{
                       __html: post.frontmatter.description || post.excerpt,
                     }}
@@ -53,31 +58,31 @@ const BlogIndex = ({ data, location }) => {
           )
         })}
       </ol>
-    </Layout>
+    </Layout >
   )
 }
 
 export default BlogIndex
 
 export const pageQuery = graphql`
-  query {
-    site {
-      siteMetadata {
-        title
-      }
+        query {
+          site {
+          siteMetadata {
+          title
+        }
     }
-    allMarkdownRemark(sort: { fields: [frontmatter___date], order: DESC }) {
-      nodes {
-        excerpt
+        allMarkdownRemark(sort: {fields: [frontmatter___date], order: DESC }) {
+          nodes {
+          excerpt
         fields {
           slug
         }
         frontmatter {
           date(formatString: "MMMM DD, YYYY")
-          title
-          description
+        title
+        description
         }
       }
     }
   }
-`
+        `
