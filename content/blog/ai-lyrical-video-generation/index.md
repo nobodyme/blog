@@ -25,7 +25,7 @@ At this point, I manually prompted and generated a couple of scenes and saw that
 
 ## How to sync/align the lyrics to the song?
 
-So, I already had the song and the lyrics, which meant I didn’t necessarily need to transcribe anything. Even transcribing speech isn't 100% perfect, so one can't expect that for a song with all the "oohs" and "aahs". A quick Google search showed what I needed was technically called forced alignment i.e. given the lyrics, match the lyric to the audio and get timestamps for the lyrics and ultimately produce an SRT file.
+So, I already had the song and the lyrics, which meant I didn’t necessarily need to transcribe anything. Even transcribing speech isn't 100% perfect, so one can't expect that for a song with all the "oohs" and "aahs". A quick Google search showed what I needed was technically called forced alignment i.e. given the lyrics, match the lyric to the audio and get timestamps for (each line of) the lyrics and ultimately produce a subtitle file that can be easily merged with the video.
 
 For this, explored various tools, such as:
 - Aeneas - (I couldn't get working on my Mac)
@@ -54,7 +54,7 @@ As you can see, none of these methods yielded good-enough results. Before entire
 	</figure>
 </div>
 
-So, first isolating the vocals using Demucs followed by forced alignment using torchaudio produced a SRT file that was pretty accurate.
+So, I was able to obtain pretty accurate results by first isolating the vocals using Demucs followed by forced alignment using torchaudio.
 
 ## How to overlay/merge the lyrics along with audio in the video?
 
@@ -91,16 +91,17 @@ The end-to-end flow below,
 
 ![](./lyric-video-generation-flow.png)
 
-The generation adapted well to the mood of the song: the colors and motion matched the theme, and in one instance when the lyric said "current in the ocean" the scene actually showed a current in the ocean with fish swimming in it. Surely, there was a lot of room for improvement, but this gave me the confidence to say we can tackle it.
+The generation adapted well to the mood of the song: the colors and motion matched the theme, quoting one instance, when the lyric said "current in the ocean" the scene actually showed a current in the ocean with fish swimming in it. Surely, there was a lot of room for improvement, but the overall result gave me the confidence to say we can tackle it.
 
 ## Looking ahead, what can be improved?
 
-Going into the next phase, I would happily reuse the lyric-alignment portion of this feasibility test, look for more performant alternatives to Remotion that provide the same flexibility, and spend the bulk of my time on video generation—learning storytelling, crafting prompts, and fine-tuning that workflow.A few things that particularly can be improved:
+Moving into the next phase, I would happily reuse the lyric-alignment portion of this feasibility test, look for more performant alternatives to Remotion that provide the same flexibility, and spend the bulk of my time on video generation—learning storytelling, crafting prompts, and fine-tuning that workflow. A few things that particularly can be improved:
 
-- The current set of generated videos, although they match the mood and somewhat match the lyrics, weren't really telling a story. So, the first course of action would be to prepare a storyboard for the song and scenes and make sure it collectively conveys a coherent narrative.
+- The current set of generated videos, although they match the mood and the lyrics to an extent, weren't really telling a story. So, the first course of action would be to prepare a storyboard for the song and scenes and make sure it collectively conveys a coherent narrative and provide flexibility to the users to refine individual scenes.
+- Even integrate [Wan2.2 Animate](https://humanaigc.github.io/wan-animate/) for the end users to enact as a chosen character for a particular scene, if they desire so
 - The cultural nuances, theme, and other metadata of the song can be provided alongside the summary to produce a more meaningful video
 - Include beat and tempo information from the song so that the video matches it better
 - Expressive words: animate specific words (“fall”, “rise”, “fade”) with matching motion presets
 - Lyric-aware layout: break lines where the singer breathes to avoid widows/orphans
 
-Also, researched some open source tools built for this purpose; that's when I found promising editors such as, [ComfyUI](https://github.com/comfyanonymous/ComfyUI) and [Gausian AI editor](https://github.com/gausian-AI/Gausian_native_editor) and passed all of this on to the team handling the next phase of the project. I'm excited to see what they are able to achieve.
+Also, researched some open source tools built for this purpose; that's when I found promising editors such as, [ComfyUI](https://github.com/comfyanonymous/ComfyUI) and [Gausian AI editor](https://github.com/gausian-AI/Gausian_native_editor) (also keeping an eye on this [AI movie hacakthon results](https://chromaawards.devpost.com/project-gallery) to see what we can learn from the participants), passed all of this on to the team handling the next phase of the project. I'm excited to see what they are able to achieve.
