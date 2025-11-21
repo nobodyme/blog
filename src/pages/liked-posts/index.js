@@ -13,7 +13,7 @@ const getEmoji = (reaction) => {
   switch (reaction) {
     case "love":
       return (
-        <Heart className="liked-post-item-reaction" fill="red" width={25} height={25} />
+        <Heart className="liked-post-item-reaction" fill="red" color="red" width={25} height={25} />
       )
     case "to-the-moon":
       return (
@@ -44,25 +44,25 @@ const LikeIndex = ({ data, location }) => {
   return (
     <Layout location={location} title={siteTitle}>
       <Seo title={`${siteTitle} | Liked Posts`} />
-        <div className="liked-page-header">Liked Posts</div>
-        <hr/>
-        <div className="liked-post">
-          <ol style={{ listStyle: `none` }}>
-            {likedPosts.map(post => {
-              return (
-                <li className="liked-post-item" key={post.id}>
-                  <div>
-                    {getEmoji(post.reaction)}
-                  </div>
-                  <a className="liked-post-item-link" href={post.link} target="_blank" rel="noopener noreferrer">
-                        <div className="liked-post-item-link-text">{post.title}</div>
-                        <small className="meta">{post.date}</small>
-                  </a>
-                </li>
-              )
-            })}
-          </ol>
-        </div>
+      <div className="liked-page-header">Liked Posts</div>
+      <hr />
+      <div className="liked-post">
+        <ol style={{ listStyle: `none` }}>
+          {likedPosts.map(post => {
+            return (
+              <li className="liked-post-item" key={post.id}>
+                <div>
+                  {getEmoji(post.reaction)}
+                </div>
+                <a className="liked-post-item-link" href={post.link} target="_blank" rel="noopener noreferrer">
+                  <div className="liked-post-item-link-text">{post.title}</div>
+                  <small className="meta">{post.date}</small>
+                </a>
+              </li>
+            )
+          })}
+        </ol>
+      </div>
     </Layout>
   )
 }

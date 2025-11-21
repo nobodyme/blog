@@ -42,6 +42,13 @@
     "tags": ["soft-skills", "motivation"]
   },
   {
+    "date": "2023-07-27T11:16:30.537Z",
+    "title": "Building and Operating a Pretty Big Storage System called S3",
+    "link": "https://www.allthingsdistributed.com/2023/07/building-and-operating-a-pretty-big-storage-system.html",
+    "reaction": "to-the-moon",
+    "tags": ["aws", "storage", "infrastructure", "inspiring"]
+  },
+  {
     "date": "2019-09-05T10:16:30.537Z",
     "title": "Writing good component API",
     "link": "https://sid.st/component-api/",
@@ -63,13 +70,6 @@
     "tags": ["Devops", "video", "talk", "scaling"]
   },
   {
-   "date": "2022-02-07T18:49:51.955Z",
-   "title": "Configuring Eslint and Prettier for modern JS projects",
-   "link": "https://glebbahmutov.com/blog/configure-prettier-in-vscode/",
-   "reaction": "love",
-   "tags": ["tooling", "javascript", "typescript", "eslint", "prettier"]
-  },
-  {
     "date": "2022-03-09T12:32:06.383Z",
     "title": "React Query: It’s Time to Break up with your \"Global State\"!",
     "link": "https://www.youtube.com/watch?v=seU46c6Jz7E",
@@ -89,5 +89,12 @@
     "link": "https://www.anthropic.com/news/contextual-retrieval",
     "reaction": "love",
     "tags": ["RAG", "generative-ai", "research"]
+  },
+  {
+    "date": "2024-11-15T10:00:00.000Z",
+    "title": "Intro to Large Language Models by Andrej Karpathy",
+    "link": "https://www.youtube.com/watch?v=zjkBMFhNj_g",
+    "reaction": "love",
+    "tags": ["generative-ai"]
   }
 ]

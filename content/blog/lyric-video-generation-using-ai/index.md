@@ -3,7 +3,7 @@ title: Lyric Video Generation using AI
 date: "2025-11-21T10:05:00.000Z"
 ---
 
-One evening, I was asked to validate the technical feasibility of automatically generating lyrical video for a given song. Unfortunately this time, I only had a couple of days to do it. The input being the song itself(mp3/wav) and the lyrics as a .txt file. The goal was to produce a video with lyrics in the foreground and video in the background. There was one additional constraint: use only services/models in AWS or that can be hosted on AWS.
+One evening, I was asked to validate the technical feasibility of automatically generating lyrical video for a given song. Unfortunately this time, I only had a **couple of days** to do it. The input being the song itself(mp3/wav) and the lyrics as a .txt file. The goal was to produce a video with lyrics in the foreground and video in the background. There was one additional constraint: use only services/models in AWS or that can be hosted on AWS.
 
 Given the time constraint and the goal of just ensuring feasibility, I decided to get the end-to-end flow working before thinking about improving the quality of the output.
 
@@ -30,8 +30,8 @@ The easiest way to achieve this would have been to transcribe the given song, si
 For this, I explored a few tools. A quick summary:
 
 - Aeneas — Couldn't get it working on macOS.
-- WhisperX — Promises word‑level accuracy; primarily a transcription pipeline, so extra work is needed to run only forced alignment.
-- Torchaudio forced alignment — Closest results so far; roughly ~60% of lines were correctly timed
+- WhisperX — Promised word‑level accuracy; but transcribes by default and required additional work to only run forced alignment.
+- [Torchaudio](https://docs.pytorch.org/audio/stable/tutorials/ctc_forced_alignment_api_tutorial.html) — Closest results so far; roughly ~60% of lines were correctly timed
 
 As you can see, none of these methods yielded good-enough results. Before entirely discarding them, I tried isolating the vocals from the song, hoping for better alignment. Experimented with a couple of tools then landed on, [Demucs](https://pypi.org/project/demucs/): A deep-learning–based music source separation model that can split a mix into stems like vocals, drums, etc. This produced **clean vocal isolation**, you can compare the original and the vocal isolated version below,
 
