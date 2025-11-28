@@ -9,6 +9,7 @@ const BlogPostTemplate = ({ data, location }) => {
   const post = data.markdownRemark
   const siteTitle = data.site.siteMetadata?.title || `Title`
   const { previous, next } = data
+  const readingTimeLabel = post.timeToRead ? `${post.timeToRead} min read` : null
  
   return (
     <Layout location={location} title={siteTitle}>
@@ -23,7 +24,11 @@ const BlogPostTemplate = ({ data, location }) => {
       >
         <header>
           <h1 itemProp="headline">{post.frontmatter.title}</h1>
-          <p className="meta">{post.frontmatter.date}</p>
+          <p className="meta">
+            <span>{post.frontmatter.date}</span>
+            {readingTimeLabel && <span className="meta-separator">•</span>}
+            {readingTimeLabel && <span>{readingTimeLabel}</span>}
+          </p>
         </header>
         <section
           dangerouslySetInnerHTML={{ __html: post.html }}
@@ -84,6 +89,7 @@ export const pageQuery = graphql`
       id
       excerpt(pruneLength: 160)
       html
+      timeToRead
       frontmatter {
         title
         date(formatString: "MMMM DD, YYYY")
