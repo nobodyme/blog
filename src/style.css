@@ -284,6 +284,10 @@ a:focus {
   font-weight: var(--fontWeight-medium);
 }
 
+.meta-separator {
+  margin: 0 var(--spacing-2);
+}
+
 footer .meta {
   font-weight: var(--fontWeight-normal);
 }
