@@ -1,0 +1,610 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="x-ua-compatible" content="ie=edge"/><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/><meta name="generator" content="Gatsby 5.15.0"/><meta name="theme-color" content="#663399"/><meta data-react-helmet="true" name="description" content="There were a huge number of sources on the internet on this topic but still, we (me and my friend) couldn’t understand any of it for a very long time until we…"/><meta data-react-helmet="true" property="og:title" content="Dynamic Programming | The Curious Engineer"/><meta data-react-helmet="true" property="og:description" content="There were a huge number of sources on the internet on this topic but still, we (me and my friend) couldn’t understand any of it for a very long time until we…"/><meta data-react-helmet="true" property="og:type" content="website"/><meta data-react-helmet="true" name="twitter:card" content="summary"/><meta data-react-helmet="true" name="twitter:creator" content="_nobodyme_"/><meta data-react-helmet="true" name="twitter:title" content="Dynamic Programming | The Curious Engineer"/><meta data-react-helmet="true" name="twitter:description" content="There were a huge number of sources on the internet on this topic but still, we (me and my friend) couldn’t understand any of it for a very long time until we…"/><style data-href="/blog/styles.de78337784b71bd04610.css" data-identity="gatsby-global-css">@font-face{font-display:swap;font-family:MontserratVariable;font-style:normal;font-weight:100 900;src:url(/blog/static/montserrat-cyrillic-variable-wghtOnly-normal-f41a9bc7688bda1e84508030cb5c18fe.woff2) format("woff2");unicode-range:u+0301,u+0400-045f,u+0490-0491,u+04b0-04b1,u+2116}@font-face{font-display:swap;font-family:MontserratVariable;font-style:normal;font-weight:100 900;src:url(/blog/static/montserrat-cyrillic-ext-variable-wghtOnly-normal-639b3c91831427d83cd3984af014778c.woff2) format("woff2");unicode-range:u+0460-052f,u+1c80-1c88,u+20b4,u+2de0-2dff,u+a640-a69f,u+fe2e-fe2f}@font-face{font-display:swap;font-family:MontserratVariable;font-style:normal;font-weight:100 900;src:url(/blog/static/montserrat-latin-variable-wghtOnly-normal-b66f2d18f66f15c3ac56a2f4d68b3be5.woff2) format("woff2");unicode-range:u+00??,u+0131,u+0152-0153,u+02bb-02bc,u+02c6,u+02da,u+02dc,u+2000-206f,u+2074,u+20ac,u+2122,u+2191,u+2193,u+2212,u+2215,u+feff,u+fffd}@font-face{font-display:swap;font-family:MontserratVariable;font-style:normal;font-weight:100 900;src:url(/blog/static/montserrat-latin-ext-variable-wghtOnly-normal-9f73369162c4382215d4317ba362fe1e.woff2) format("woff2");unicode-range:u+0100-024f,u+0259,u+1e??,u+2020,u+20a0-20ab,u+20ad-20cf,u+2113,u+2c60-2c7f,u+a720-a7ff}@font-face{font-display:swap;font-family:MontserratVariable;font-style:normal;font-weight:100 900;src:url(data:font/woff2;base64,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) format("woff2");unicode-range:u+0102-0103,u+0110-0111,u+0128-0129,u+0168-0169,u+01a0-01a1,u+01af-01b0,u+1ea0-1ef9,u+20ab}@font-face{font-display:swap;font-family:Merriweather;font-style:normal;font-weight:400;src:url(/blog/static/merriweather-cyrillic-ext-400-normal-2a880e22b1b888ab54652a36d43b7f16.woff2) format("woff2"),url(/blog/static/merriweather-all-400-normal-5e7a0e6a9b864b89292d60ba5da59d4b.woff) format("woff");unicode-range:u+0460-052f,u+1c80-1c88,u+20b4,u+2de0-2dff,u+a640-a69f,u+fe2e-fe2f}@font-face{font-display:swap;font-family:Merriweather;font-style:normal;font-weight:400;src:url(/blog/static/merriweather-cyrillic-400-normal-fde0b55efc50742fb57fbebbb11c572f.woff2) format("woff2"),url(/blog/static/merriweather-all-400-normal-5e7a0e6a9b864b89292d60ba5da59d4b.woff) format("woff");unicode-range:u+0301,u+0400-045f,u+0490-0491,u+04b0-04b1,u+2116}@font-face{font-display:swap;font-family:Merriweather;font-style:normal;font-weight:400;src:url(data:font/woff2;base64,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) format("woff2"),url(/blog/static/merriweather-all-400-normal-5e7a0e6a9b864b89292d60ba5da59d4b.woff) format("woff");unicode-range:u+0102-0103,u+0110-0111,u+0128-0129,u+0168-0169,u+01a0-01a1,u+01af-01b0,u+1ea0-1ef9,u+20ab}@font-face{font-display:swap;font-family:Merriweather;font-style:normal;font-weight:400;src:url(/blog/static/merriweather-latin-ext-400-normal-4657f5ab02d5923d223f96a9155a9bdc.woff2) format("woff2"),url(/blog/static/merriweather-all-400-normal-5e7a0e6a9b864b89292d60ba5da59d4b.woff) format("woff");unicode-range:u+0100-024f,u+0259,u+1e??,u+2020,u+20a0-20ab,u+20ad-20cf,u+2113,u+2c60-2c7f,u+a720-a7ff}@font-face{font-display:swap;font-family:Merriweather;font-style:normal;font-weight:400;src:url(/blog/static/merriweather-latin-400-normal-e009f21405b4d7e893674b69deb4cf4a.woff2) format("woff2"),url(/blog/static/merriweather-all-400-normal-5e7a0e6a9b864b89292d60ba5da59d4b.woff) format("woff");unicode-range:u+00??,u+0131,u+0152-0153,u+02bb-02bc,u+02c6,u+02da,u+02dc,u+2000-206f,u+2074,u+20ac,u+2122,u+2191,u+2193,u+2212,u+2215,u+feff,u+fffd}
+
+/*! normalize.css v8.0.1 | MIT License | github.com/necolas/normalize.css */html{-webkit-text-size-adjust:100%;line-height:1.15}body{margin:0}main{display:block}h1{font-size:2em;margin:.67em 0}hr{box-sizing:content-box;height:0;overflow:visible}pre{font-family:monospace,monospace;font-size:1em}a{background-color:transparent}abbr[title]{border-bottom:none;text-decoration:underline;-webkit-text-decoration:underline dotted;text-decoration:underline dotted}b,strong{font-weight:bolder}code,kbd,samp{font-family:monospace,monospace;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}img{border-style:none}button,input,optgroup,select,textarea{font-family:inherit;font-size:100%;line-height:1.15;margin:0}button,input{overflow:visible}button,select{text-transform:none}[type=button],[type=reset],[type=submit],button{-webkit-appearance:button}[type=button]::-moz-focus-inner,[type=reset]::-moz-focus-inner,[type=submit]::-moz-focus-inner,button::-moz-focus-inner{border-style:none;padding:0}[type=button]:-moz-focusring,[type=reset]:-moz-focusring,[type=submit]:-moz-focusring,button:-moz-focusring{outline:1px dotted ButtonText}fieldset{padding:.35em .75em .625em}legend{box-sizing:border-box;color:inherit;display:table;max-width:100%;padding:0;white-space:normal}progress{vertical-align:baseline}textarea{overflow:auto}[type=checkbox],[type=radio]{box-sizing:border-box;padding:0}[type=number]::-webkit-inner-spin-button,[type=number]::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}[type=search]::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}details{display:block}summary{display:list-item}[hidden]{display:none}:root{--maxWidth-none:"none";--maxWidth-xs:20rem;--maxWidth-sm:24rem;--maxWidth-md:28rem;--maxWidth-lg:32rem;--maxWidth-xl:36rem;--maxWidth-2xl:42rem;--maxWidth-3xl:48rem;--maxWidth-4xl:56rem;--maxWidth-full:"100%";--maxWidth-wrapper:var(--maxWidth-2xl);--spacing-px:"1px";--spacing-0:0;--spacing-1:0.25rem;--spacing-2:0.5rem;--spacing-3:0.75rem;--spacing-4:1rem;--spacing-5:1.25rem;--spacing-6:1.5rem;--spacing-8:2rem;--spacing-10:2.5rem;--spacing-12:3rem;--spacing-16:4rem;--spacing-20:5rem;--spacing-24:6rem;--spacing-32:8rem;--fontFamily-sans:"Inter UI",sans-serif;--fontFamily-serif:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;--font-body:var(--fontFamily-serif);--font-heading:var(--fontFamily-sans);--fontWeight-normal:400;--fontWeight-medium:500;--fontWeight-semibold:600;--fontWeight-bold:700;--fontWeight-extrabold:800;--fontWeight-black:900;--fontSize-root:16px;--lineHeight-none:1;--lineHeight-tight:1.1;--lineHeight-normal:1.5;--lineHeight-relaxed:1.625;--fontSize-0:0.833rem;--fontSize-1:1rem;--fontSize-2:1.2rem;--fontSize-3:1.44rem;--fontSize-4:1.728rem;--fontSize-5:2.074rem;--fontSize-6:2.488rem;--fontSize-7:2.986rem;--color-primary:#24292e;--color-link:#0366d6;--color-text:#2e353f;--color-text-light:#4f5969;--color-text-lighter:#959da5;--color-heading:#1a202c;--color-accent:#d1dce5;--color-background-secondary:#f6f8fa;--red-50:#fef2f2;--red-200:#fecaca;--blue-50:#eff6ff;--blue-200:#bfdbfe;--color-inline-code:rgba(27,31,35,.05)}*,:after,:before{box-sizing:border-box}html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-size:var(--fontSize-root);line-height:var(--lineHeight-normal)}body{color:var(--color-primary);font-family:var(--font-body);font-size:var(--fontSize-1)}footer{padding:var(--spacing-6) var(--spacing-0)}hr{background:var(--color-accent);border:0;height:1px}h1,h2,h3,h4,h5,h6{font-family:var(--font-heading);letter-spacing:-.025em;line-height:var(--lineHeight-tight);margin-bottom:var(--spacing-6);margin-top:var(--spacing-12)}h2,h3,h4,h5,h6{color:var(--color-heading);font-weight:var(--fontWeight-bold)}h1{color:var(--color-primary);font-size:var(--fontSize-6);font-weight:var(--fontWeight-black)}h2{font-size:var(--fontSize-5)}h3{font-size:var(--fontSize-4)}h4{font-size:var(--fontSize-3)}h5{font-size:var(--fontSize-2)}h6{font-size:var(--fontSize-1)}h1>a,h2>a,h3>a,h4>a,h5>a,h6>a{color:inherit;text-decoration:none}p{--baseline-multiplier:0.179;--x-height-multiplier:0.35;line-height:var(--lineHeight-relaxed);margin:var(--spacing-0) var(--spacing-0) var(--spacing-8) var(--spacing-0)}ol,p,ul{padding:var(--spacing-0)}ol,ul{list-style-image:none;list-style-position:outside;margin-bottom:var(--spacing-8);margin-left:var(--spacing-0);margin-right:var(--spacing-0)}ol li,ul li{padding-left:var(--spacing-0)}li>p,ol li,ul li{margin-bottom:calc(var(--spacing-8)/2)}li :last-child{margin-bottom:var(--spacing-0)}li>ul{margin-left:var(--spacing-8);margin-top:calc(var(--spacing-8)/2)}blockquote{border-left:var(--spacing-1) solid var(--color-primary);color:var(--color-text-light);font-size:var(--fontSize-2);font-style:italic;margin-bottom:var(--spacing-8);margin-left:calc(var(--spacing-6)*-1);margin-right:var(--spacing-8);padding:var(--spacing-0) var(--spacing-0) var(--spacing-0) var(--spacing-6)}blockquote>:last-child{margin-bottom:var(--spacing-0)}blockquote>ol,blockquote>ul{list-style-position:inside}table{border-collapse:collapse;border-spacing:.25rem;margin-bottom:var(--spacing-8);width:100%}table thead tr th{border-bottom:1px solid var(--color-accent)}a{color:var(--color-link);text-decoration:none}a:focus,a:hover{text-decoration:underline}.global-header{justify-content:space-between;margin:var(--spacing-2) var(--spacing-20) var(--spacing-8)}.global-header,.header-title{align-items:center;display:flex}.header-title{font-family:var(--font-heading);justify-content:center}.header-title,.header-title:hover{text-decoration:none}.header-icon{margin-bottom:var(--spacing-0);margin-right:var(--spacing-4);position:relative;top:10px}.header-social{align-items:center;display:flex;justify-content:space-between}.header-social-link{margin-bottom:var(--spacing-0);margin-right:var(--spacing-4);position:relative;top:16px}.global-content-wrapper{margin:var(--spacing-0) auto;max-width:var(--maxWidth-wrapper);padding:var(--spacing-10) var(--spacing-5)}.post-list{list-style:none}.post-list:first-child{margin-top:0}.post-list-item{margin-bottom:var(--spacing-10)}.post-list-item h2,.post-list-item p{margin-bottom:var(--spacing-0)}.post-list-item h2{color:var(--color-primary);font-size:var(--fontSize-3);margin-top:var(--spacing-0)}.post-list-item header{margin-bottom:var(--spacing-4)}.post-list-item header span{line-height:var(--lineHeight-normal)}.post-list-item header span:focus,.post-list-item header span:hover{color:var(--color-link);text-decoration:underline}.blog-post header h1{margin:var(--spacing-0) var(--spacing-0) var(--spacing-4) var(--spacing-0)}.blog-post header p{font-family:var(--font-heading);font-size:var(--fontSize-2)}.blog-post-nav ul{margin:var(--spacing-0)}.gatsby-highlight{margin-bottom:var(--spacing-8)}.gatsby-highlight pre[class*=language-]{background-color:var(--color-background-secondary)}.meta{color:var(--color-text-lighter);font-weight:var(--fontWeight-medium)}.meta-separator{margin:0 var(--spacing-2)}footer .meta{font-weight:var(--fontWeight-normal)}footer span{margin-left:var(--spacing-1)}.blog-content{text-shadow:0 0}.blog-content ul,ol{margin-bottom:1.25rem;margin-top:0;padding-left:1.25rem}.blog-content ol li,.blog-content ul li{margin-bottom:calc(var(--spacing-4)/2);padding-left:var(--spacing-0)}.blog-content p:has(+ol),.blog-content p:has(+ul){margin-bottom:.75rem}.blog-content p{margin:var(--spacing-0) var(--spacing-0) var(--spacing-4) var(--spacing-0)}.error-box{background:var(--red-50);border:1px solid var(--red-200);padding:20px}.info-box{background:var(--blue-50);border:1px solid var(--blue-200);padding:20px}.liked-page-header{color:var(--color-primary);color:var(--color-text-lighter);font-size:var(--fontSize-2);font-weight:var(--fontWeight-medium)}.liked-post{margin-top:var(--spacing-3)}.liked-post-item{align-items:top;display:flex;justify-content:left;margin-bottom:var(--spacing-10)}.liked-post-item-link:hover{text-decoration:none}.liked-post-item-link-text{color:var(--color-primary);font-size:var(--fontSize-2);font-weight:var(--fontWeight-medium)}.liked-post-item-reaction{margin-right:var(--spacing-4);position:relative;top:5px}.giscus,.giscus-frame{width:100%}.giscus-frame{border:none}.hr{margin-bottom:20px}.header-social-icon{fill:var(--color-heading);color:var(--color-heading)}@media (max-width:42rem){blockquote{margin-left:var(--spacing-0);padding:var(--spacing-0) var(--spacing-0) var(--spacing-0) var(--spacing-4)}ol,ul{list-style-position:inside}}@media (max-width:800px){.global-header{margin:var(--spacing-2) var(--spacing-10) var(--spacing-8)}}@media (max-width:700px){.global-header{flex-direction:column;justify-content:center;margin:var(--spacing-2) var(--spacing-5) var(--spacing-8)}.header-social-icon{fill:var(--color-text-lighter);color:var(--color-text-lighter)}}@media (max-width:400px){.header-title{align-items:center;flex-direction:column;justify-content:center}.header-text{margin-bottom:var(--spacing-1);margin-top:var(--spacing-8)}.header-icon{margin-right:var(--spacing-4);position:relative;top:20px}.header-social-icon{fill:var(--color-text-lighter);color:var(--color-text-lighter)}}code[class*=language-],pre[class*=language-]{word-wrap:normal;background:none;color:#000;font-family:Consolas,Monaco,Andale Mono,Ubuntu Mono,monospace;font-size:1em;-webkit-hyphens:none;hyphens:none;line-height:1.5;tab-size:4;text-align:left;text-shadow:0 1px #fff;white-space:pre;word-break:normal;word-spacing:normal}code[class*=language-] ::selection,code[class*=language-]::selection,pre[class*=language-] ::selection,pre[class*=language-]::selection{background:#b3d4fc;text-shadow:none}@media print{code[class*=language-],pre[class*=language-]{text-shadow:none}}pre[class*=language-]{margin:.5em 0;overflow:auto;padding:1em}:not(pre)>code[class*=language-],pre[class*=language-]{background:#f5f2f0}:not(pre)>code[class*=language-]{border-radius:.3em;padding:.1em;white-space:normal}.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#708090}.token.punctuation{color:#999}.token.namespace{opacity:.7}.token.boolean,.token.constant,.token.deleted,.token.number,.token.property,.token.symbol,.token.tag{color:#905}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#690}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url{background:hsla(0,0%,100%,.5);color:#9a6e3a}.token.atrule,.token.attr-value,.token.keyword{color:#07a}.token.class-name,.token.function{color:#dd4a68}.token.important,.token.regex,.token.variable{color:#e90}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}.token.entity{cursor:help}</style><link rel="preconnect" href="https://www.googletagmanager.com"/><link rel="dns-prefetch" href="https://www.googletagmanager.com"/><style>.gatsby-image-wrapper{position:relative;overflow:hidden}.gatsby-image-wrapper picture.object-fit-polyfill{position:static!important}.gatsby-image-wrapper img{bottom:0;height:100%;left:0;margin:0;max-width:none;padding:0;position:absolute;right:0;top:0;width:100%;object-fit:cover}.gatsby-image-wrapper [data-main-image]{opacity:0;transform:translateZ(0);transition:opacity .25s linear;will-change:opacity}.gatsby-image-wrapper-constrained{display:inline-block;vertical-align:top}</style><noscript><style>.gatsby-image-wrapper noscript [data-main-image]{opacity:1!important}.gatsby-image-wrapper [data-placeholder-image]{opacity:0!important}</style></noscript><script type="module">const e="undefined"!=typeof HTMLImageElement&&"loading"in HTMLImageElement.prototype;e&&document.body.addEventListener("load",(function(e){const t=e.target;if(void 0===t.dataset.mainImage)return;if(void 0===t.dataset.gatsbyImageSsr)return;let a=null,n=t;for(;null===a&&n;)void 0!==n.parentNode.dataset.gatsbyImageWrapper&&(a=n.parentNode),n=n.parentNode;const o=a.querySelector("[data-placeholder-image]"),r=new Image;r.src=t.currentSrc,r.decode().catch((()=>{})).then((()=>{t.style.opacity=1,o&&(o.style.opacity=0,o.style.transition="opacity 500ms linear")}))}),!0);</script><link rel="alternate" type="application/rss+xml" title="The Curious Engineer" href="/blog/rss.xml"/><link rel="icon" href="/blog/favicon-32x32.png?v=c56c22e29aa7a6e9a5dc5fc560eb2796" type="image/png"/><link rel="manifest" href="/blog/manifest.webmanifest" crossorigin="anonymous"/><link rel="apple-touch-icon" sizes="48x48" href="/blog/icons/icon-48x48.png?v=c56c22e29aa7a6e9a5dc5fc560eb2796"/><link rel="apple-touch-icon" sizes="72x72" href="/blog/icons/icon-72x72.png?v=c56c22e29aa7a6e9a5dc5fc560eb2796"/><link rel="apple-touch-icon" sizes="96x96" href="/blog/icons/icon-96x96.png?v=c56c22e29aa7a6e9a5dc5fc560eb2796"/><link rel="apple-touch-icon" sizes="144x144" href="/blog/icons/icon-144x144.png?v=c56c22e29aa7a6e9a5dc5fc560eb2796"/><link rel="apple-touch-icon" sizes="192x192" href="/blog/icons/icon-192x192.png?v=c56c22e29aa7a6e9a5dc5fc560eb2796"/><link rel="apple-touch-icon" sizes="256x256" href="/blog/icons/icon-256x256.png?v=c56c22e29aa7a6e9a5dc5fc560eb2796"/><link rel="apple-touch-icon" sizes="384x384" href="/blog/icons/icon-384x384.png?v=c56c22e29aa7a6e9a5dc5fc560eb2796"/><link rel="apple-touch-icon" sizes="512x512" href="/blog/icons/icon-512x512.png?v=c56c22e29aa7a6e9a5dc5fc560eb2796"/><title data-react-helmet="true">Dynamic Programming | The Curious Engineer | The Curious Engineer</title></head><body><div id="___gatsby"><div style="outline:none" tabindex="-1" id="gatsby-focus-wrapper"><div><div class="global-header"><a class="header-title" href="/blog/"><svg class="header-icon" width="35" height="35" viewBox="0 0 80 80"><g id="surface54229706"><path style="stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1" d="M 49 25.664062 L 49 16 C 49 12.140625 52.140625 9 56 9 C 59.859375 9 63 12.140625 63 16 L 63 25.664062 Z M 49 25.664062 "></path><path style="stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1" d="M 56 10 C 59.308594 10 62 12.691406 62 16 L 62 24.664062 L 50 24.664062 L 50 16 C 50 12.691406 52.691406 10 56 10 M 56 8 C 51.582031 8 48 11.582031 48 16 C 48 16.457031 48 26.210938 48 26.664062 L 64 26.664062 C 64 26.210938 64 16.457031 64 16 C 64 11.582031 60.417969 8 56 8 Z M 56 8 "></path><path style="stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1" d="M 47 52.921875 L 47 25.6875 C 47 22.855469 49.589844 17 57.59375 17 C 64.875 17 68.335938 22.289062 68.371094 22.339844 C 68.414062 22.453125 78.285156 43.175781 78.964844 52.921875 Z M 47 52.921875 "></path><path style="stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1" d="M 57.59375 18 C 63.84375 18 67.007812 22.136719 67.472656 22.796875 C 68.28125 24.511719 76.683594 42.453125 77.863281 51.925781 L 48 51.925781 L 48 25.6875 C 48 23.695312 49.761719 18 57.59375 18 M 57.59375 16 C 48.640625 16 46 22.679688 46 25.6875 C 46 28.148438 46 36.449219 46 53.925781 L 80 53.925781 C 80 44.34375 69.210938 21.804688 69.210938 21.804688 C 69.210938 21.804688 65.507812 16 57.59375 16 Z M 57.59375 16 "></path><path style="stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1" d="M 33 28.09375 C 34.371094 27.730469 37.488281 27 40.242188 27 C 42.949219 27 45.746094 27.707031 47 28.070312 L 47 44.652344 C 45.503906 44.238281 42.929688 43.667969 40.242188 43.667969 C 37.472656 43.667969 34.609375 44.277344 33 44.6875 Z M 33 28.09375 "></path><path style="stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1" d="M 40.242188 28 C 42.394531 28 44.621094 28.476562 46 28.835938 L 46 43.371094 C 44.449219 43.015625 42.378906 42.664062 40.242188 42.664062 C 37.992188 42.664062 35.691406 43.050781 34 43.421875 L 34 28.871094 C 35.519531 28.503906 38.007812 28 40.242188 28 M 40.242188 26 C 36.40625 26 32 27.335938 32 27.335938 C 32 27.335938 32 31.582031 32 35.335938 C 32 36.28125 32 37.195312 32 38 C 32 40.300781 32 43.617188 32 46 C 32 46 36.269531 44.664062 40.242188 44.664062 C 44.214844 44.664062 48 46 48 46 C 48 43.617188 48 40.300781 48 38 C 48 37.195312 48 36.277344 48 35.335938 C 48 31.582031 48 27.335938 48 27.335938 C 48 27.335938 44.074219 26 40.242188 26 Z M 40.242188 26 "></path><path style="stroke:none;fill-rule:nonzero;fill:rgb(87.450981%,94.117647%,99.607843%);fill-opacity:1" d="M 63 39 C 54.164062 39 47 46.164062 47 55 C 47 63.835938 54.164062 71 63 71 C 71.835938 71 79 63.835938 79 55 C 79 46.164062 71.835938 39 63 39 Z M 63 39 "></path><path style="stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1" d="M 63 40 C 71.269531 40 78 46.726562 78 55 C 78 63.273438 71.269531 70 63 70 C 54.730469 70 48 63.273438 48 55 C 48 46.726562 54.730469 40 63 40 M 63 38 C 53.613281 38 46 45.613281 46 55 C 46 64.386719 53.613281 72 63 72 C 72.386719 72 80 64.386719 80 55 C 80 45.613281 72.386719 38 63 38 Z M 63 38 "></path><path style="fill:none;stroke-width:8.6;stroke-linecap:round;stroke-linejoin:miter;stroke:rgb(100%,100%,100%);stroke-opacity:1;stroke-miterlimit:10" d="M 120.4 120.4 C 120.4 110.901367 128.101367 103.2 137.6 103.2 " transform="matrix(0.465116,0,0,0.465116,0,0)"></path><path style="stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1" d="M 17 25.664062 L 17 16 C 17 12.140625 20.140625 9 24 9 C 27.859375 9 31 12.140625 31 16 L 31 25.664062 Z M 17 25.664062 "></path><path style="stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1" d="M 24 10 C 27.308594 10 30 12.691406 30 16 L 30 24.664062 L 18 24.664062 L 18 16 C 18 12.691406 20.691406 10 24 10 M 24 8 C 19.582031 8 16 11.582031 16 16 C 16 16.457031 16 26.210938 16 26.664062 L 32 26.664062 C 32 26.210938 32 16.457031 32 16 C 32 11.582031 28.417969 8 24 8 Z M 24 8 "></path><path style="stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1" d="M 1.039062 52.921875 C 1.71875 43.171875 11.585938 22.449219 11.691406 22.234375 C 11.769531 22.125 15.171875 17 22.40625 17 C 30.410156 17 33 22.851562 33 25.6875 L 33 52.925781 L 1.039062 52.925781 Z M 1.039062 52.921875 "></path><path style="stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1" d="M 22.40625 18 C 30.238281 18 32 23.695312 32 25.6875 L 32 51.925781 L 2.136719 51.925781 C 3.316406 42.453125 11.71875 24.511719 12.53125 22.796875 C 12.980469 22.152344 16.15625 18 22.40625 18 M 22.40625 16 C 14.492188 16 10.785156 21.804688 10.785156 21.804688 C 10.785156 21.804688 0 44.34375 0 53.925781 L 34 53.925781 C 34 36.453125 34 28.148438 34 25.6875 C 34 22.679688 31.359375 16 22.40625 16 Z M 22.40625 16 "></path><path style="stroke:none;fill-rule:nonzero;fill:rgb(87.450981%,94.117647%,99.607843%);fill-opacity:1" d="M 17 39 C 8.164062 39 1 46.164062 1 55 C 1 63.835938 8.164062 71 17 71 C 25.835938 71 33 63.835938 33 55 C 33 46.164062 25.835938 39 17 39 Z M 17 39 "></path><path style="stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1" d="M 17 40 C 25.269531 40 32 46.726562 32 55 C 32 63.273438 25.269531 70 17 70 C 8.730469 70 2 63.273438 2 55 C 2 46.726562 8.730469 40 17 40 M 17 38 C 7.613281 38 0 45.613281 0 55 C 0 64.386719 7.613281 72 17 72 C 26.386719 72 34 64.386719 34 55 C 34 45.613281 26.386719 38 17 38 Z M 17 38 "></path><path style="fill:none;stroke-width:8.6;stroke-linecap:round;stroke-linejoin:miter;stroke:rgb(100%,100%,100%);stroke-opacity:1;stroke-miterlimit:10" d="M 21.5 120.4 C 21.5 110.901367 29.201367 103.2 38.7 103.2 " transform="matrix(0.465116,0,0,0.465116,0,0)"></path></g></svg><h3 class="header-text">The Curious Engineer</h3></a><div class="header-social"><a class="header-social-link" href="/blog/liked-posts/"><svg class="header-social-icon" width="35" height="35" viewBox="0 0 24 24"><path d="M19.3 5.71002C18.841 5.24601 18.2943 4.87797 17.6917 4.62731C17.0891 4.37666 16.4426 4.2484 15.79 4.25002C15.1373 4.2484 14.4909 4.37666 13.8883 4.62731C13.2857 4.87797 12.739 5.24601 12.28 5.71002L12 6.00002L11.72 5.72001C10.7917 4.79182 9.53273 4.27037 8.22 4.27037C6.90726 4.27037 5.64829 4.79182 4.72 5.72001C3.80386 6.65466 3.29071 7.91125 3.29071 9.22002C3.29071 10.5288 3.80386 11.7854 4.72 12.72L11.49 19.51C11.6306 19.6505 11.8212 19.7294 12.02 19.7294C12.2187 19.7294 12.4094 19.6505 12.55 19.51L19.32 12.72C20.2365 11.7823 20.7479 10.5221 20.7442 9.21092C20.7405 7.89973 20.2218 6.64248 19.3 5.71002Z" fill="currentColor"></path></svg></a><a class="header-social-link" href="https://www.linkedin.com/in/naveen-kumar-b11464128/" target="_blank" rel="noopener noreferrer"><svg class="header-social-icon" width="30" height="30" fill="#1A1A1A" viewBox="0 0 50 50"><path d="M41,4H9C6.24,4,4,6.24,4,9v32c0,2.76,2.24,5,5,5h32c2.76,0,5-2.24,5-5V9C46,6.24,43.76,4,41,4z M17,20v19h-6V20H17z M11,14.47c0-1.4,1.2-2.47,3-2.47s2.93,1.07,3,2.47c0,1.4-1.12,2.53-3,2.53C12.2,17,11,15.87,11,14.47z M39,39h-6c0,0,0-9.26,0-10 c0-2-1-4-3.5-4.04h-0.08C27,24.96,26,27.02,26,29c0,0.91,0,10,0,10h-6V20h6v2.56c0,0,1.93-2.56,5.81-2.56 c3.97,0,7.19,2.73,7.19,8.26V39z"></path></svg></a><a class="header-social-link" href="https://github.com/nobodyme" target="_blank" rel="noopener noreferrer"><svg class="header-social-icon" width="30" height="30" fill="#000000" viewBox="0 0 32 32"><path fill-rule="evenodd" d="M 16 4 C 9.371094 4 4 9.371094 4 16 C 4 21.300781 7.4375 25.800781 12.207031 27.386719 C 12.808594 27.496094 13.027344 27.128906 13.027344 26.808594 C 13.027344 26.523438 13.015625 25.769531 13.011719 24.769531 C 9.671875 25.492188 8.96875 23.160156 8.96875 23.160156 C 8.421875 21.773438 7.636719 21.402344 7.636719 21.402344 C 6.546875 20.660156 7.71875 20.675781 7.71875 20.675781 C 8.921875 20.761719 9.554688 21.910156 9.554688 21.910156 C 10.625 23.746094 12.363281 23.214844 13.046875 22.910156 C 13.15625 22.132813 13.46875 21.605469 13.808594 21.304688 C 11.144531 21.003906 8.34375 19.972656 8.34375 15.375 C 8.34375 14.0625 8.8125 12.992188 9.578125 12.152344 C 9.457031 11.851563 9.042969 10.628906 9.695313 8.976563 C 9.695313 8.976563 10.703125 8.65625 12.996094 10.207031 C 13.953125 9.941406 14.980469 9.808594 16 9.804688 C 17.019531 9.808594 18.046875 9.941406 19.003906 10.207031 C 21.296875 8.65625 22.300781 8.976563 22.300781 8.976563 C 22.957031 10.628906 22.546875 11.851563 22.421875 12.152344 C 23.191406 12.992188 23.652344 14.0625 23.652344 15.375 C 23.652344 19.984375 20.847656 20.996094 18.175781 21.296875 C 18.605469 21.664063 18.988281 22.398438 18.988281 23.515625 C 18.988281 25.121094 18.976563 26.414063 18.976563 26.808594 C 18.976563 27.128906 19.191406 27.503906 19.800781 27.386719 C 24.566406 25.796875 28 21.300781 28 16 C 28 9.371094 22.628906 4 16 4 Z"></path></svg></a><a class="header-social-link" href="/blog/rss.xml" target="_blank" rel="noopener noreferrer"><svg class="header-social-icon" width="28" height="28" fill="#000000" viewBox="0 0 32 32"><path d="M 5 5 L 5 9 C 14.93 9 23 17.07 23 27 L 27 27 C 27 14.85 17.15 5 5 5 z M 5 12 L 5 16 C 11.07 16 16 20.93 16 27 L 20 27 C 20 18.72 13.28 12 5 12 z M 8 21 A 3 3 0 0 0 8 27 A 3 3 0 0 0 8 21 z"></path></svg></a></div></div><div class="global-content-wrapper" data-is-root-path="false"><main><article class="blog-post" itemscope="" itemType="http://schema.org/Article"><header><h1 itemProp="headline">Dynamic Programming</h1><p class="meta"><span>August 01, 2018</span><span class="meta-separator">•</span><span>10 min read</span></p></header><section itemProp="articleBody" class="blog-content"><p>There were a huge number of sources on the internet on this topic but still, we (me and my friend) couldn’t understand any of it for a very long time until we fiddled with code and tracked the output for every change in the input. So this repository is exactly created for people like us to make the transition from <a href="https://en.wikipedia.org/wiki/Greedy_algorithm">greedy</a> to dynamic programming easier. This will just be an introduction to dynamic programming so that one can pick it up from there. I have added additional sources for practice and other online tutorials that I found a little helpful at the end and will continue to do so as I find something new. It is for programmers who are comfortable with brute force and might not serve the purpose of absolute beginners. Contributions or suggestions are welcome.</p>
+<h3>Definition</h3>
+<p>So what’s dynamic programming? Let’s first look at a more formal definition.</p>
+<p>Dynamic programming (also known as dynamic optimization) is a method for solving a complex problem by breaking it down into a collection of simpler subproblems, solving each of those subproblems just once, and storing their solutions. The next time the same subproblem occurs, instead of recomputing its solution, one simply looks up the previously computed solution, thereby saving computation time at the expense of a (hopefully) modest expenditure in storage space. (Each of the subproblem solutions is indexed in some way, typically based on the values of its input parameters, to facilitate its lookup)<a href="https://en.wikipedia.org/wiki/Dynamic_programming">(Source-Wiki)</a>.</p>
+<p>Or more simply, it is a technique to save intermediate results in a calculation in any comfortable format so that the result can be used for further computation instead of calculating it all over again at the arrival of additional input. Sounds simple enough? Yes, indeed it is, let’s have a look at an example to put it right through our skull.</p>
+<p>Before that, we need to identify whether a problem has the following properties, in order to be solved by Dynamic Programming(DP)</p>
+<ul>
+<li><a href="http://www.geeksforgeeks.org/dynamic-programming-set-1/">Overlapping Sub-problem</a></li>
+<li><a href="http://www.geeksforgeeks.org/dynamic-programming-set-2-optimal-substructure-property/">Optimal Substructure</a></li>
+</ul>
+<h3>Problems:</h3>
+<ul>
+<li><a href="#problem-1">Minimum cost problem</a></li>
+<li><a href="#problem-2">Longest increasing subsequence</a></li>
+</ul>
+<h3>Minimum cost problem <a name="problem-1"></a></h3>
+<p>Given a cost matrix cost[][] and a position (m, n) in cost[][], write a function that returns cost of minimum cost path to reach (m, n) from (0, 0). Each cell of the matrix represents a cost to traverse through that cell. The total cost of a path to reach (m, n) is the sum of all the costs on that path (including both source and destination). You can only traverse down, right and diagonally lower cells from a given cell, i.e., from a given cell (i, j), cells (i+1, j), (i, j+1) and (i+1, j+1) can be traversed. You may assume that all costs are positive integers.</p>
+<table>
+<thead>
+<tr>
+<th align="center">1</th>
+<th align="center">2</th>
+<th align="center">3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">4</td>
+<td align="center">8</td>
+<td align="center">2</td>
+</tr>
+<tr>
+<td align="center">1</td>
+<td align="center">5</td>
+<td align="center">3</td>
+</tr>
+</tbody>
+</table>
+<p>(forgive the highlighting of the first row it is of no special significance)</p>
+<h4>Solution:</h4>
+<p><strong>Me:</strong> So how would you go on solving that?</br>
+<strong>Friend:</strong> Oh, the properties I read talked about saving the sub-problems to make the computations easier!</br>
+<strong>Me:</strong> What are the sub-problems here? </br>
+<strong>Friend:</strong> Oh, it’s too tough.</br>
+<strong>Me:</strong> No, it’s not we will work together.</br></p>
+<p>How would you normally solve it, forgetting about code for a minute?</br>
+You probably eye all the cells, adding the cost along the path till you reach the destination. But you don’t know if it’s minimum, so you start adding again by traversing in a different direction. Then maybe after considering all paths, you come up with a cost that gives you the least.</br></p>
+<p>That’s pretty much it.</br></p>
+<p>My friend interrupts,</br>
+<strong>Friend:</strong> But the above method only solves the problem for one particular destination, what if we want to calculate the total cost for reaching a different destination.</br>
+<strong>Me:</strong> Good point!</br>
+<strong>Friend:</strong> That’s why we store the minimum cost for reaching each cell in the array from the first cell. That way when we fill up all cells we will be left with solutions of every cell.</br>
+<strong>Friend:</strong> I lost you there.</br>
+<strong>Me:</strong> Haha, let me finish.</p>
+<p>So what do we know so far?</br></p>
+<ul>
+<li>There’s an array and we can move right, down and diagonally lower.</br></li>
+<li>We need to print the minimum cost of traversing to the given destination.</br></li>
+<li>And we start at the first cell.</br></li>
+</ul>
+<h4>Breaking down the problem:</h4>
+<p><strong>Me:</strong> What is simply the cost of moving from [0,0] to [0,1]?</br>
+<strong>Friend:</strong> It’s <code class="language-text">2 + 1 = 3</code></br>
+<strong>Me:</strong> What is the minimum cost of moving from [0,0] to [0,1]?</br>
+<strong>Friend:</strong> Still 3, because there’s no other way we could reach [0,1] since we can only move right or down or diagonally lower. We can <strong>only</strong> reach [0,1] from [0,0].</br>
+<strong>Me:</strong> Excellent! So what is the minimum cost of moving from [0,1] to [0,2]?</br>
+<strong>Friend:</strong> Oh wait, the cost of moving from <strong>[0,0] to [0,1]</strong> is <strong>3</strong>, hence <strong>[0,1] to [0,2]</strong> would be  <code class="language-text">3 + cost of getting to (0,2)</code> which is <code class="language-text">3 + 3 = 6</code>. </br>
+<strong>Me:</strong> Now shall we store this obtained cost corresponding to each cell in a different array, so that we can return them, when the cell is the destination?</br>
+<strong>Friend:</strong> Fair enough.</p>
+<table>
+<tr><th>Table A </th> <th>Min cost</th></tr>
+<tr><td>
+<table>
+<thead>
+<tr>
+<th align="center">1</th>
+<th align="center">2</th>
+<th align="center">3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">4</td>
+<td align="center">8</td>
+<td align="center">2</td>
+</tr>
+<tr>
+<td align="center">1</td>
+<td align="center">5</td>
+<td align="center">3</td>
+</tr>
+</tbody>
+</table>
+</td><td>
+<table>
+<thead>
+<tr>
+<th align="center">1</th>
+<th align="center">3</th>
+<th align="center">6</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+</tbody>
+</table>
+</td></tr> </table>
+<p>Why not code it up too?</p>
+<div class="gatsby-highlight" data-language="c"><pre class="language-c"><code class="language-c">minarr<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span> <span class="token operator">=</span> a<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
+
+<span class="token keyword">for</span><span class="token punctuation">(</span>i<span class="token operator">=</span><span class="token number">1</span><span class="token punctuation">;</span>i<span class="token operator">&lt;</span>n<span class="token punctuation">;</span>i<span class="token operator">++</span><span class="token punctuation">)</span>
+  minarr<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">[</span>i<span class="token punctuation">]</span> <span class="token operator">=</span> minarr<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">[</span>i<span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">]</span> <span class="token operator">+</span> a<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">;</span></code></pre></div>
+<p>where n is the number of rows</p>
+<p>We transfer the first element as it is to the <code class="language-text">min cost table</code> and calculate the cost of others in the row.</br></p>
+<p><strong>Friend:</strong> Why not the columns? The cells in the first column have only one way of reaching them too, which is down from the first cell.</br>
+<strong>Me:</strong> Yeah absolutely, that’s our next step.</p>
+<p>Similarly, we calculate the cost of reaching each column by adding the cell with the previous ones in the column.</p>
+<table>
+<tr><th>Table A </th> <th>Min cost</th></tr>
+<tr><td>
+<table>
+<thead>
+<tr>
+<th align="center">1</th>
+<th align="center">2</th>
+<th align="center">3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">4</td>
+<td align="center">8</td>
+<td align="center">2</td>
+</tr>
+<tr>
+<td align="center">1</td>
+<td align="center">5</td>
+<td align="center">3</td>
+</tr>
+</tbody>
+</table>
+</td><td>
+<table>
+<thead>
+<tr>
+<th align="center">1</th>
+<th align="center">3</th>
+<th align="center">6</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">5</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td align="center">6</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+</tbody>
+</table>
+</td></tr> </table>
+<p>We’ll code that up too!</p>
+<div class="gatsby-highlight" data-language="c"><pre class="language-c"><code class="language-c"><span class="token keyword">for</span><span class="token punctuation">(</span>i<span class="token operator">=</span><span class="token number">1</span><span class="token punctuation">;</span>i<span class="token operator">&lt;</span>m<span class="token punctuation">;</span>i<span class="token operator">++</span><span class="token punctuation">)</span>
+  minarr<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span> <span class="token operator">=</span> minarr<span class="token punctuation">[</span>i<span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span> <span class="token operator">+</span> a<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">;</span></code></pre></div>
+<p>where m is the number of columns</p>
+<p><strong>Friend:</strong> Now, how do we calculate the minimum cost to reach cell [1,1]?</br>
+<strong>Me:</strong> We know we can only traverse left, down or diagonally lower cell. Hence we can reach cell [1,1] only from cell [0,0] or [0,1] or [1,0]. So now that our table already has the minimum values to reach [0,0], [0,1] and [1,0], simply the minimum of those three values plus the cost of reaching cell [1,1] gives us our result.</br></p>
+<p>So the cost to reach the cell,</p>
+<div class="gatsby-highlight" data-language="text"><pre class="language-text"><code class="language-text">[1,1] = a[1,1] + min(minarr[0,0], minarr[0,1], minarr[1,0])
+minarr[1,1] = 8 + min(1,3,5)
+So, minarr[1,1] = 9</code></pre></div>
+<p>Similarly, we do for all cells, starting from 1,1.</p>
+<p>Let’s code it up again,</p>
+<div class="gatsby-highlight" data-language="c"><pre class="language-c"><code class="language-c"><span class="token keyword">for</span><span class="token punctuation">(</span>i<span class="token operator">=</span><span class="token number">1</span><span class="token punctuation">;</span>i<span class="token operator">&lt;</span>n<span class="token punctuation">;</span>i<span class="token operator">++</span><span class="token punctuation">)</span>
+  <span class="token keyword">for</span><span class="token punctuation">(</span>j<span class="token operator">=</span><span class="token number">1</span><span class="token punctuation">;</span>j<span class="token operator">&lt;</span>m<span class="token punctuation">;</span>j<span class="token operator">++</span><span class="token punctuation">)</span>
+    minarr<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">[</span>j<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">(</span>a<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">[</span>j<span class="token punctuation">]</span> <span class="token operator">+</span> <span class="token function">min</span><span class="token punctuation">(</span>minarr<span class="token punctuation">[</span>i<span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">[</span>j<span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">,</span>minarr<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">[</span>j<span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">,</span>minarr<span class="token punctuation">[</span>i<span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">[</span>j<span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre></div>
+<table>
+<tr><th>Table A </th> <th>Min cost</th></tr>
+<tr><td>
+<table>
+<thead>
+<tr>
+<th align="center">1</th>
+<th align="center">2</th>
+<th align="center">3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">4</td>
+<td align="center">8</td>
+<td align="center">2</td>
+</tr>
+<tr>
+<td align="center">1</td>
+<td align="center">5</td>
+<td align="center">3</td>
+</tr>
+</tbody>
+</table>
+</td><td>
+<table>
+<thead>
+<tr>
+<th align="center">1</th>
+<th align="center">3</th>
+<th align="center">6</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">5</td>
+<td align="center">9</td>
+<td align="center">5</td>
+</tr>
+<tr>
+<td align="center">6</td>
+<td align="center">10</td>
+<td align="center">8</td>
+</tr>
+</tbody>
+</table>
+</td></tr> </table>
+<p>Now that our table is filled, we simply return the cell of the given destination in the minimum cost array. The full code is <a href="https://github.com/nobodyme/Dynamic-Programming/blob/master/minimum-cost-path.C">given here</a>. Here is a <a href="http://practice.geeksforgeeks.org/problems/largest-zigzag-sequence/0">similar problem</a>, try it on your own and another similar problem is added in the <a href="https://github.com/nobodyme/dynamic-programming/blob/master/Count-all-paths.C">repository</a>.</p>
+<p>Hence by considering the elements one by one we have built up our solution or in DP terms, we have acquired our solution in bottom-up fashion(tabulation method) from the sub-problems. There’s another approach to it called memoization. The difference between both is explained in the <a href="http://www.geeksforgeeks.org/tabulation-vs-memoizatation/">article over here</a>.</p>
+<h3>Longest increasing subsequence <a name="problem-2"></a></h3>
+<p>The Longest Increasing Subsequence (LIS) problem is to find the length of the longest subsequence of a given sequence such that all elements of the subsequence are sorted in increasing order.
+For example, the length of LIS for {10, 12, 32, 2, 22, 23, 25, 30} is 6 and LIS is {10, 12, 22, 23, 25, 30}</p>
+<h4>Solution:</h4>
+<p>How would go on solving this problem? What would you store to make the calculations easier? Okay simply, how would you solve the above problem using <strong>brute force</strong> just like how you would perform a <a href="https://en.wikipedia.org/wiki/Selection_sort">selection sort</a>!</p>
+<table>
+<thead>
+<tr>
+<th align="center">10</th>
+<th align="center">12</th>
+<th align="center">32</th>
+<th align="center">2</th>
+<th align="center">22</th>
+<th align="center">23</th>
+<th align="center">25</th>
+<th align="center">30</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">k,i</td>
+<td align="center">j</td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Friend:</strong> I would compare every element with every other element, if it’s greater than the current one, I would increase the count variable and I would print the highest count, I get. Roughly I would code it something like this</br></p>
+<p><em><strong>pseudo-code</strong></em> (It’s okay if you don’t understand my friend’s code) </br></p>
+<div class="gatsby-highlight" data-language="c"><pre class="language-c"><code class="language-c"><span class="token keyword">for</span><span class="token punctuation">(</span>i<span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">;</span>i<span class="token operator">&lt;</span>n<span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>i<span class="token operator">++</span><span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+  count <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span>
+  <span class="token keyword">for</span><span class="token punctuation">(</span>j<span class="token operator">=</span>i<span class="token operator">+</span><span class="token number">1</span><span class="token punctuation">,</span>k<span class="token operator">=</span>i<span class="token punctuation">;</span>j<span class="token operator">&lt;</span>n<span class="token punctuation">,</span>k<span class="token operator">&lt;</span>n<span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">;</span>j<span class="token operator">++</span><span class="token punctuation">)</span>
+  <span class="token punctuation">{</span>
+    <span class="token keyword">if</span><span class="token punctuation">(</span>a<span class="token punctuation">[</span>j<span class="token punctuation">]</span> <span class="token operator">></span> a<span class="token punctuation">[</span>k<span class="token punctuation">]</span><span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+      k<span class="token operator">=</span>j<span class="token punctuation">;</span>
+count<span class="token operator">++</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    <span class="token keyword">if</span><span class="token punctuation">(</span>count<span class="token operator">></span>maxi<span class="token punctuation">)</span>
+      maxi <span class="token operator">=</span> count<span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+<span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"\nMax-length = %d\n"</span><span class="token punctuation">,</span>maxi<span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre></div>
+<p><strong>Me:</strong> Let’s run it.</br>
+<strong>Friend:</strong> Uh? Okay.</br>
+<strong>Me:</strong> So what’s the output?</br>
+<strong>Friend:</strong> The program returns, <code class="language-text">max-length = 5</code>, which I guess is {2, 22, 23, 24, 25}. But we know it’s 6 and the LIS is {10, 12, 22, 23, 25, 30}.</br>
+Why does it fail to catch the above lis?</br></p>
+<p><strong>Me:</strong> Because while traversing {10, 12, 32, 22, 23, 25, 30} the code will run as follows,it will check,</br>
+if(10>12) yes—> count is 2, then</br>
+if(32>12) yes—> count is 3, then</br>
+At this point <strong>count = 3</strong>, from there on count won’t get incremented because the following elements are lesser than 32 and hence condition like (22>32) will consecutively fail.</br></p>
+<p><strong>Friend:</strong> If only it knew that by <strong>avoiding 32</strong> and traversing through the rest of the array we would obtain the result which is <code class="language-text">max-length = 6</code>.</br>
+<strong>Me:</strong> This is exactly the information we store for our computation using DP. In brute force terms, we store the count variable for all possible alternatives of traversal in the array and then simply find the maximum of it (Not that brute force cannot solve the problem, a different approach might but definitely in exponential time).</p>
+<div class="info-box">
+Note: And my friend has set count=1 and not 0 initially because when we have a case where all numbers are the same in the array i.e {2, 2, 2, 2}. We must return count as 1 since one element { 2 } is still a subarray of the larger one.
+</div>
+<h4>DP solution:</h4>
+<p><strong>Me:</strong> So how would you code the same in DP, well actually it’s easier.</br>
+<strong>Friend:</strong> Since you said we store counts of all variables, we initialize an array of the same size of corresponding counts?</br>
+<strong>Me:</strong> Exactly, we first start by creating another array for storing the count for each member of the array as we discussed and initialize all of them to <strong>1</strong>.</br></p>
+<table>
+<thead>
+<tr>
+<th align="center">array</th>
+<th align="center">10</th>
+<th align="center">12</th>
+<th align="center">32</th>
+<th align="center">2</th>
+<th align="center">22</th>
+<th align="center">23</th>
+<th align="center">25</th>
+<th align="center">30</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">count</td>
+<td align="center">1</td>
+<td align="center">1</td>
+<td align="center">1</td>
+<td align="center">1</td>
+<td align="center">1</td>
+<td align="center">1</td>
+<td align="center">1</td>
+<td align="center">1</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td align="center">j</td>
+<td align="center">i</td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Friend:</strong> Now we check in a similar way?</br>
+<strong>Me:</strong> Yeah but for now, lets us consider only the element <strong>10</strong> exists in the array.</br>
+<strong>Friend:</strong> Why?</br>
+<strong>Me:</strong> To make it simpler?! Why else? Listen along. So what is the longest increasing subsequence then?</br>
+<strong>Friend:</strong> 1 of course and LIS is {10}.</br>
+<strong>Me:</strong> So now, say, we add 12 and set its initial count to 1</p>
+<table>
+<thead>
+<tr>
+<th align="center">array</th>
+<th align="center">10</th>
+<th align="center">12</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">count</td>
+<td align="center">1</td>
+<td align="center">1</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td align="center">j</td>
+<td align="center">i</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Friend:</strong> We check <strong>if(12>10)</strong> so 12’s count gets incremented? </br>
+<strong>Me:</strong> Yes, now that 12>10, 12’s count becomes <code class="language-text">count of 10 + 1</code> since count of 10 already represents the longest increasing subsequence that can be made with the existing elements. Count of 12 now represents {10} + {12} = {10 ,12} or simply <code class="language-text">count[i] = count[j]+1;</code> which is 2</br></p>
+<p><strong>Friend:</strong> So let me clear this up, when 10 was alone LIS is 1 and now that 12 is added and we find {10, 12} could be LIS since 12>10 and so we add count of 10’s to 12’s count and add 1 to include the number itself.</br>
+<strong>Me:</strong> That’s right and the array becomes,</br></p>
+<table>
+<thead>
+<tr>
+<th align="center">array</th>
+<th align="center">10</th>
+<th align="center">12</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">count</td>
+<td align="center">1</td>
+<td align="center">2</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td align="center">j</td>
+<td align="center">i</td>
+</tr>
+</tbody>
+</table>
+<p>Now let us consider 32, increment <code class="language-text">i to 32 and j to 10</code> i.e. j to the starting element of the array and traverse from the beginning to see <strong>adding 32</strong> provides a longer subsequence.
+</br>The array becomes,</p>
+<table>
+<thead>
+<tr>
+<th align="center">array</th>
+<th align="center">10</th>
+<th align="center">12</th>
+<th align="center">32</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">count</td>
+<td align="center">1</td>
+<td align="center">2</td>
+<td align="center">1</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td align="center">j</td>
+<td align="center"></td>
+<td align="center">i</td>
+</tr>
+</tbody>
+</table>
+<p></br><strong>Friend:</strong> Yes, it does prove longer. Since <strong>(32>10)</strong> therefore we increment 32’s count —> count[i] = count[j]+1;</p>
+<p><strong>Me:</strong> We check all numbers before 32 to see if they can be added to form a sequence with it, so increment j, continue filling in the boxes!</p>
+<p><img src="https://user-images.githubusercontent.com/22789194/27852855-3ce86814-6150-11e7-9a31-bcb108e1308d.gif" alt="animated"></p>
+<p></br><strong>Friend</strong>: Okay I will, So <strong>if(32>12)</strong> —> 32’s count = 12’s count + 1 = (2+1) = 3</p>
+<table>
+<thead>
+<tr>
+<th align="center">array</th>
+<th align="center">10</th>
+<th align="center">12</th>
+<th align="center">32</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">count</td>
+<td align="center">1</td>
+<td align="center">2</td>
+<td align="center">3</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center">j</td>
+<td align="center">i</td>
+</tr>
+</tbody>
+</table>
+<p></br>Similarly, <strong>considering element 2</strong> the array becomes,</p>
+<table>
+<thead>
+<tr>
+<th align="center">array</th>
+<th align="center">10</th>
+<th align="center">12</th>
+<th align="center">32</th>
+<th align="center">2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">count</td>
+<td align="center">1</td>
+<td align="center">2</td>
+<td align="center">3</td>
+<td align="center">1</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td align="center">j</td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center">i</td>
+</tr>
+</tbody>
+</table>
+<p></br>The array stays the same since each case checking <strong>if(2>10)</strong> , <strong>if(2>12)</strong> or <strong>if(2>32)</strong> fails, and it’s count variable remains unchanged.</p>
+<p></br> Now I’m adding the next number, <strong>22</strong> and check for 10, 12, 32, similar to the previous one, for 10 and 12, the count of 22 is incremented to 3 and with 32 it fails and remains as 3, and j is incremented to point 2.</p>
+<table>
+<thead>
+<tr>
+<th align="center">array</th>
+<th align="center">10</th>
+<th align="center">12</th>
+<th align="center">32</th>
+<th align="center">2</th>
+<th align="center">22</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">count</td>
+<td align="center">1</td>
+<td align="center">2</td>
+<td align="center">3</td>
+<td align="center">1</td>
+<td align="center">3</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center">j</td>
+<td align="center">i</td>
+</tr>
+</tbody>
+</table>
+<p></br>Now <strong>if(22 > 2)</strong> —> count of 22 becomes <code class="language-text">count[j]+1</code> i.e. 2?
+</br><strong>Me:</strong> Haha, glad you paused and asked, in short, <strong>No</strong>, we know that count reflects the longest subsequence. By traversing other elements in the array, we obtained 3 as the longest subsequence for 22. So why lower it to 2? Hence while adding <code class="language-text">count[i] = count[j]+1</code> make sure it benefits the cause. Therefore place <code class="language-text">count[i] = max(count[j]+1,count[i])</code> ie with the maximum of two numbers to avoid such cases.</p>
+<p>And similarly, the rest of the array is traversed and the array becomes,</p>
+<table>
+<thead>
+<tr>
+<th align="center">array</th>
+<th align="center">10</th>
+<th align="center">12</th>
+<th align="center">32</th>
+<th align="center">2</th>
+<th align="center">22</th>
+<th align="center">23</th>
+<th align="center">25</th>
+<th align="center">30</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">count</td>
+<td align="center">1</td>
+<td align="center">2</td>
+<td align="center">3</td>
+<td align="center">1</td>
+<td align="center">3</td>
+<td align="center">4</td>
+<td align="center">5</td>
+<td align="center">6</td>
+</tr>
+<tr>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center">j</td>
+<td align="center">i</td>
+</tr>
+</tbody>
+</table>
+<p>Since the highest is 6, which gives the longest increasing subsequence, the video of the above traversal is <a href="https://youtu.be/Ns4LCeeOFS4">linked here(different example)</a>. Let’s have a look at the code snippet of the same below.
+As we have learned,</p>
+<ul>
+<li>We initialize the count array to 1</li>
+<li>Then calculate the count for every element</li>
+</ul>
+<div class="gatsby-highlight" data-language="c"><pre class="language-c"><code class="language-c"><span class="token keyword">for</span><span class="token punctuation">(</span>i<span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">;</span>i<span class="token operator">&lt;</span>n<span class="token punctuation">;</span>i<span class="token operator">++</span><span class="token punctuation">)</span>
+count<span class="token punctuation">[</span>i<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span>
+
+<span class="token keyword">for</span><span class="token punctuation">(</span>i<span class="token operator">=</span><span class="token number">1</span><span class="token punctuation">;</span>i<span class="token operator">&lt;</span>n<span class="token punctuation">;</span>i<span class="token operator">++</span><span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+  <span class="token keyword">for</span><span class="token punctuation">(</span>j<span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">;</span>j<span class="token operator">&lt;</span>i<span class="token punctuation">;</span>j<span class="token operator">++</span><span class="token punctuation">)</span>
+  <span class="token punctuation">{</span>
+  <span class="token keyword">if</span><span class="token punctuation">(</span>array<span class="token punctuation">[</span>i<span class="token punctuation">]</span> <span class="token operator">></span> array<span class="token punctuation">[</span>j<span class="token punctuation">]</span><span class="token punctuation">)</span>
+  count<span class="token punctuation">[</span>i<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token function">max</span><span class="token punctuation">(</span>count<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">,</span>count<span class="token punctuation">[</span>j<span class="token punctuation">]</span><span class="token operator">+</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span></code></pre></div>
+<p>After that, we find the maximum of the count array and print it, <a href="https://github.com/nobodyme/Dynamic-Programming/blob/master/longest-increasing-sub-sequence.C">full code snippet is here</a> and a look-alike problem just with a <a href="https://github.com/nobodyme/dynamic-programming/blob/master/lis-pair.C">pair of numbers</a>.</p>
+<h3>More to come</h3>
+<ul>
+<li>Minimum coin change</li>
+</ul>
+<h3>Points to remember</h3>
+<ul>
+<li>Dynamic programming is just like any other kind, you get some, you don’t get some practice makes it all better. I have a lot to do too.</li>
+<li>From my experience, it is similar to brute force but instead of exploring the whole input space, you find a way to store intermediate results that arise from the input and exhaustively explore that for the required result.</li>
+<li>Yes, it is indeed a method of trading space for time. A recursive approach may utilize a little less space but dynamic programming approach is quicker.</li>
+</ul>
+<h3>Other resources</h3>
+<ul>
+<li><a href="https://www.hackerearth.com/practice/notes/dynamic-programming-i-1/">Hackerearth article explaining more on “Why dynamic programming”</a></li>
+<li><a href="https://www.quora.com/What-are-some-good-ways-to-approach-a-dynamic-programming-question/answer/Paul-Baltescu">How to approach Dynamic Programming by Paul Baltescu on Quora</a></li>
+<li><a href="http://www.geeksforgeeks.org/fundamentals-of-algorithms/#DynamicProgramming">Geeks for geeks tutorials</a></li>
+<li><a href="https://www.hackerearth.com/practice/notes/dynamic-programming-problems-involving-grids/">Hackerearth article for problems involving grids</a></li>
+</ul>
+<h3>Problems lists from various sites</h3>
+<ul>
+<li><a href="http://practice.geeksforgeeks.org/topics/Dynamic-Programming/">Practice problems - Geeks for Geeks</a></li>
+<li><a href="https://apps.topcoder.com/forums/?module=Thread&#x26;start=0&#x26;threadID=674592">Problem list - top coder</a></li>
+<li><a href="http://codeforces.com/problemset/tags/dp?order=BY_SOLVED_DESC">Problem sets - code forces</a></li>
+<li><a href="https://www.hackerrank.com/domains/algorithms/dynamic-programming">Dp challenges - Hackerrank</a></li>
+</ul></section></article><nav class="blog-post-nav"><hr class="hr"/><ul style="display:flex;flex-wrap:wrap;justify-content:space-between;list-style:none;padding:0"><li><a rel="prev" href="/blog/decoupling-aws-cloudformation-templates/">← <!-- -->Decoupling AWS CloudFormation Templates</a></li><li><a rel="next" href="/blog/fetch-images-from-reddit/">Fetch images from Reddit for your desktop wallpaper, python beginners<!-- --> →</a></li></ul><hr class="hr"/></nav><div class="comment-container"><h4>Comments</h4><p>Want to share feedback, or discuss further ideas? Feel free to leave a comment here! This comment thread directly maps to a <a href="https://github.com/nobodyme/blog/discussions/categories/post-comments">discussion on GitHub</a>, so you can also comment there if you prefer.</p><div class="giscus"></div></div></main></div></div></div><div id="gatsby-announcer" style="position:absolute;top:0;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0, 0, 0, 0);white-space:nowrap;border:0" aria-live="assertive" aria-atomic="true"></div></div><script async="" src="https://www.googletagmanager.com/gtag/js?id=G-RTEDBEVJXZ"></script><script>
+      
+      
+      if(true) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-RTEDBEVJXZ', {"send_page_view":false});
+      }
+      </script><script id="gatsby-script-loader">/*<![CDATA[*/window.pagePath="/dynamic-programming/";/*]]>*/</script><!-- slice-start id="_gatsby-scripts-1" -->
+          <script
+            id="gatsby-chunk-mapping"
+          >
+            window.___chunkMapping="{\"app\":[\"/app-c4bce70f7057a2f05845.js\"],\"component---src-pages-404-js\":[\"/component---src-pages-404-js-71e183793d79a34f290b.js\"],\"component---src-pages-index-js\":[\"/component---src-pages-index-js-ee8b5e9d52186f0bdab4.js\"],\"component---src-pages-liked-posts-index-js\":[\"/component---src-pages-liked-posts-index-js-5dfa3066ed0b85ddb4fe.js\"],\"component---src-templates-blog-post-js\":[\"/component---src-templates-blog-post-js-3a99bec1ebda935ca4f5.js\"]}";
+          </script>
+        <script>window.___webpackCompilationHash="b0e415fca4d96ecaa85a";</script><script src="/blog/webpack-runtime-7db2dcbee5c30cc7fe92.js" async></script><script src="/blog/framework-b99a6c3fa1691c37485a.js" async></script><script src="/blog/app-c4bce70f7057a2f05845.js" async></script><!-- slice-end id="_gatsby-scripts-1" --></body></html>
