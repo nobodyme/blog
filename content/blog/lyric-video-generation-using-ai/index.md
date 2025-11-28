@@ -8,11 +8,11 @@ One evening, I was asked to validate the technical feasibility of automatically 
 Given the time constraint and the goal of just ensuring feasibility, I decided to get the end-to-end flow working before thinking about improving the quality of the output.
 
 First things first, I broke this down into subproblems:
-- How to generate the video?
-- How to sync/align the lyrics to the song?
-- Once the video is generated, how do we overlay/merge the lyrics and audio in the video?
+- [How to generate the video?](#anchor-1)
+- [How to sync/align the lyrics to the song?](#anchor-2)
+- [Once the video is generated, how do we overlay/merge the lyrics and audio in the video?](#anchor-3)
 
-## How to generate the video?
+## How to generate the video? <a name="anchor-1"></a>
 
 I found a couple of models in AWS that were readily available and capable of generating videos from a text prompt, Nova Reel, and Luma AI's Ray2 on Amazon Bedrock. Given the time constraints, instead of agonizing over which was better, I tested Ray2 first. It was able to follow instructions, but it had its limitations—for example, it could only generate 5 or 9 second clips. So, for generating a video for an entire song, one would have to split it up into scenes for generation and stitch it back together. (Later learnt that Nova Reel has a multi-shot mode that generates up to ~2-minute videos as a sequence of 6-second shots with per-shot prompts)
 
@@ -23,7 +23,7 @@ Luckily, the model also allowed you to specify the start or end image of the gen
 
 At this point, I manually prompted and generated a couple of scenes and saw that the model was able to produce cohesive outputs, then moved on to the next puzzle.
 
-## How to sync/align the lyrics to the song?
+## How to sync/align the lyrics to the song? <a name="anchor-2"></a>
 
 The easiest way to achieve this would have been to transcribe the given song, since it would give us a subtitle(srt) file which we could use to sync song and the lyrics. But I already had the lyrics, which meant I didn’t necessarily need to transcribe. Even transcribing speech isn't 100% perfect, so one can't expect that for a song with all the "oohs" and "aahs" likely in it. A quick Google search showed what I needed was technically called forced alignment i.e. given the lyrics, match the lyric to the audio and get timestamps for (each line of) the lyrics and ultimately produce a subtitle file that can be easily merged with the video.
 
@@ -55,7 +55,7 @@ As you can see, none of these methods yielded good-enough results. Before entire
 
 I was able to obtain pretty accurate (~98%) results by performing forced alignment on the voice isolated version.
 
-## How to overlay/merge the lyrics along with audio in the video?
+## <a name="anchor-3"></a> How to overlay/merge the lyrics along with audio in the video?
 
 FFmpeg was the easiest option to combine video and audio and add lyrics as subtitles.
 But lyric videos usually have lyrics overlaid on top of the video, not just as a subtitle, and I wanted a way to programmatically style the lyrics depending on the mood of the song. That's when **Remotion** came into the picture, you can use Remotion to style lyrics using just CSS, and it seemed like a perfect fit.
