@@ -1,0 +1,1444 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[The Curious Engineer]]></title><description><![CDATA[Engineer, architect, and habitual tinkerer building highly performant systems then turning the scars into posts]]></description><link>https://nobodyme.github.io/blog</link><image><url>src/assets/images/binoculars-40.png</url><title>The Curious Engineer</title><link>https://nobodyme.github.io/blog</link></image><generator>GatsbyJS</generator><lastBuildDate>Thu, 04 Dec 2025 08:10:26 GMT</lastBuildDate><item><title><![CDATA[Lyric Video Generation using AI]]></title><description><![CDATA[One evening, I was asked to validate the technical feasibility of automatically generating lyrical video for a given song. Unfortunately…]]></description><link>https://nobodyme.github.io/blog/lyric-video-generation-using-ai/</link><guid isPermaLink="false">https://nobodyme.github.io/blog/lyric-video-generation-using-ai/</guid><pubDate>Fri, 21 Nov 2025 10:05:00 GMT</pubDate><content:encoded>&lt;p&gt;One evening, I was asked to validate the technical feasibility of automatically generating lyrical video for a given song. Unfortunately this time, I only had a &lt;strong&gt;couple of days&lt;/strong&gt; to do it. The input being the song itself(mp3/wav) and the lyrics as a .txt file. The goal was to produce a video with lyrics in the foreground and video in the background. There was one additional constraint: use only services/models in AWS or that can be hosted on AWS.&lt;/p&gt;
+&lt;p&gt;Given the time constraint and the goal of just ensuring feasibility, I decided to get the end-to-end flow working before thinking about improving the quality of the output.&lt;/p&gt;
+&lt;p&gt;First things first, I broke this down into subproblems:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;#anchor-1&quot;&gt;How to generate the video?&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#anchor-2&quot;&gt;How to sync/align the lyrics to the song?&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#anchor-3&quot;&gt;Once the video is generated, how do we overlay/merge the lyrics and audio in the video?&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;How to generate the video? &lt;a name=&quot;anchor-1&quot;&gt;&lt;/a&gt;&lt;/h2&gt;
+&lt;p&gt;I found a couple of models in AWS that were readily available and capable of generating videos from a text prompt, Nova Reel, and Luma AI’s Ray2 on Amazon Bedrock. Given the time constraints, instead of agonizing over which was better, I tested Ray2 first. It was able to follow instructions, but it had its limitations—for example, it could only generate 5 or 9 second clips. So, for generating a video for an entire song, one would have to split it up into scenes for generation and stitch it back together. (Later learnt that Nova Reel has a multi-shot mode that generates up to ~2-minute videos as a sequence of 6-second shots with per-shot prompts)&lt;/p&gt;
+&lt;p&gt;But how do we maintain scene cohesion?&lt;/br&gt;
+How can one ensure adjacent scenes don’t feel like two unrelated videos stitched together?&lt;/p&gt;
+&lt;p&gt;Luckily, the model also allowed you to specify the start or end image of the generated video. I took advantage of this and made sure the adjacent scene always used the last frame from the previous scene as the starting point.&lt;/p&gt;
+&lt;p&gt;At this point, I manually prompted and generated a couple of scenes and saw that the model was able to produce cohesive outputs, then moved on to the next puzzle.&lt;/p&gt;
+&lt;h2&gt;How to sync/align the lyrics to the song? &lt;a name=&quot;anchor-2&quot;&gt;&lt;/a&gt;&lt;/h2&gt;
+&lt;p&gt;The easiest way to achieve this would have been to transcribe the given song, since it would give us a subtitle(srt) file which we could use to sync song and the lyrics. But I already had the lyrics, which meant I didn’t necessarily need to transcribe. Even transcribing speech isn’t 100% perfect, so one can’t expect that for a song with all the “oohs” and “aahs” likely in it. A quick Google search showed what I needed was technically called forced alignment i.e. given the lyrics, match the lyric to the audio and get timestamps for (each line of) the lyrics and ultimately produce a subtitle file that can be easily merged with the video.&lt;/p&gt;
+&lt;p&gt;For this, I explored a few tools. A quick summary:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Aeneas — Couldn’t get it working on macOS.&lt;/li&gt;
+&lt;li&gt;WhisperX — Promised word‑level accuracy; but transcribes by default and required additional work to only run forced alignment.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://docs.pytorch.org/audio/stable/tutorials/ctc_forced_alignment_api_tutorial.html&quot;&gt;Torchaudio&lt;/a&gt; — Closest results so far; roughly ~60% of lines were correctly timed&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;As you can see, none of these methods yielded good-enough results. Before entirely discarding them, I tried isolating the vocals from the song, hoping for better alignment. Experimented with a couple of tools then landed on, &lt;a href=&quot;https://pypi.org/project/demucs/&quot;&gt;Demucs&lt;/a&gt;: A deep-learning–based music source separation model that can split a mix into stems like vocals, drums, etc. This produced &lt;strong&gt;clean vocal isolation&lt;/strong&gt;, you can compare the original and the vocal isolated version below,&lt;/p&gt;
+&lt;div style=&quot;display:flex;gap:1rem;flex-wrap:wrap;align-items:start;margin:1rem 0;&quot;&gt;
+	&lt;figure style=&quot;flex:1;min-width:220px;margin:0;&quot;&gt;
+		&lt;figcaption style=&quot;font-weight:600;margin-bottom:0.25rem;&quot;&gt;Original song&lt;/figcaption&gt;
+		&lt;audio controls preload=&quot;none&quot; style=&quot;width:100%;&quot;&gt;
+			&lt;!-- Prefer WAV if available, fall back to MP3 --&gt;
+			&lt;source src=&quot;song.wav&quot; type=&quot;audio/wav&quot;&gt;
+			Your browser does not support the audio element, try chrome.
+		&lt;/audio&gt;
+	&lt;/figure&gt;
+	&lt;figure style=&quot;flex:1;min-width:220px;margin:0;&quot;&gt;
+		&lt;figcaption style=&quot;font-weight:600;margin-bottom:0.25rem;&quot;&gt;Isolated vocals&lt;/figcaption&gt;
+		&lt;audio controls preload=&quot;none&quot; style=&quot;width:100%;&quot;&gt;
+			&lt;source src=&quot;vocals.wav&quot; type=&quot;audio/wav&quot;&gt;
+			Your browser does not support the audio element, try chrome.
+		&lt;/audio&gt;
+	&lt;/figure&gt;
+&lt;/div&gt;
+&lt;p&gt;I was able to obtain pretty accurate (~98%) results by performing forced alignment on the voice isolated version.&lt;/p&gt;
+&lt;h2&gt;&lt;a name=&quot;anchor-3&quot;&gt;&lt;/a&gt; How to overlay/merge the lyrics along with audio in the video?&lt;/h2&gt;
+&lt;p&gt;FFmpeg was the easiest option to combine video and audio and add lyrics as subtitles.
+But lyric videos usually have lyrics overlaid on top of the video, not just as a subtitle, and I wanted a way to programmatically style the lyrics depending on the mood of the song. That’s when &lt;strong&gt;Remotion&lt;/strong&gt; came into the picture, you can use Remotion to style lyrics using just CSS, and it seemed like a perfect fit.
+For now, I looped the couple of scenes generated in the first step to fill the entire song, combined them with the subtitle file I had previously produced, and merged everything with Remotion. The results were pretty promising, and by this time I had already exhausted a day.&lt;/p&gt;
+&lt;h2&gt;Generating the full-length video&lt;/h2&gt;
+&lt;p&gt;Now that we had a flow in place, I went back to generating a full-length video. My first idea was to split up the lyrics into 9-second chunks and feed them into Claude to have it produce prompts that could depict the meaning of the lyrics on screen, which could then be fed into the video-gen model.&lt;/p&gt;
+&lt;p&gt;One thing this would lack is the overarching meaning of the song, since Claude would only see isolated portions of the lyrics. So, in addition to the lyrics, I first generated a summary of the song, then passed both the lyrics and the summary so the model had more context.&lt;/p&gt;
+&lt;p&gt;For generating consecutive scenes, I also passed in the prompt produced by Claude for the previous scene so it could cohesively continue the story with the overall theme of the song (remember we also pass the last frame of the previous scene to Ray2 to maintain scene cohesion). Sample clip and the scene-by-scene video-gen prompts for a song below:&lt;/p&gt;
+&lt;div class=&quot;gatsby-resp-iframe-wrapper&quot; style=&quot;padding-bottom: 56.25%; position: relative; height: 0; overflow: hidden; margin-bottom: 1.0725rem&quot; &gt; &lt;iframe src=&quot;https://www.youtube-nocookie.com/embed/5QoVLS5mK6M&quot; title=&quot;Lyric video generation demo&quot; frameborder=&quot;0&quot; loading=&quot;lazy&quot; allow=&quot;accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share&quot; referrerpolicy=&quot;strict-origin-when-cross-origin&quot; allowfullscreen=&quot;&quot; style=&quot; position: absolute; top: 0; left: 0; width: 100%; height: 100%; &quot;&gt;&lt;/iframe&gt; &lt;/div&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;SONG_SUMMARY: # &quot;In The End&quot; - Linkin Park  The video tracks a journey through futile effort and inevitable loss, beginning with quiet resignation before building to emotional intensity and returning to acceptance. The energy rises from contemplative verses to powerful choruses, with a dramatic bridge that represents the final emotional breaking point. Visual motifs of clocks, pendulums, and things slipping away reinforce the central theme of wasted time and effort, while the nu-metal/rap-rock fusion reflects the early 2000s cultural moment when anger and vulnerability could coexist in mainstream music.
+
+SCENE_ID: shot_005
+I wasted it all just to watch you go I kept everything inside And even though I tried, it all fell apart What it meant to me will eventually be a memory of a time when
+A figure kneels amid a crumbling room where walls disintegrate into swirling particles. Their outstretched hands try desperately to gather floating photographs and mementos that dissolve upon touch. The camera circles slowly, revealing the floor beneath them forming a spiraling vortex pulling everything downward. Rain continues streaming down invisible barriers as timepieces from the previous scene shatter in slow-motion. Muted blues deepen to midnight indigos with amber light pulses intensifying at 105 BPM. The camera occasionally jolts with quick cuts of the figure&apos;s face showing resignation as their surroundings—their memories—collapse into nothingness.
+
+SCENE_ID: shot_006
+I tried so hard and got so far But in the end, it doesn&apos;t even matter
+A solitary figure stands atop a mountain summit at dusk, arms outstretched in triumph, silhouetted against a dramatic sky of deep indigos and amber streaks. As the camera pulls back, revealing the arduous path climbed, the mountain begins crumbling beneath them. The summit dissolves into particles that spiral upward while timepieces embedded in the rock face tick backward. The figure reaches desperately for a distant light that recedes despite their efforts. Camera movement alternates between steady pans and jarring handheld shots at 105 BPM as the entire landscape transforms into a collapsing hourglass formation, with the figure sliding down amid the ruins of their achievement.
+
+SCENE_ID: shot_007
+I had to fall to lose it all
+The figure plummets through darkness, their body rotating in slow motion as fragments of their achievement—glowing amber particles and broken clock faces—spiral around them. The camera tracks their descent through layers of indigo mist, occasionally flashing to close-ups of their resigned expression. As they impact an obsidian surface, it shatters like black glass, revealing a vast underground landscape of submerged ruins and toppled monuments. Their silhouette dissolves into rippling reflections across dark water, each wavelet carrying away pieces of identity. The lighting transitions from harsh spotlights to diffuse blue shadows as everything of value disintegrates into the depths at a rhythmic 105 BPM pulse.
+
+SCENE_ID: shot_008
+But in the end, it doesn&apos;t even matter One thing, I don&apos;t know why It doesn&apos;t even matter how hard you try
+A solitary figure stands before a massive hourglass, its sand nearly depleted, casting long shadows across a desolate landscape of eroded monuments. As they push against the immovable glass with increasing desperation, their reflection multiplies across fractured surfaces, each version trying different approaches but achieving nothing. The camera slowly pulls back through layers of translucent barriers, revealing countless parallel attempts all ending in failure. Amber particles from previous efforts rain down, briefly illuminating the scene before fading to indigo darkness. The hourglass finally empties completely as the figure&apos;s silhouette dissolves into the same obsidian surface from before, their determination rendered meaningless against cosmic indifference. Lighting pulses between warm determination and cold reality at 105 BPM.
+
+SCENE_ID: shot_009
+Keep that in mind, I designed this rhyme to remind myself how I tried so hard In spite of the way you were mockin&apos; me Actin&apos; like I was part of your property Rememberin&apos; all the times you fought with me
+A figure frantically writes glowing words in the air that shatter and fall as ash, surrounded by towering walls of handwritten journals that begin to collapse inward. Their shadow splits into two silhouettes—one mocking, one desperate—circling each other in a tense dance as property deed papers swirl around them. Memories materialize as floating polaroids that ignite at the edges, their smoke forming confrontational faces. The camera tracks backward through a corridor of closing doors, each slamming with increasing force matching the 105 BPM. The amber particles from before crystallize into chains that the figure struggles against, their determination creating brief flares of crimson light against the persistent indigo darkness.
+
+SCENE_ID: shot_010
+I&apos;m surprised it got so far Things aren&apos;t the way they were before You wouldn&apos;t even recognize me anymore
+A figure stands before a mirror that fractures into countless shards, each reflecting a different version of their former self. As they reach toward their reflection, their hand passes through, disturbing the surface like water. The environment morphs from familiar to alien—a childhood bedroom warping into an unrecognizable landscape of twisted architecture and desaturated colors. Photographs on walls age rapidly, faces becoming unidentifiable. The camera slowly circles as the figure tries to reconstruct memories from the floating ash of burned polaroids, but the particles slip through their fingers. Indigo shadows lengthen while amber light dims, matching the 105 BPM rhythm of realization and loss.&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;The results were good enough to show that it’s technically feasible.
+The end-to-end workflow below,&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/blog/static/a7b4c3c6dcabec8b6bc3d989d2ee1cd6/b08cb/lyric-video-generation-flow.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 29.11392405063291%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAGCAIAAABM9SnKAAAACXBIWXMAAC4jAAAuIwF4pT92AAAAqUlEQVR42o2QTRLCIAyFe/9TufIidWGLyk9L0kACpkWt4+iM34LJhLz3CB27hQMVKVUp/1I3OkAARGbOG+uNSJsQkfpBWQNe/Q4RaaFpmmKMWqtGDTgm9sR5ddRRPfktcBe3VotKRNa6w9iP1vqbU8zFOO+vw3AcT/3sa+B8Bln4Id5f9AQ1UbgFppS00KWSMOUcbAAfzWAAgIi+iH/9m7pQIvWdY2zr3AGSjmCWR+dZEQAAAABJRU5ErkJggg==&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;lyric video generation flow&quot;
+        title=&quot;&quot;
+        src=&quot;/blog/static/a7b4c3c6dcabec8b6bc3d989d2ee1cd6/f058b/lyric-video-generation-flow.png&quot;
+        srcset=&quot;/blog/static/a7b4c3c6dcabec8b6bc3d989d2ee1cd6/c26ae/lyric-video-generation-flow.png 158w,
+/blog/static/a7b4c3c6dcabec8b6bc3d989d2ee1cd6/6bdcf/lyric-video-generation-flow.png 315w,
+/blog/static/a7b4c3c6dcabec8b6bc3d989d2ee1cd6/f058b/lyric-video-generation-flow.png 630w,
+/blog/static/a7b4c3c6dcabec8b6bc3d989d2ee1cd6/40601/lyric-video-generation-flow.png 945w,
+/blog/static/a7b4c3c6dcabec8b6bc3d989d2ee1cd6/78612/lyric-video-generation-flow.png 1260w,
+/blog/static/a7b4c3c6dcabec8b6bc3d989d2ee1cd6/b08cb/lyric-video-generation-flow.png 7913w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;The generation adapted well to the mood of the song: the colors and motion matched the theme, quoting one instance in a different song, when the lyric said “current in the ocean” the scene actually showed a current in the ocean with fish swimming in it. Surely, there was a lot of room for improvement, but the overall result gave me the confidence to say we can tackle it.&lt;/p&gt;
+&lt;h2&gt;Looking ahead, what can be improved?&lt;/h2&gt;
+&lt;p&gt;Moving into the next phase, I would happily reuse the lyric-alignment portion of this feasibility test, look for more performant alternatives to Remotion that provide the same flexibility, and spend the bulk of my time on video generation—learning storytelling, crafting prompts, and fine-tuning that workflow. A few things that particularly can be improved:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The current set of generated videos, although they match the mood and the lyrics to an extent, weren’t really telling a story. So, the first course of action would be to prepare a storyboard for the song and scenes and make sure it collectively conveys a coherent narrative and provide flexibility to the users to refine individual scenes.&lt;/li&gt;
+&lt;li&gt;Even integrate a character animation / replacement model like &lt;a href=&quot;https://humanaigc.github.io/wan-animate/&quot;&gt;Wan2.2 Animate&lt;/a&gt; for the end users to enact as a chosen character for a particular scene, if they desire so&lt;/li&gt;
+&lt;li&gt;Explicitly prompt the model to avoid any motion that breaks real-world physics&lt;/li&gt;
+&lt;li&gt;Pass in cultural nuances, theme, and other metadata of the song can be provided alongside the summary to produce a more meaningful video&lt;/li&gt;
+&lt;li&gt;Include beat and tempo information from the song so that the video matches it better&lt;/li&gt;
+&lt;li&gt;Expressive words: animate specific words (“fall”, “rise”, “fade”) with matching motion presets&lt;/li&gt;
+&lt;li&gt;Lyric-aware layout: break lines where the singer breathes to avoid widows/orphans&lt;/li&gt;
+&lt;li&gt;Look for more cost effective models&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In addition, researched some open source tools built for this purpose; that’s when I found promising AI editors such as, &lt;a href=&quot;https://github.com/comfyanonymous/ComfyUI&quot;&gt;ComfyUI&lt;/a&gt; and &lt;a href=&quot;https://github.com/gausian-AI/Gausian_native_editor&quot;&gt;Gausian Native Editor&lt;/a&gt; (keeping an eye on this &lt;a href=&quot;https://chromaawards.devpost.com/project-gallery&quot;&gt;AI movie hackathon results&lt;/a&gt; to see what we can learn from the participants), passed all of this on to the team handling the next phase of the project. I’m excited to see what they are able to achieve.&lt;/p&gt;</content:encoded></item><item><title><![CDATA[Building, Breaking, and Tuning - My Experience at the AWS AI League]]></title><description><![CDATA[I promised a lot of folks I’d write a blog if I won the AWS AI League, so here I am writing this after finishing 2nd.  Before we begin, here…]]></description><link>https://nobodyme.github.io/blog/aws-ai-league/</link><guid isPermaLink="false">https://nobodyme.github.io/blog/aws-ai-league/</guid><pubDate>Sun, 09 Nov 2025 07:15:00 GMT</pubDate><content:encoded>&lt;p&gt;I promised a lot of folks I’d write a blog if I won the &lt;a href=&quot;https://aws.amazon.com/blogs/aws/aws-ai-league-learn-innovate-and-compete-in-our-new-ultimate-ai-showdown/&quot;&gt;AWS AI League&lt;/a&gt;, so here I am writing this after finishing 2nd.&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/blog/static/c50a3cf355fad700579153de9c3dab55/4b319/ai-league-second-place.jpg&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 66.45569620253164%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/jpeg;base64,/9j/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVGC8aGi9jQjhCY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2P/wgARCAANABQDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAQD/8QAFwEAAwEAAAAAAAAAAAAAAAAAAAECA//aAAwDAQACEAMQAAABnplaVm0M/8QAGhAAAgMBAQAAAAAAAAAAAAAAAAMBAhIRIf/aAAgBAQABBQJK9lkwuOmrHpq5/8QAFBEBAAAAAAAAAAAAAAAAAAAAEP/aAAgBAwEBPwE//8QAFREBAQAAAAAAAAAAAAAAAAAAEBH/2gAIAQIBAT8Bh//EABsQAQACAgMAAAAAAAAAAAAAAAEAMhESAjGR/9oACAEBAAY/AtQMzjvgWdHksyzLs//EABwQAQABBAMAAAAAAAAAAAAAAAEAEBEhcTFBUf/aAAgBAQABPyFm7QTECPMU671axFXK7bxaP//aAAwDAQACAAMAAAAQj9//xAAVEQEBAAAAAAAAAAAAAAAAAAAAEf/aAAgBAwEBPxCI/8QAFxEBAAMAAAAAAAAAAAAAAAAAAAERMf/aAAgBAgEBPxDSof/EAB0QAQACAgIDAAAAAAAAAAAAAAEAESFxMUFhkdH/2gAIAQEAAT8QcROcXHefENQwvBsVjO5YWvXgI4xVu1bIGDIqPe3FLbNnyf/Z&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;ai league second place&quot;
+        title=&quot;&quot;
+        src=&quot;/blog/static/c50a3cf355fad700579153de9c3dab55/828fb/ai-league-second-place.jpg&quot;
+        srcset=&quot;/blog/static/c50a3cf355fad700579153de9c3dab55/ff44c/ai-league-second-place.jpg 158w,
+/blog/static/c50a3cf355fad700579153de9c3dab55/a6688/ai-league-second-place.jpg 315w,
+/blog/static/c50a3cf355fad700579153de9c3dab55/828fb/ai-league-second-place.jpg 630w,
+/blog/static/c50a3cf355fad700579153de9c3dab55/0ede0/ai-league-second-place.jpg 945w,
+/blog/static/c50a3cf355fad700579153de9c3dab55/3ac88/ai-league-second-place.jpg 1260w,
+/blog/static/c50a3cf355fad700579153de9c3dab55/4b319/ai-league-second-place.jpg 5472w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;Before we begin, here’s a little brief about the competition itself, it consists of two rounds:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;You are given 72 hours to fine-tune a Llama 3.2 8B model for the given domain using AWS SageMaker JumpStart. When submitted, the fine-tuned model is evaluated against a base Llama 3.2 70B model, with an LLM as a judge, using a fixed set of 50 undisclosed questions. If your fine-tuned model’s answer is better, you get a point. Participants are ranked based on these points in the leaderboard.&lt;/li&gt;
+&lt;li&gt;For the second round, the top 5 candidates from the first round are chosen. This time, participants craft a system prompt that their fine-tuned model (from the previous round) uses to answer the question. In this round, answers are evaluated by human judges (40%), an LLM (40%) and the audience (20%). The winner is decided based on these points after 5 questions.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2&gt;Preparation&lt;/h2&gt;
+&lt;p&gt;Although I have been working with LLMs for the past couple of years, prior to this event, I had only fine-tuned a model once and that too with help. So, I set out to understand it deeply before the competition and started my prep one week prior.&lt;/p&gt;
+&lt;p&gt;For starters, this &lt;a href=&quot;https://www.youtube.com/watch?v=gZP9N86b248&amp;#x26;list=PLBm5soQMjeJ0-h5Dfp_iUFyjUDDbxM8S4&amp;#x26;index=7&quot;&gt;video series by AWS&lt;/a&gt; helped me get familiar with sagemaker and model fine-tuning. I also looked at several LLM leagues of the past, stumbled upon a blog from the winner of the &lt;a href=&quot;https://medium.com/@andyphuawc/my-secret-sauce-for-the-inaugural-singapore-nationwide-aws-large-language-models-league-llml-983d02e63cb3&quot;&gt;Singaporean AI league&lt;/a&gt; and the blog from &lt;a href=&quot;https://github.com/taswhe/2024-sg-lol-papaoutai&quot;&gt;first round winner&lt;/a&gt; from the same league. Both these blogs discuss data preparation, hyperparameter tuning, and what worked for them. I noted them all down religiously. For those unfamiliar, hyperparameters are like configuration settings that you can adjust while fine-tuning a model.&lt;/p&gt;
+&lt;p&gt;While I was familiar with data preparation, I realised that I needed to learn more about hyperparameters-that’s when I stumbled upon this &lt;a href=&quot;https://aws.amazon.com/blogs/machine-learning/fine-tune-llama-3-for-text-generation-on-amazon-sagemaker-jumpstart/&quot;&gt;blog from AWS&lt;/a&gt; which was a good starting point. In addition, the table at the end showing fine-tuning times for each instance-size and configuration pair was the cherry on top.&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/blog/static/2c8dd6b54f858807bf08ce6260dbda5e/248b0/hyperparameters.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 101.8987341772152%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAACXBIWXMAABYlAAAWJQFJUiTwAAACt0lEQVR42m2U6ZLiMAyE5/2fb/7twJBA7gtCuMKh7U+JA1u1VKkkB7vdklr+Mv3KsrSiKKyqKsuyzOq6tq7rrO9799h+v3dr29bX+KZplv9YX69X+wJwt9vZ9/e3RVFk6/Xa4jj2CwDH8jx3n6bpAhYsgJ3PZ6AmwOPx+M9NMOR2GLMmA+xwOPih1+tlz+fT/actgNy8Wq3cww7GSZLYdru1zWbjHqMEj8fDxnF0wP/9HBAWpAsITDIBk2auNEulTvr+/aMEZMMFwzB4hsT3+30CJL0NgADpQJOlVqWJtVVpPZvnA+Fw8DThJra327iwdkAYrElZDJMkdR8aAVssnVnDmPigmt/Pg+xs4+lk18v1nfLQH6zcxtYVmW/sxKxRQ4q8sIPY75vaWgHlskap91qPArqJ5W0Q02Mvlrc3IIeS9cpTbQVEurlsJyZ863XJIBYnGemeT2cxO9n9cpnYnQZP/Q3YtZbHkRXJTkBTenSa2tZcICMO4ic+dpOcyKKVzO7q/gLY1ZXtJOhckknVHMCwqfOSkiSDnJAO34kTecozqjHPmd0CiJBjQHQYgwnfYAAj4sAsrPnvRA0FdhEoHV+6zKbf31/bwTCdGH0KGqZ4dErso4lOtTdSXIkAU0TaUw21QCKlNjGCMHRRzyMXrJrrGeJG3c7QrOIwRV/hteFm9Ae7yOtFCZKF3SfTtixc2KOkAtBF3X58NqUVq61qCMtWDdrLOhjADD3O41fN8Wddw9OHLaPXqdjRz49VvIVMi+qXiA1iL8UISeVz9/3xmLseaR8xdYcM4p5mWSnEP38s1YYsnh6J6cVRx7V5PzPgECnXYkWN+YZ0SB/Rv3WolyPNch+tAjmoSRdGSze6zbIIa2qG8Y2HFTD8IhvqgUyQTjy/Oi6jWdykBOvwVvoUeWPeTxeeLv8FcxbnZBXdnS4AAAAASUVORK5CYII=&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;hyperparameters&quot;
+        title=&quot;&quot;
+        src=&quot;/blog/static/2c8dd6b54f858807bf08ce6260dbda5e/f058b/hyperparameters.png&quot;
+        srcset=&quot;/blog/static/2c8dd6b54f858807bf08ce6260dbda5e/c26ae/hyperparameters.png 158w,
+/blog/static/2c8dd6b54f858807bf08ce6260dbda5e/6bdcf/hyperparameters.png 315w,
+/blog/static/2c8dd6b54f858807bf08ce6260dbda5e/f058b/hyperparameters.png 630w,
+/blog/static/2c8dd6b54f858807bf08ce6260dbda5e/40601/hyperparameters.png 945w,
+/blog/static/2c8dd6b54f858807bf08ce6260dbda5e/78612/hyperparameters.png 1260w,
+/blog/static/2c8dd6b54f858807bf08ce6260dbda5e/248b0/hyperparameters.png 1316w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;Plus, reading about these hyperparameters experiments from &lt;a href=&quot;https://lightning.ai/pages/community/lora-insights/&quot;&gt;Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments&lt;/a&gt; and &lt;a href=&quot;https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms&quot;&gt;Practical Tips for Finetuning LLMs Using LoRA&lt;/a&gt; made me realise that these parameters are inherently dependent on the data, what works for one set may not necessarily work for another set but it also gave me an idea on what parameters to experiment with.&lt;/p&gt;
+&lt;p&gt;The crux of what I learnt from these articles,&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Even 1000 high quality examples is good enough to fine-tune a model&lt;/li&gt;
+&lt;li&gt;An &lt;code class=&quot;language-text&quot;&gt;epoch&lt;/code&gt; is a hyperparameter representing one complete pass through the entire training dataset during the model training process. So, the plan was to increase epoch slowly from 1 to see which yeilds the best result.&lt;/li&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;lora_r&lt;/code&gt; (rank) ranges from 4 to 256, with 8, 16, and 32 being common choices (determines the number of trainable parameters in the adaptation layers - high value meaning longer training time and more adaptability)&lt;/li&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;lora_alpha&lt;/code&gt; is a scaling factor that controls the magnitude of the LoRA weight updates, controls impact of adaptations and is generally kept 2x of lora_r (though above blog also notes successes with 0.5x of lora_r)&lt;/li&gt;
+&lt;li&gt;Setting lora_r or number of epoch too high can lead to overfitting&lt;/li&gt;
+&lt;li&gt;&lt;code class=&quot;language-text&quot;&gt;learning_rate&lt;/code&gt; rate at which model weights are updated after working through each batch of training examples (regret not experimenting with learning rate in this competition)&lt;/li&gt;
+&lt;li&gt;Finally, enabling LoRA for more layers i.e. setting target_modules hyperparameter to &lt;code class=&quot;language-text&quot;&gt;q_proj, v_proj, k_proj, o_proj, gate_proj, up_proj, down_proj&lt;/code&gt; instead of the default &lt;code class=&quot;language-text&quot;&gt;q_proj, v_proj&lt;/code&gt;. This proved very effective and almost doubled my score. This video from &lt;a href=&quot;https://www.youtube.com/watch?v=eMlx5fFNoYc&quot;&gt;3Blue1Brown&lt;/a&gt; will help you understand why. You can find more of these in my &lt;a href=&quot;https://github.com/nobodyme/aws-ai-league/blob/main/resources.md&quot;&gt;raw notes over here&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Then, since, I had time, I thought why not automate some of these like,&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Deploying the base model&lt;/li&gt;
+&lt;li&gt;Uploading dataset to s3&lt;/li&gt;
+&lt;li&gt;Deploying the fine-tuned models with the given array of hyperparameters (so I didn’t have to experiment one by one)&lt;/li&gt;
+&lt;li&gt;Evaluation against the base model or a previously fine-tuned model to check for regressions (I thought this will be faster than submitting to the leaderboard)&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;I even wrote scripts to increase service-quota limits for the required instances, if not already present. You can &lt;a href=&quot;https://github.com/nobodyme/aws-ai-league/tree/main/jumpstart&quot;&gt;find them all here&lt;/a&gt;.
+By doing these, I thought I’ll just concentrate on preparing a good dataset on the event day.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;SPOILER ALERT&lt;/strong&gt;: None of these were useful in the competition, since we weren’t given access to a Jupyter Notebook or an AWS access key and secret key for the account. So everything had to be done manually through the AWS console.&lt;/p&gt;
+&lt;p&gt;Talking about data prepation, both these blogs discuss generating data through &lt;a href=&quot;https://partyrock.aws/&quot;&gt;PartyRock&lt;/a&gt;. A few PartyRock apps listed below,&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;https://partyrock.aws/u/papaoutai/ovCF-g4rS/QnACrafter/&quot;&gt;QnACrafter&lt;/a&gt; - Used by the round 1 winner for the singaporean league&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://partyrock.aws/u/TheRayG/PmL1RViBp/Simple-AWS-LLMs-League-Dataset-Generator&quot;&gt;Simple-AWS-LLMs-League-Dataset-Generator&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://partyrock.aws/u/TheRayG/IInyME_vt/Advanced-AWS-LLMs-League-Dataset-Generator&quot;&gt;Advanced-AWS-LLMs-League-Dataset-Generator&lt;/a&gt; both by AWS&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://partyrock.aws/u/JiaweiLin/IvPiedcHN/LLMs-Datasets-Generator&quot;&gt;LLMs-Datasets-Generator&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;I tried QnACrafter and even modified it slightly to &lt;a href=&quot;https://partyrock.aws/u/nobodymenav/hZpzbBFCU/QnACrafter2025-SLED&quot;&gt;suit my usecase&lt;/a&gt; for the event.&lt;/p&gt;
+&lt;p&gt;But what if synthetic data generation doesn’t work?
+Then I’d have to look at actual sources on the internet-but data can be in different formats like PDF, webpages or CSV&lt;/p&gt;
+&lt;p&gt;So, I looked for tools that allow us to scrape data from any available source format with minimal effort which is when I landed on &lt;a href=&quot;https://github.com/meta-llama/synthetic-data-kit&quot;&gt;synthetic-data-kit&lt;/a&gt; from Meta, which seems to be built exactly for this purpose, a CLI app that one can run locally to produce questions-answer pairs with PDF, csv or html as the source. It also checks for duplicates and evaluates whether each generated pair is high quality. Seemed like a perfect fit. It internally uses LLM behind the scenes to generate these datasets and allows prompt customization as well. One limitation was the lack of direct Azure OpenAI model support, since I had access to that, I added that support and built a thin wrapper to automate further; you can find the &lt;a href=&quot;https://github.com/nobodyme/aws-ai-league/tree/main/data-preparation/synthetic-data-kit&quot;&gt;source code here&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;At this point, I was clear on how to prepare data and which hyperparameters to experiment with, and all set for the competition.&lt;/p&gt;
+&lt;h2&gt;Round 1 - Fine-Tuning&lt;/h2&gt;
+&lt;p&gt;The exact usecase to fine-tune our model was revealed on competition day, although we had already been told that the overall domain as “SLED” (State, Local and Education)&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/blog/static/657997a9962d718c550e3b0b51fe316d/1ffbd/domain.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 55.69620253164557%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAALCAYAAAB/Ca1DAAAACXBIWXMAAAsTAAALEwEAmpwYAAACwUlEQVR42l2TyWsTURzHc/Rf8CBuBw96UIS6oBSRongUi1tVFPGgoHhQ677rQfAgQgUPWlesaJHW4lptJolJ02SKNqbLJM1kstgkpkv2TCYf3wzVgz/4Mu/3m/e+7/fe9/tshmEQjUZRVZV4PE5MwPwmEgmKxSJmmHOqVZ2aXsOo1aiL3KgZ/8ZW1OvWf1tNFL99c+F0OpHsdiRJwuNx0/u516onBXmmnKdT/c7b5BjPlSDtwWFeaxpdqQzdmWkeBTReaDl64gVBaNSZKZaZzhcsZGYKpKaLVi2VnaJUqpI2inwoh3gwOkh75Cfd5STPMzHuhcK03HrK9iuPOS9r3PBEsJV0A69Ppq9PwuVyY5ecfLWLbh0u3J5+RkdCTFPkiaOXpv2XudnxhvexAD1JhbsOJ0s3HGHHuTbuBUZo/zGKrVKrM5FKzd5bkqS4u0RMs8bZyUkKuTzDmsq2o60sXLmddVuPs7nlFKfvtLHz8EWWrN9LQ/NJ1u48TcuJ29gMvcLvbJpUeoJMJi0IVZKaYuWJZFyIUcTu8DG/YS8LVu1jwZrdLFqzR3R2gGUbW1jcsIu5y/cwZ94mGrYcFYRigSz7hRhOIYxLHNtlCSNJDvrsEup4mO9KnOYbdjad+Ujj2Xc0tvbQdOkrm69/Yt2xV6w+1MGKg89ovvzO7LDM2MgQP4cGCfyQUcaCwkZhNBNqiMnML/KFGUH6i/7BMP1yCHk4TkDLMyTgD2cZjEwiqzkC6hQ23fRhLIoSVlDGQyiRsAVVizKuRkhnf5smo8vXx7X2+5y4epEH7y+QndJm7Vfnb5h+FaLo+PwyXu+AUNWDd2CAAa8Xv9+P2+0hGBwRdHUkn4dHnZ08fNlB15cX5HLZWZK6RWryWoRVXRe7TZEvlQSE/woFcuKFmMgLlKpVDHNBtYJRKWPoIq/o1sv4P0zCPzpY6bkKhGv/AAAAAElFTkSuQmCC&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;domain&quot;
+        title=&quot;&quot;
+        src=&quot;/blog/static/657997a9962d718c550e3b0b51fe316d/f058b/domain.png&quot;
+        srcset=&quot;/blog/static/657997a9962d718c550e3b0b51fe316d/c26ae/domain.png 158w,
+/blog/static/657997a9962d718c550e3b0b51fe316d/6bdcf/domain.png 315w,
+/blog/static/657997a9962d718c550e3b0b51fe316d/f058b/domain.png 630w,
+/blog/static/657997a9962d718c550e3b0b51fe316d/40601/domain.png 945w,
+/blog/static/657997a9962d718c550e3b0b51fe316d/78612/domain.png 1260w,
+/blog/static/657997a9962d718c550e3b0b51fe316d/1ffbd/domain.png 2108w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;I honestly did not know what SLED encompassed. So, I set out to find it.
+First I tried my modified, &lt;a href=&quot;https://partyrock.aws/u/nobodymenav/hZpzbBFCU/QnACrafter2025-SLED&quot;&gt;QnACrafter app&lt;/a&gt;. It auto selects different aspects when a topic is given (one can also manually specify aspects) and prepares question and answers for it, that gave me a hint but I wanted to dig deeper. Using a combination of generated aspects from PartyRock and a bit of googling, I wrote a few-shot prompt for ChatGPT to give me more SLED topics (the exact prompt below)&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;US State government, Local and Education - understand citizen needs in plain language. 
+Handle complex scenarios like &quot;I want to open a food truck&quot; or &quot;My neighbor&apos;s tree fell on my property&quot; while providing step-by-step guidance through permit applications and licensing.
+Datasets generated should include realistic user queries and appropriate concise and helpful answer like an assistant from US gov public services
+
+I am building a dataset that will help US citizens in navigation government bureaucracy
+What all aspects should I cover, I have a few, listed below.
+
+Business Licensing &amp;amp; Permits, Property Rights &amp;amp; Disputes, Education Services, Public Services &amp;amp; Utilities, Public Health, 
+Public Transport, 311 requests, building permits, health and food inspection, business registration, property and assessment, 
+public works and ROW permits, trees and neighbour hood issues, fire inspection and permits, benefits and human services, 
+education, transportation and DMV, Courts &amp;amp; clerks, Community legal aid guide, Street use / right‑of‑way, 
+Food vending &amp;amp; food truck, Stormwater &amp;amp; drainage
+
+I want you to think about all such aspects a citizen will reach out to State and local government officals, just like I have written,
+
+Categorize them, example,
+1. Business
+- (topic related to business why they would reach out, like) business licensing
+- business permits
+
+And so on, for all possible things one would likely reach out&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;It responded with the topic and subtopics below, exactly what I was looking for,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt; 1. Business &amp;amp; Commerce
+ - Business formation (LLC/DBA, Secretary of State filings)
+ - General business license / local tax receipt
+ - Industry licenses (food service, salon, contractor, childcare, auto dealer)
+ ...
+
+ 2. Building, Construction &amp;amp; Permitting
+ - Building/alteration permits; plan review
+ - Mechanical/electrical/plumbing permits
+ - Occupancy and fire safety certificates
+ ...&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;The full set of generated topics can be &lt;a href=&quot;https://github.com/nobodyme/aws-ai-league/blob/main/data-preparation/generate-data-gpt/topics.py&quot;&gt;found here&lt;/a&gt;. I generated roughly 140 topics. The idea was to feed in these topics to QnACrafter and copy the generated answers but by default it only accepts 4 aspects/topics at a time. Customizing the app to accept more resulted in partial generation, likely due to rate limiting. So, I quickly realized this is going to be time consuming and that it would be easier to write a python script instead to generate the dataset. So that’s what I did, you can &lt;a href=&quot;https://github.com/nobodyme/aws-ai-league/tree/main/data-preparation/generate-data-gpt&quot;&gt;find the script here&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;The script uses &lt;strong&gt;gpt-4o&lt;/strong&gt; and takes in a list of topics, and generates N number of questions for each topic. Each question is then passed onto another answer prompt which generates the answer. This produced &lt;a href=&quot;https://github.com/nobodyme/aws-ai-league/blob/main/data/first-dataset.jsonl&quot;&gt;my first dataset&lt;/a&gt;, roughly 870 odd question-answer pairs.&lt;/p&gt;
+&lt;p&gt;After the competition, many asked how I handled dataset de-duplication. I actually didn’t need a separate de-duplication step, since my approach naturally avoided it. I generated only a handful of questions per topic (about six), and a separate LLM call to generate an answer per question, there was little to no overlap.&lt;/p&gt;
+&lt;p&gt;Then, I uploaded the dataset with the base hyperparameter configuration. By this time, 5 hours had already passed, I haven’t even looked at the leaderboard yet. The model scored just &lt;strong&gt;31.8%&lt;/strong&gt;, but already put me second in the leaderboard at that time. I then, decided to perform all the hyperparameter experiments that I learnt about before discarding the dataset.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;I started by increasing &lt;strong&gt;epochs&lt;/strong&gt; from 1 to 5. The evaluation percentage increased and started to decrease at 5 so I maintained the &lt;strong&gt;epoch at 4&lt;/strong&gt;.&lt;/li&gt;
+&lt;li&gt;Enabling LoRA modules for all layers (instead of just query and key) gave me the biggest jump: &lt;strong&gt;86%&lt;/strong&gt; at epoch 3 and &lt;strong&gt;88%&lt;/strong&gt; at &lt;strong&gt;epoch 4&lt;/strong&gt; with &lt;strong&gt;lora_r=8&lt;/strong&gt; and &lt;strong&gt;lora_alpha=16&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;So, the same dataset that got me 31% also fetched me 88% just by tuning the parameters, in other words my fine-tuned LLM is already answering 44/50 questions better than the 70B model.&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/blog/static/f5a7eb1d9c55072b9e7e5d25dc8c45a5/57dc1/tuning-scores.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 72.15189873417721%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAOCAYAAAAvxDzwAAAACXBIWXMAABYlAAAWJQFJUiTwAAADZ0lEQVR42mWU+U+URxzG398KmCb9Q/q39IgNoiCxrXIsu8tRSjiWZQ+oUaG1hmOpyLFyrRxFl6sUMBGhpSqsuyAIArsCyyFHQZq1LOXT786maZNO8uTzzkzyzHfmmXe07pEnuEcnmF/dZfPwhLX9d6z//qfS6m7of3q9EyK4H8L7OsTjZwt4pp7y9ugPTk9POTk5Qbs96KTqfi11PzXhcN+hfvgujl7hkJPBl0P0+gbomxmkb/Zf9b8YpHt6AP/WPuLEX6JgMMja2hqaoe4zUio/Ir32U0V93VlSqz8hrfpjCrqSMfd/gcl9iaIH/9Xn5PcksnmwSqQdh4/x+/0sLCygZTUkoauJx1h3Hl11PIYfElQ/qyGRbGcSuW0XKfzxSywDaZT0pVLSH5W5L4Wtg6AyPDw8ZHZ2lrm5ObTSe5kU303D1q5XtLRlKJZ1GLG7DJQ067g5lM/tX63UTlhwiGrGzdSOW9k72lKGodCRVDdHILCCZmrL5esGA4Ut2eQ1GilqzSGvIcqICpqzKHUXUD5i5fqQWbHioY2KURu7RzvRLR+fyvntieEmWmVfIhVdZ/n+wTm+VYxXrOy/wC13Ajfvn5OxBDUfYf2jy7RN6XBOpkiFj8VuhY3NR8zMdPFSQtQ8M+8z8Vss0944xifjeDody4TQ9yIOz0wsU95Ynvti8fhieC797b0Y3oVjOArFyDU5Qzh8Bq/3Azye95if/xCtoucS37Sf57oketV1QXhRmEh5TzI3upO51pmE42EqzidZNE4aRQalO7/o2Hk7JhUu4Q8MiaFLtj2GZm7PIb9Jj6ktU9Hcnh2lK1vJ1JqJtTOXMnc+9p48yofN3Bor5cZIMduH0VDWg9uS8jIrK+toNknT1CzpujIwSbrm1nTVt3Ua1JilPQNrh4HilnSsLj3XenP4bjifyjGThLKpDJeWFvH5vCwvL6HZO7IolqthlStibtERWeAfRmSR61TalUlRUyr2TplrzaCsJ5vqcYuE8kb+FDFclur8AYIbkrK9SwxbdVjuGRRLpAqTVGPvjmzVqMZL5VtVKAtYpX+19yuqxkuihtL8gQALi69YfCUV2hr1FFZfwVKfLryMuS6Nopor2OQcI2PWBp2S3amnrNmIY7QYx4iZqp+LeHOwoQzD4bB6GCKPw99MHTs80wvcGwAAAABJRU5ErkJggg==&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;tuning scores&quot;
+        title=&quot;&quot;
+        src=&quot;/blog/static/f5a7eb1d9c55072b9e7e5d25dc8c45a5/f058b/tuning-scores.png&quot;
+        srcset=&quot;/blog/static/f5a7eb1d9c55072b9e7e5d25dc8c45a5/c26ae/tuning-scores.png 158w,
+/blog/static/f5a7eb1d9c55072b9e7e5d25dc8c45a5/6bdcf/tuning-scores.png 315w,
+/blog/static/f5a7eb1d9c55072b9e7e5d25dc8c45a5/f058b/tuning-scores.png 630w,
+/blog/static/f5a7eb1d9c55072b9e7e5d25dc8c45a5/57dc1/tuning-scores.png 718w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;Here’s the link to the &lt;a href=&quot;https://github.com/nobodyme/aws-ai-league/blob/main/data/Finetune.xlsx&quot;&gt;full experimentation sheet&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Another key challenge was the limited compute availability — we had access to only two ml.g5.2xlarge and one ml.g5.12xlarge instances for fine-tuning. Several of my hyperparameter configurations failed to run on the smaller instances, which meant I had to rely solely on the single 12xlarge node. This required pacing and prioritizing experiments carefully to make the most of the available resources.&lt;/p&gt;
+&lt;p&gt;After this, I tried a lot of variations with the dataset.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;If you observe my previous dataset was generic but we know laws can be different from state to state, so I generated locality-specific data. This fetched me just &lt;strong&gt;15%&lt;/strong&gt; with my best hyperparameter configuration. I understood that the evaluation is not locality specific and discarded it entirely.&lt;/li&gt;
+&lt;li&gt;Then, I wondered if the rest of those 6 questions were in Spanish, since the U.S. has a sizable Spanish-speaking population and appended few spanish datasets for each topic. This also did not improve my score.&lt;/li&gt;
+&lt;li&gt;Generated and appended summary-based question-answer pairs. Once again, I observed that it performed worse.&lt;/li&gt;
+&lt;li&gt;Generated more topics with ChatGPT and used the same script to prepare more question/answer pairs for those topics. This improved my score and took me to &lt;strong&gt;90%&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;Any further topic generation also did not improve the scoreboard.&lt;/li&gt;
+&lt;li&gt;I also tried switching from gpt4o to 5-mini for generating the dataset, although the questions generated by 5-mini were even more realistic for the same prompt, the score still dropped, suggesting that the evaluation set had simpler question similar to what 4o generated.&lt;/li&gt;
+&lt;li&gt;Then, my &lt;strong&gt;highest score&lt;/strong&gt; came from simply appending refusal type datasets. By refusal I mean, refusing to answer anything irrelevant or aiding harmful intent like giving away personal information of a neighbour etc. This got me upto &lt;strong&gt;94%&lt;/strong&gt;. You can find my &lt;a href=&quot;https://github.com/nobodyme/aws-ai-league/blob/main/data/final-dataset.jsonl&quot;&gt;final dataset here&lt;/a&gt;.&lt;/li&gt;
+&lt;li&gt;Since this got me upto 94%, I did not use the synthetic-data-kit that I had previously tweaked&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;By this time, I was out of ideas to experiment with datasets but I continued experimenting with various other exotic hyperparameter configurations.&lt;/p&gt;
+&lt;p&gt;One configuration with &lt;strong&gt;lora_r=256&lt;/strong&gt; and &lt;strong&gt;lora alpha=128&lt;/strong&gt; pushed the score further, yielding just &lt;strong&gt;0.001%&lt;/strong&gt; more than my current best model but later looking at the eval/train loss metric on jumpstart I realised this model was overfitting. You can find the comparison of the parameters below.&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/blog/static/f4f9e21037c20da97e72aee68b6eacc2/cc488/perf-metrics.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 18.9873417721519%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAECAYAAACOXx+WAAAACXBIWXMAABYlAAAWJQFJUiTwAAAApElEQVR42m1QyQqFMBDr/39ZBQ+urWIP4nK3VgRxySMD9fIcCGVIyCRVxhhYa9F1HfI8R9M0OM8T932/uK4LnGEYUBQFyrJE3/eY5xlZlqGua3mXZYFKdCKiEALWdcW2bWLyPM8f9n0XDUOkaSoG1Hvv0bYtpmmCIsFkNInzZRbTxqRVVeE4DtnZiDtbKq01nHMvwXpfIBcxjqN8DRPzGI1Zmz4/c80twobxn0YAAAAASUVORK5CYII=&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;perf metrics&quot;
+        title=&quot;&quot;
+        src=&quot;/blog/static/f4f9e21037c20da97e72aee68b6eacc2/f058b/perf-metrics.png&quot;
+        srcset=&quot;/blog/static/f4f9e21037c20da97e72aee68b6eacc2/c26ae/perf-metrics.png 158w,
+/blog/static/f4f9e21037c20da97e72aee68b6eacc2/6bdcf/perf-metrics.png 315w,
+/blog/static/f4f9e21037c20da97e72aee68b6eacc2/f058b/perf-metrics.png 630w,
+/blog/static/f4f9e21037c20da97e72aee68b6eacc2/cc488/perf-metrics.png 928w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;A good rule of thumb is to keep eval loss close to training loss, which you can observe in the best model. This means the model generalizes well, otherwise it means the model is overfitting, i.e memorizing training data, such a model won’t fare well with new questions outside training data spec.&lt;/p&gt;
+&lt;p&gt;I did not check the metrics before submitting, despite knowing that a higher &lt;code class=&quot;language-text&quot;&gt;lora_r&lt;/code&gt; is likely to produce a model that overfits. Unfortunately, I couldn’t beat this model and since AWS copies the model with the highest score for the next round, this ended up being my model for the finals. (Yes, I asked if I could switch the selected model immediately after the Round 1; organizers said they couldn’t)&lt;/p&gt;
+&lt;p&gt;Anyway, here’s how the leaderboard looked at the end of 72 hours of the first round, where I ended up finishing first.&lt;/p&gt;
+&lt;p&gt;&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/blog/static/e1e4d1d6315d0a072463a6a3e5aa5ed5/0e288/leaderboard.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 54.43037974683544%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAALCAYAAAB/Ca1DAAAACXBIWXMAAAsTAAALEwEAmpwYAAACB0lEQVR42nVR227TQBTMnyNxqQQS0I/ggcsjok2bXp5A0IciQVNoiBLROLHjy3p9W6+9aw9nTyxRVbDy2KvdOXPOjEezXwtsghBiu0ZnG+xWP+BfazjXIez8NeziLWydQBmgtT1Gt1GFNx89vL+McXSV4+CbZIy/Zzi7UTif1TgbcPKzxsThRmMyJc7nKY6+XDP/3VeFTwuN0Y+gxd5hjKfHAs8mKfbPMrw4zfi7f57h5anE8xNJZxJ7Y4GHBwKPDh1SPD5WjCdjiQcfBF5d5Bh1XQeVhahUCdWaO1bdtyV0/3d/N4jOwJoGI2s7lErDGIuGBJVuoeoG3ibAbE75+ltq1iBKJGIhkRUV8/NC0V5ByBypLJFmJXRr3YQ9DIUZxgnKsoJSNQQV+r6PKI6RJAKOU1UKNQk5TiozZFmBOBbMdzDGMG/U04tM4WI6owkEdS7w+3aF1cqDlJIEE7ZkrUXf99BaD01TrDyPnbVty3f07DI0tLm8nlFnyRN46w02G5+n225DKjAMF09da55WpBLbMELTtHxmu0GwJ0FyjKv5Elme82UYRfCDAFEUIwzDYQpnyQnWKIoSOXEjismda92g6+8JLvyIJ3SizrLnrdmWEzdkd5dRx5arinJMU3biBJum+WuZM6TNcrHkrs6O7wdYEzngKSOy07GoK3LFLkNJP8bFcT/DPxfCPgn4ay/XAAAAAElFTkSuQmCC&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;leaderboard&quot;
+        title=&quot;&quot;
+        src=&quot;/blog/static/e1e4d1d6315d0a072463a6a3e5aa5ed5/f058b/leaderboard.png&quot;
+        srcset=&quot;/blog/static/e1e4d1d6315d0a072463a6a3e5aa5ed5/c26ae/leaderboard.png 158w,
+/blog/static/e1e4d1d6315d0a072463a6a3e5aa5ed5/6bdcf/leaderboard.png 315w,
+/blog/static/e1e4d1d6315d0a072463a6a3e5aa5ed5/f058b/leaderboard.png 630w,
+/blog/static/e1e4d1d6315d0a072463a6a3e5aa5ed5/40601/leaderboard.png 945w,
+/blog/static/e1e4d1d6315d0a072463a6a3e5aa5ed5/78612/leaderboard.png 1260w,
+/blog/static/e1e4d1d6315d0a072463a6a3e5aa5ed5/0e288/leaderboard.png 3018w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;h2&gt;Final Round - Prompt Engineering&lt;/h2&gt;
+&lt;p&gt;Based on the leaderboard, top 5 candidates along with their fine-tuned model from the previous round are put to test infront of the audience, with human and LLM judges. I had the opportunity to witness AI league final round for another domain in the morning, where I observed humans preferring shorter, succinct answers (at least that’s what I thought). So, I planned to prepare a prompt that gives concise answers too.&lt;/p&gt;
+&lt;p&gt;Participants were given access to the site where the questions appear, had the ability to tweak the &lt;strong&gt;system prompt&lt;/strong&gt; that goes into the model, &lt;strong&gt;temperature&lt;/strong&gt; and &lt;strong&gt;top_p&lt;/strong&gt;. We had about 60 seconds for each question and were allowed to generate answers multiple times and submit our best one. The prompt I used is pasted below,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;You are a knowledgeable, efficient, and direct AI assistant that helps US residents navigate public services reducing friction.
+Utilize multi-step reasoning to provide concise answers, focusing on key current information in plain language and short sentences. Avoid jargon; if you must use a legal term, define it.
+If multiple questions are asked, split them up and address in order that yields the most logical and accurate response.
+Offer suggestion tacfully when appropriate to improve outcomes.
+Engage in productive collaboration with the user&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;While the LLMs favoured the answer by my model, humans did not and that reflected heavily on the scoreboard. The general consensus from the audience after the show was that my LLM didn’t empathize with the user which is why they did not favour it. Looking at my training data (which already empathizes with the user) and final round output, I suspect I botched this by forcing the prompt to make responses too concise and direct. Nevertheless, I was pretty happy to finish in the second place and loved the overall experience with the league itself. I love debugging in general and I viewed this AI league as a gamified version of debugging a black box (evaluator LLM) and I really played it like a game from day one with all my little experiements.&lt;/p&gt;
+&lt;p&gt;&lt;figure class=&quot;gatsby-resp-image-figure&quot; style=&quot;&quot;&gt;
+    &lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto; max-width: 630px; &quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/blog/static/aa03104dc8b678fca018981e3b40f7b9/6976b/finalists.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 67.72151898734178%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAOCAYAAAAvxDzwAAAACXBIWXMAABYlAAAWJQFJUiTwAAAD/0lEQVR42hWTW1DUBRjF96WHLqZCo9AOAUIgl+UmC3FZLrIry8Ii7oJx2V0tLiIIKELLXWVFYYVFWAXNC5JQYKQkYiikIm0ag6WNlD01EmNiY3hpxhSdX/8evqcz8805Z35HtENxjS3SVgyBpZSGdHH70hOm7z/ij/nn9B+/zn7TGViY45+fp+HlHOaqYWyNwzy8dJ35ke+4ZZ6iNv0CluLTVGkGEK2LrCdTbqEgpZnisHamRmeZuPMXN2ce0/f5j5hrBnj14h4L/z4SHj/AXDfGzZYhnp+/wsuRq/y6b4yWnAmGWkep1fYgSlfUsiF0E+aMMYpkLQx0XeTOzDxdbafo655id+lpepuO8njuLvCU5p3fMmkdg7MTfFPWxkBRDw3ZE9RrrTSnnULUsb2PGuV29DIzeQlGeg73c+/hM7pru/ji0FWs1ecZtgzx+P5dFhbmsZYf44d9A7z8epStsZspVTaxa9NFdqR1YdadRTRz+28uf3aD5qI+qgwWOvYIgsWGWmEi19BPbuZxzvRO0mD8imtXJtCGbcCSXs73e7pJjWlEG2lFGWQiIeYQG9WXET2YfcFPYw+oyT6MMecIySEfo4hrwLBxkJiYTuJiO9hbf4XooDrayk6icMiiJKICTWQVsasPEic9SqjPbnLSBsmInkL07OkrbF/+JsTdiXXXCHpVMeqEehr3TBERakIW1khD5SjBPkVUJLVQJ7NycH0Pcp9t6DPb0SWdIELQdMn9aCJsiFr33mKrrovNa+uwVAxSqjeTmnyA1THtJMg7UcZayRFiSyUlVCj2UubbQlPiMT6Jr8TJoYD1ISai3A0Ee7RgUIwgUqvOIQvvxmQ8xPSNR0yOz6KWV7LkrUghfg7Za6rwdSvjfZcMCqLyyXespEyyi6L4fKHzE/TXj5Ot3Clg10u17gKi+Lj9yOUnyMsxccv2hGuXZpCsUGG3SIrDYmf8Vmjxdy9G7CAj2D6Yzc6VRC9V4u8RxPkjvzDe+yfpyjz0cR2U/A92mLSckGATKrme4ZO/c67/BuJ3vFj8pjdLF4nxdNaw0tWAeHk4Ertwst4tRPyaM77uUViMZ+got/FRyjY0QtcGwZjIz6cQf0k1EcGpdJpsfNp6jmWLXbB/W8KyJU54u6SwyqsQTxctnnYhaJbnIn5djMQ9lvaq05gLBQbzDxAfUMn6yIOCQz8dEs88AlaqqNnSiTHXgv0by3G0cyPMw41VnuvwcdXznmM0TovcSLLPYo2rBC8nf3SJ1RgSTBSkNeLvokb7QQkiqbuMmAAdUd6JxEqSSY3MI3BFHBLX1QIOKoI81AS6fyhcMlK3JCJc0oj3zSRJmKsmyogicAuqkBLCV2Yh98vmP6c6kiNUF0T6AAAAAElFTkSuQmCC&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;&amp;lt;center style=&amp;quot;margin-top:8px;color:#808086&amp;quot;&amp;gt;Photo with the finalists and judges&amp;lt;center&amp;gt;&quot;
+        title=&quot;&quot;
+        src=&quot;/blog/static/aa03104dc8b678fca018981e3b40f7b9/f058b/finalists.png&quot;
+        srcset=&quot;/blog/static/aa03104dc8b678fca018981e3b40f7b9/c26ae/finalists.png 158w,
+/blog/static/aa03104dc8b678fca018981e3b40f7b9/6bdcf/finalists.png 315w,
+/blog/static/aa03104dc8b678fca018981e3b40f7b9/f058b/finalists.png 630w,
+/blog/static/aa03104dc8b678fca018981e3b40f7b9/40601/finalists.png 945w,
+/blog/static/aa03104dc8b678fca018981e3b40f7b9/78612/finalists.png 1260w,
+/blog/static/aa03104dc8b678fca018981e3b40f7b9/6976b/finalists.png 2172w&quot;
+        sizes=&quot;(max-width: 630px) 100vw, 630px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+        decoding=&quot;async&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;
+    &lt;figcaption class=&quot;gatsby-resp-image-figcaption&quot;&gt;&lt;center style=&quot;margin-top:8px;color:#808086&quot;&gt;Photo with the finalists and judges&lt;center&gt;&lt;/figcaption&gt;
+  &lt;/figure&gt;&lt;/p&gt;
+&lt;h2&gt;Learnings&lt;/h2&gt;
+&lt;p&gt;At the end of the day, you build for humans, so it would have been wiser to choose the training data aligned to human preference rather than just judging by the LLM evaluation score. If I were to do it again, I’d probably have a vote with non-participants and choose the one they like best. I realised even the response format played a big role. Some of my datasets had answers beginning with &lt;code class=&quot;language-text&quot;&gt;### ANSWER&lt;/code&gt; or &lt;code class=&quot;language-text&quot;&gt;### RESPONSE&lt;/code&gt; and that reflected in the type of outputs it produced as well. To anyone taking this up again, look for these small things to have an edge in the final round, all top 5 participants are probably going to have the facts right for a given question, so how you differentiate your answer to better align with human preference is going to be the key.&lt;/p&gt;
+&lt;p&gt;Signing up for prompt engineering classes with &lt;a href=&quot;https://www.linkedin.com/in/priyadharsini-m-v/&quot;&gt;Priyadharsini&lt;/a&gt; who became our winner.&lt;/p&gt;
+&lt;p&gt;Looking at the bigger picture, I learnt a lot about fine-tuning in less than 2 weeks, excited to see where I can put these skills to use in real projects.&lt;/p&gt;</content:encoded></item><item><title><![CDATA[Building Reliable Percentage Rollouts In-House]]></title><description><![CDATA[A few years back, my team was tasked with building a feature flagging platform, primarily for A/B testing and introducing features slowly…]]></description><link>https://nobodyme.github.io/blog/building-percentage-rollouts/</link><guid isPermaLink="false">https://nobodyme.github.io/blog/building-percentage-rollouts/</guid><pubDate>Thu, 31 Jul 2025 07:08:32 GMT</pubDate><content:encoded>&lt;p&gt;A few years back, my team was tasked with building a feature flagging platform, primarily for A/B testing and introducing features slowly based on reception. The only feature that was a question mark in my head was the percentage rollout. I did not have a clear idea on how to go about building it.&lt;/p&gt;
+&lt;p&gt;For those of you who don’t know, a feature can be turned on only for a subset of users before it’s available to everyone, for example, say, only 70% of the user base. This is called percentage rollouts.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;At any point in time, the percentage can be increased or decreased&lt;/li&gt;
+&lt;li&gt;It can be converted into a normal feature flag which can turn on for all users or none at all&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;The Problem&lt;/h3&gt;
+&lt;p&gt;When thinking about building this out, my first idea was,&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Store everything in the DB, say when &lt;code class=&quot;language-text&quot;&gt;flag-1&lt;/code&gt; is turned on for &lt;code class=&quot;language-text&quot;&gt;70%&lt;/code&gt; of users,&lt;/li&gt;
+&lt;li&gt;Each flag has an association with every user whether it is &lt;code class=&quot;language-text&quot;&gt;on&lt;/code&gt; or &lt;code class=&quot;language-text&quot;&gt;off&lt;/code&gt; for that user&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Sure, but I quickly realised this doesn’t scale,&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Changing 70% → 30% requires scanning/updating large user sets in the DB&lt;/li&gt;
+&lt;li&gt;New users added, demand backfills across all existing flags to maintain the target percentage&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;So it became obvious that we needed a stateless solution since maintaining state of each flag is cumbersome in this case. However, with a stateless solution, we should ensure,&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Stickiness&lt;/strong&gt;: The same user should land on the same side of the threshold every time. If flag-1 is at, say, 70%, a user who’s “in” stays in across sessions and as new users join. The outcome shouldn’t flap between logins.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Cheap to compute&lt;/strong&gt;: Which side of the threshold the user falls on should be easily computable (ideally O(1)) on the fly (since we will no longer have state stored in DB to simply retrieve it); if it’s slow, that latency cascades to the endpoints behind the flag&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;So, how do we actually solve this?&lt;/p&gt;
+&lt;h3&gt;Solution&lt;/h3&gt;
+&lt;p&gt;After seeing a discussion about how large hash-like numbers can be treated as uniformly distributed, the core idea emerged,&lt;/p&gt;
+&lt;p&gt;First thought was, can we convert the user email into these large pseudo-random number? This could serve as the basis for bucketing users into the rollout percentage&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;user_hash &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; hashlib&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;sha1&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;abc@gmail.com&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;encode&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;utf-8&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;hexdigest&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+c0d0a32c405c68cb538e3891a3e3bce98887f012 &lt;span class=&quot;token comment&quot;&gt;# which will produce a hash like this&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Cryptographic hashes (like SHA-1) are designed so that tiny input changes produce seemingly unrelated outputs (you could also use a UUID associated with the user to produce a similar effect).&lt;/p&gt;
+&lt;p&gt;Now that we have a pseudo-random number, we can bucket it across the available percentage by taking a mod of 100, as shown below&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;num_user_hash &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;user_hash&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+score &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; num_user_hash &lt;span class=&quot;token operator&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;100&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;The reason this works because a cryptographic hash behaves like a gigantic fair dice roll, its 160-bit output is spread almost perfectly evenly across all possible values, so when we take that huge number mod 100, each of the 100 possible remainders shows up about 1 % of the time, meaning the first N remainders reliably give the flag to ~N % of users.&lt;/p&gt;
+&lt;p&gt;We can use this to determine whether the flag is on or off, based on whether the score is within the set percentage of the flag or not.
+You can try it yourself with the code below—it prints how many of &lt;code class=&quot;language-text&quot;&gt;1000000&lt;/code&gt; users get the feature flag turned on for a given rollout percentage.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; hashlib
+
+TOTAL_USERS &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;1000000&lt;/span&gt;
+ROLLOUT_PERCENTAGE &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;30&lt;/span&gt;
+
+&lt;span class=&quot;token comment&quot;&gt;# assuming list of users&lt;/span&gt;
+users &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt; number &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;TOTAL_USERS&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+  users&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;{}@gmail.com&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;format&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;number&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token boolean&quot;&gt;True&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;get_flag_value&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;key&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; users&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;key&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    user_hash &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; hashlib&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;sha1&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;key&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;encode&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;utf-8&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;hexdigest&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;# produce the hash with the email&lt;/span&gt;
+    num_user_hash &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;user_hash&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;# convert it to a number&lt;/span&gt;
+    score &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; num_user_hash &lt;span class=&quot;token operator&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;100&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;# take modulo to see where the user falls&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; score &lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt; ROLLOUT_PERCENTAGE &lt;span class=&quot;token comment&quot;&gt;# return whether the flag should be on or off for the user&lt;/span&gt;
+
+&lt;span class=&quot;token comment&quot;&gt;# tests&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; __name__ &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;__main__&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+  total_true &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt; user &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; users&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; get_flag_value&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;user&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;token boolean&quot;&gt;True&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+      total_true &lt;span class=&quot;token operator&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string-interpolation&quot;&gt;&lt;span class=&quot;token string&quot;&gt;f&apos;Flag turned on for: &lt;/span&gt;&lt;span class=&quot;token interpolation&quot;&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;total_true&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt; users&apos;&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Running the above script should show you,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;Flag turned on for: 300105 users&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This way, we ensure,&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Stickiness&lt;/strong&gt;: Since same user is going to produce the same hash and fall within the same bucket&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Cheap to compute&lt;/strong&gt;: Relatively cheap to calculate during a user’s request. Also increasing the percentage for a flag, simple adds more users while existing users are unchanged which is exactly what we want&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;There’s one catch: because the percentage is calculated from a fixed input (email here), &lt;strong&gt;all&lt;/strong&gt; feature flags would select the same users at a given percentage. We would ideally want different set of users to participate in different experiments. So, we could add a salt that it’s unique to a feature flag when calculating the hash in order to get different user sets per flag, like so,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;key &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string-interpolation&quot;&gt;&lt;span class=&quot;token string&quot;&gt;f&quot;&lt;/span&gt;&lt;span class=&quot;token interpolation&quot;&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;flag_id&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;token interpolation&quot;&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;user_email&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;&lt;/span&gt;&lt;/span&gt;
+user_hash &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; hashlib&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;sha1&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;key&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;encode&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;utf-8&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;hexdigest&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h3&gt;Other Minor Improvements&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Instead of having flag_id as the salt, you could also have different unique column, so if there’s a situation where we need same set of users for two or more flags, we could reuse the same salt so that users are grouped the same way&lt;/li&gt;
+&lt;li&gt;Bucket to 10,000 instead of 100 for smoother ramps and fewer visible jumps on small inputs&lt;/li&gt;
+&lt;li&gt;Prefer a UUID or any other hash of any other user-id, if emails change&lt;/li&gt;
+&lt;/ul&gt;</content:encoded></item><item><title><![CDATA[Decoupling AWS CloudFormation Templates]]></title><description><![CDATA[While using CloudFormation templates for deploying our infrastructure, we had to face the fact that a CloudFormation stack can only contain…]]></description><link>https://nobodyme.github.io/blog/decoupling-aws-cloudformation-templates/</link><guid isPermaLink="false">https://nobodyme.github.io/blog/decoupling-aws-cloudformation-templates/</guid><pubDate>Sat, 15 May 2021 20:08:57 GMT</pubDate><content:encoded>&lt;p&gt;While using &lt;a href=&quot;https://aws.amazon.com/cloudformation/&quot;&gt;CloudFormation&lt;/a&gt; templates for deploying our infrastructure, we had to face the fact that a CloudFormation stack can only contain a maximum of &lt;a href=&quot;https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cloudformation-limits.html&quot;&gt;200 resources&lt;/a&gt;(now 500).&lt;/p&gt;
+&lt;h3&gt;Working around the limit&lt;/h3&gt;
+&lt;p&gt;We decided to split our infrastructure into multiple stacks. CloudFormation has two main design patterns to achieve this, the &lt;a href=&quot;https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-stack.html&quot;&gt;Nested Stack mode&lt;/a&gt; and the &lt;a href=&quot;https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/walkthrough-crossstackref.html&quot;&gt;Cross Stack Reference mode&lt;/a&gt;. We went with Nested Stack Mode and we decided to split our resources based on the resource type. Similar resources were grouped in a single stack like shown below, &lt;/br&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;main-stack.yaml
+&lt;ul&gt;
+&lt;li&gt;backend-lambda-stack.yaml&lt;/li&gt;
+&lt;li&gt;api-gateway-stack.yaml&lt;/li&gt;
+&lt;li&gt;batch-stack.yaml&lt;/li&gt;
+&lt;li&gt;…&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Hence obviously, there came instances where one stack depended on the resources created by another stack, at that time we exported that particular resource and imported it in the stack that required it like shown in the example below,&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;ParentStack&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;AWSTemplateFormatVersion: &apos;2010-09-09&apos;
+Description: &apos;main-parent-stack&apos;
+
+Resources:
+  NestedStackA:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: &quot;https://testbucket-bucket.s3.amazonaws.com/nestedStack-A.yaml&quot;
+
+  NestedStackB:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: NestedStackA
+    Properties:
+      TemplateURL: &quot;https://testbucket-bucket.s3.amazonaws.com/nestedStack-B.yaml&quot;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;NestedStackA&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;AWSTemplateFormatVersion: &apos;2010-09-09&apos;
+Description: &apos;nested stack A&apos;
+
+Resources:
+  ABatchJobDefinition:
+    Type: AWS::Batch::JobDefinition
+    Properties:
+      ...
+      ...
+        Command:
+          - python3
+          - /app/script.py
+          - Ref::jobId
+          - Ref::role
+
+Outputs:
+  BatchArn:
+    Value:
+      Ref: ABatchJobDefinition
+    Export:
+      Name: &quot;ABatchJobDefinition&quot;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;NestedStackB&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;AWSTemplateFormatVersion: &apos;2010-09-09&apos;
+Description: &apos;nested stack B&apos;
+
+Resources:
+  NestedTestLambdaFunction:
+    ...
+    ...
+      Environment:
+        Variables:
+          batchJob: !ImportValue &quot;ABatchJobDefinition&quot;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;While this worked well, there came the problem when we wanted to update the resource that is shared. In this case, it’s the batch definition. Now whenever an update changed the output value of the shared resource, CloudFormation would complain that the &lt;a href=&quot;https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-stack-exports.html&quot;&gt;resource is in use by another stack&lt;/a&gt; and therefore cannot be updated.&lt;/p&gt;
+&lt;div class=&quot;error-box&quot;&gt;
+  Export ABatchJobDefinition cannot be updated as it is in use by main-stack-NestedStackB-1F4FO24RCWJGY
+&lt;/div&gt;
+&lt;/br&gt;
+&lt;p&gt;In our specific case, we wanted to pass an extra command-line argument to our python script along with &lt;code class=&quot;language-text&quot;&gt;jobId&lt;/code&gt; and &lt;code class=&quot;language-text&quot;&gt;role&lt;/code&gt; and that updated the output value or the logical id of the resource, since it created a new version of the batch definition. &lt;/br&gt;
+(Note: Not all updates change the output value)&lt;/p&gt;
+&lt;p&gt;Now, what do we do? &lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;One solution is to &lt;a href=&quot;https://aws.amazon.com/premiumsupport/knowledge-center/cloudformation-stack-export-name-error/&quot;&gt;follow this process&lt;/a&gt;,&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Update NestedStackB to replace the import statements with the actual output value and deploy it.&lt;/li&gt;
+&lt;li&gt;Now that the dependency has been removed, update NestedStackA with the additional parameter and deploy it.&lt;/li&gt;
+&lt;li&gt;Then again in NestedStackB replace the actual output value with the import statement like earlier and deploy it again.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Sure that works, but,&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;What if we want to update that resource again by adding another parameter? &lt;/br&gt;&lt;/li&gt;
+&lt;li&gt;What if there are multiple stacks that use the same resource in the future? &lt;/br&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Either way, just repeating the above method would not be the best long-term approach.&lt;/p&gt;
+&lt;h3&gt;How do we decouple them?&lt;/h3&gt;
+&lt;p&gt;We tried a few things and then something clicked, this problem was strikingly similar to managing &lt;code class=&quot;language-text&quot;&gt;state&lt;/code&gt; in a react component. What do you do when you have to share state between two sibling components?&lt;/p&gt;
+&lt;p&gt;We &lt;a href=&quot;https://reactjs.org/docs/lifting-state-up.html&quot;&gt;lift the state up&lt;/a&gt; to the parent component and pass down the state as props to both the sibling. We tried to see if something similar would work. One difference is now we don’t import the resource that we want rather, we pass it down as a &lt;a href=&quot;https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html&quot;&gt;parameter&lt;/a&gt; to the stack that needs it and reference it from there.&lt;/p&gt;
+&lt;p&gt;The thing about parameters in CloudFormation is that it’s not always known beforehand and can change depending on the user’s input. So when we supply a resource as a parameter, CloudFormation shouldn’t expect it to remain constant.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;We exported the resource to be shared as usual from NestedStackA.&lt;/li&gt;
+&lt;li&gt;From the parent stack, we passed the output as a parameter to the NestedStackB.&lt;/li&gt;
+&lt;li&gt;The NestedStackB just referenced the resource from the parameter.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;ParentStack&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;AWSTemplateFormatVersion: &apos;2010-09-09&apos;
+Description: &apos;main-parent-stack&apos;
+
+Resources:
+  NestedStackA:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: &quot;https://testbucket-bucket.s3.amazonaws.com/nestedStack-A.yaml&quot;
+
+  NestedStackB:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: &quot;https://testbucket-bucket.s3.amazonaws.com/nestedStack-B.yaml&quot;
+      Parameters:
+        ABatchJobDefinition: !GetAtt NestedStackA.Outputs.BatchArn&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;NestedStackA&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;AWSTemplateFormatVersion: &apos;2010-09-09&apos;
+Description: &apos;nested stack A&apos;
+
+Resources:
+  ABatchJobDefinition:
+    Type: AWS::Batch::JobDefinition
+    Properties:
+      ...
+      ...
+        Command:
+          - python3
+          - /app/script.py
+          - Ref::jobId
+          - Ref::role
+
+Outputs:
+  BatchArn:
+    Value:
+      Ref: ABatchJobDefinition
+    Export:
+      Name: &quot;ABatchJobDefinition&quot;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;NestedStackB&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;AWSTemplateFormatVersion: &apos;2010-09-09&apos;
+Description: &apos;nested stack B&apos;
+
+Parameters:
+  ABatchJobDefinition:
+      Type: String
+
+Resources:
+  NestedTestLambdaFunction:
+    ...
+    ...
+      Environment:
+        Variables:
+          batchJob: !Ref ABatchJobDefinition&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;And that worked, which we later confirmed with AWS Support to be the right way to go about sharing resources in the Nested Stack mode. This allowed us to continue to update resources in the stack without worrying about change.&lt;/p&gt;</content:encoded></item><item><title><![CDATA[Dynamic Programming]]></title><description><![CDATA[There were a huge number of sources on the internet on this topic but still, we (me and my friend) couldn’t understand any of it for a very…]]></description><link>https://nobodyme.github.io/blog/dynamic-programming/</link><guid isPermaLink="false">https://nobodyme.github.io/blog/dynamic-programming/</guid><pubDate>Wed, 01 Aug 2018 08:40:32 GMT</pubDate><content:encoded>&lt;p&gt;There were a huge number of sources on the internet on this topic but still, we (me and my friend) couldn’t understand any of it for a very long time until we fiddled with code and tracked the output for every change in the input. So this repository is exactly created for people like us to make the transition from &lt;a href=&quot;https://en.wikipedia.org/wiki/Greedy_algorithm&quot;&gt;greedy&lt;/a&gt; to dynamic programming easier. This will just be an introduction to dynamic programming so that one can pick it up from there. I have added additional sources for practice and other online tutorials that I found a little helpful at the end and will continue to do so as I find something new. It is for programmers who are comfortable with brute force and might not serve the purpose of absolute beginners. Contributions or suggestions are welcome.&lt;/p&gt;
+&lt;h3&gt;Definition&lt;/h3&gt;
+&lt;p&gt;So what’s dynamic programming? Let’s first look at a more formal definition.&lt;/p&gt;
+&lt;p&gt;Dynamic programming (also known as dynamic optimization) is a method for solving a complex problem by breaking it down into a collection of simpler subproblems, solving each of those subproblems just once, and storing their solutions. The next time the same subproblem occurs, instead of recomputing its solution, one simply looks up the previously computed solution, thereby saving computation time at the expense of a (hopefully) modest expenditure in storage space. (Each of the subproblem solutions is indexed in some way, typically based on the values of its input parameters, to facilitate its lookup)&lt;a href=&quot;https://en.wikipedia.org/wiki/Dynamic_programming&quot;&gt;(Source-Wiki)&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Or more simply, it is a technique to save intermediate results in a calculation in any comfortable format so that the result can be used for further computation instead of calculating it all over again at the arrival of additional input. Sounds simple enough? Yes, indeed it is, let’s have a look at an example to put it right through our skull.&lt;/p&gt;
+&lt;p&gt;Before that, we need to identify whether a problem has the following properties, in order to be solved by Dynamic Programming(DP)&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://www.geeksforgeeks.org/dynamic-programming-set-1/&quot;&gt;Overlapping Sub-problem&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://www.geeksforgeeks.org/dynamic-programming-set-2-optimal-substructure-property/&quot;&gt;Optimal Substructure&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Problems:&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;#problem-1&quot;&gt;Minimum cost problem&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#problem-2&quot;&gt;Longest increasing subsequence&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Minimum cost problem &lt;a name=&quot;problem-1&quot;&gt;&lt;/a&gt;&lt;/h3&gt;
+&lt;p&gt;Given a cost matrix cost[][] and a position (m, n) in cost[][], write a function that returns cost of minimum cost path to reach (m, n) from (0, 0). Each cell of the matrix represents a cost to traverse through that cell. The total cost of a path to reach (m, n) is the sum of all the costs on that path (including both source and destination). You can only traverse down, right and diagonally lower cells from a given cell, i.e., from a given cell (i, j), cells (i+1, j), (i, j+1) and (i+1, j+1) can be traversed. You may assume that all costs are positive integers.&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;1&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;3&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;4&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;8&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;(forgive the highlighting of the first row it is of no special significance)&lt;/p&gt;
+&lt;h4&gt;Solution:&lt;/h4&gt;
+&lt;p&gt;&lt;strong&gt;Me:&lt;/strong&gt; So how would you go on solving that?&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Oh, the properties I read talked about saving the sub-problems to make the computations easier!&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; What are the sub-problems here? &lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Oh, it’s too tough.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; No, it’s not we will work together.&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;How would you normally solve it, forgetting about code for a minute?&lt;/br&gt;
+You probably eye all the cells, adding the cost along the path till you reach the destination. But you don’t know if it’s minimum, so you start adding again by traversing in a different direction. Then maybe after considering all paths, you come up with a cost that gives you the least.&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;That’s pretty much it.&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;My friend interrupts,&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; But the above method only solves the problem for one particular destination, what if we want to calculate the total cost for reaching a different destination.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Good point!&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; That’s why we store the minimum cost for reaching each cell in the array from the first cell. That way when we fill up all cells we will be left with solutions of every cell.&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; I lost you there.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Haha, let me finish.&lt;/p&gt;
+&lt;p&gt;So what do we know so far?&lt;/br&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;There’s an array and we can move right, down and diagonally lower.&lt;/br&gt;&lt;/li&gt;
+&lt;li&gt;We need to print the minimum cost of traversing to the given destination.&lt;/br&gt;&lt;/li&gt;
+&lt;li&gt;And we start at the first cell.&lt;/br&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4&gt;Breaking down the problem:&lt;/h4&gt;
+&lt;p&gt;&lt;strong&gt;Me:&lt;/strong&gt; What is simply the cost of moving from [0,0] to [0,1]?&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; It’s &lt;code class=&quot;language-text&quot;&gt;2 + 1 = 3&lt;/code&gt;&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; What is the minimum cost of moving from [0,0] to [0,1]?&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Still 3, because there’s no other way we could reach [0,1] since we can only move right or down or diagonally lower. We can &lt;strong&gt;only&lt;/strong&gt; reach [0,1] from [0,0].&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Excellent! So what is the minimum cost of moving from [0,1] to [0,2]?&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Oh wait, the cost of moving from &lt;strong&gt;[0,0] to [0,1]&lt;/strong&gt; is &lt;strong&gt;3&lt;/strong&gt;, hence &lt;strong&gt;[0,1] to [0,2]&lt;/strong&gt; would be  &lt;code class=&quot;language-text&quot;&gt;3 + cost of getting to (0,2)&lt;/code&gt; which is &lt;code class=&quot;language-text&quot;&gt;3 + 3 = 6&lt;/code&gt;. &lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Now shall we store this obtained cost corresponding to each cell in a different array, so that we can return them, when the cell is the destination?&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Fair enough.&lt;/p&gt;
+&lt;table&gt;
+&lt;tr&gt;&lt;th&gt;Table A &lt;/th&gt; &lt;th&gt;Min cost&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;1&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;3&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;4&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;8&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/td&gt;&lt;td&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;1&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;3&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;6&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/td&gt;&lt;/tr&gt; &lt;/table&gt;
+&lt;p&gt;Why not code it up too?&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;c&quot;&gt;&lt;pre class=&quot;language-c&quot;&gt;&lt;code class=&quot;language-c&quot;&gt;minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; a&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;n&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+  minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; a&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;where n is the number of rows&lt;/p&gt;
+&lt;p&gt;We transfer the first element as it is to the &lt;code class=&quot;language-text&quot;&gt;min cost table&lt;/code&gt; and calculate the cost of others in the row.&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Friend:&lt;/strong&gt; Why not the columns? The cells in the first column have only one way of reaching them too, which is down from the first cell.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Yeah absolutely, that’s our next step.&lt;/p&gt;
+&lt;p&gt;Similarly, we calculate the cost of reaching each column by adding the cell with the previous ones in the column.&lt;/p&gt;
+&lt;table&gt;
+&lt;tr&gt;&lt;th&gt;Table A &lt;/th&gt; &lt;th&gt;Min cost&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;1&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;3&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;4&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;8&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/td&gt;&lt;td&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;1&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;3&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;6&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;6&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;-&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/td&gt;&lt;/tr&gt; &lt;/table&gt;
+&lt;p&gt;We’ll code that up too!&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;c&quot;&gt;&lt;pre class=&quot;language-c&quot;&gt;&lt;code class=&quot;language-c&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;m&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+  minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; a&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;where m is the number of columns&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Friend:&lt;/strong&gt; Now, how do we calculate the minimum cost to reach cell [1,1]?&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; We know we can only traverse left, down or diagonally lower cell. Hence we can reach cell [1,1] only from cell [0,0] or [0,1] or [1,0]. So now that our table already has the minimum values to reach [0,0], [0,1] and [1,0], simply the minimum of those three values plus the cost of reaching cell [1,1] gives us our result.&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;So the cost to reach the cell,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;[1,1] = a[1,1] + min(minarr[0,0], minarr[0,1], minarr[1,0])
+minarr[1,1] = 8 + min(1,3,5)
+So, minarr[1,1] = 9&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Similarly, we do for all cells, starting from 1,1.&lt;/p&gt;
+&lt;p&gt;Let’s code it up again,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;c&quot;&gt;&lt;pre class=&quot;language-c&quot;&gt;&lt;code class=&quot;language-c&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;n&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;m&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;a&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;min&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;minarr&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;table&gt;
+&lt;tr&gt;&lt;th&gt;Table A &lt;/th&gt; &lt;th&gt;Min cost&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;1&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;3&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;4&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;8&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/td&gt;&lt;td&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;1&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;3&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;6&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;9&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;6&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;10&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;8&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/td&gt;&lt;/tr&gt; &lt;/table&gt;
+&lt;p&gt;Now that our table is filled, we simply return the cell of the given destination in the minimum cost array. The full code is &lt;a href=&quot;https://github.com/nobodyme/Dynamic-Programming/blob/master/minimum-cost-path.C&quot;&gt;given here&lt;/a&gt;. Here is a &lt;a href=&quot;http://practice.geeksforgeeks.org/problems/largest-zigzag-sequence/0&quot;&gt;similar problem&lt;/a&gt;, try it on your own and another similar problem is added in the &lt;a href=&quot;https://github.com/nobodyme/dynamic-programming/blob/master/Count-all-paths.C&quot;&gt;repository&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Hence by considering the elements one by one we have built up our solution or in DP terms, we have acquired our solution in bottom-up fashion(tabulation method) from the sub-problems. There’s another approach to it called memoization. The difference between both is explained in the &lt;a href=&quot;http://www.geeksforgeeks.org/tabulation-vs-memoizatation/&quot;&gt;article over here&lt;/a&gt;.&lt;/p&gt;
+&lt;h3&gt;Longest increasing subsequence &lt;a name=&quot;problem-2&quot;&gt;&lt;/a&gt;&lt;/h3&gt;
+&lt;p&gt;The Longest Increasing Subsequence (LIS) problem is to find the length of the longest subsequence of a given sequence such that all elements of the subsequence are sorted in increasing order.
+For example, the length of LIS for {10, 12, 32, 2, 22, 23, 25, 30} is 6 and LIS is {10, 12, 22, 23, 25, 30}&lt;/p&gt;
+&lt;h4&gt;Solution:&lt;/h4&gt;
+&lt;p&gt;How would go on solving this problem? What would you store to make the calculations easier? Okay simply, how would you solve the above problem using &lt;strong&gt;brute force&lt;/strong&gt; just like how you would perform a &lt;a href=&quot;https://en.wikipedia.org/wiki/Selection_sort&quot;&gt;selection sort&lt;/a&gt;!&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;32&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;22&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;23&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;25&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;30&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;k,i&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;strong&gt;Friend:&lt;/strong&gt; I would compare every element with every other element, if it’s greater than the current one, I would increase the count variable and I would print the highest count, I get. Roughly I would code it something like this&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;pseudo-code&lt;/strong&gt;&lt;/em&gt; (It’s okay if you don’t understand my friend’s code) &lt;/br&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;c&quot;&gt;&lt;pre class=&quot;language-c&quot;&gt;&lt;code class=&quot;language-c&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;n&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+  count &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;k&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;n&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;k&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;n&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;a&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt; a&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;k&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+      k&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;j&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+count&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;count&lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt;maxi&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+      maxi &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; count&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;token function&quot;&gt;printf&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;\nMax-length = %d\n&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;maxi&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;Me:&lt;/strong&gt; Let’s run it.&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Uh? Okay.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; So what’s the output?&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; The program returns, &lt;code class=&quot;language-text&quot;&gt;max-length = 5&lt;/code&gt;, which I guess is {2, 22, 23, 24, 25}. But we know it’s 6 and the LIS is {10, 12, 22, 23, 25, 30}.&lt;/br&gt;
+Why does it fail to catch the above lis?&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Me:&lt;/strong&gt; Because while traversing {10, 12, 32, 22, 23, 25, 30} the code will run as follows,it will check,&lt;/br&gt;
+if(10&gt;12) yes—&gt; count is 2, then&lt;/br&gt;
+if(32&gt;12) yes—&gt; count is 3, then&lt;/br&gt;
+At this point &lt;strong&gt;count = 3&lt;/strong&gt;, from there on count won’t get incremented because the following elements are lesser than 32 and hence condition like (22&gt;32) will consecutively fail.&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Friend:&lt;/strong&gt; If only it knew that by &lt;strong&gt;avoiding 32&lt;/strong&gt; and traversing through the rest of the array we would obtain the result which is &lt;code class=&quot;language-text&quot;&gt;max-length = 6&lt;/code&gt;.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; This is exactly the information we store for our computation using DP. In brute force terms, we store the count variable for all possible alternatives of traversal in the array and then simply find the maximum of it (Not that brute force cannot solve the problem, a different approach might but definitely in exponential time).&lt;/p&gt;
+&lt;div class=&quot;info-box&quot;&gt;
+Note: And my friend has set count=1 and not 0 initially because when we have a case where all numbers are the same in the array i.e {2, 2, 2, 2}. We must return count as 1 since one element { 2 } is still a subarray of the larger one.
+&lt;/div&gt;
+&lt;h4&gt;DP solution:&lt;/h4&gt;
+&lt;p&gt;&lt;strong&gt;Me:&lt;/strong&gt; So how would you code the same in DP, well actually it’s easier.&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Since you said we store counts of all variables, we initialize an array of the same size of corresponding counts?&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Exactly, we first start by creating another array for storing the count for each member of the array as we discussed and initialize all of them to &lt;strong&gt;1&lt;/strong&gt;.&lt;/br&gt;&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;32&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;22&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;23&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;25&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;30&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;strong&gt;Friend:&lt;/strong&gt; Now we check in a similar way?&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Yeah but for now, lets us consider only the element &lt;strong&gt;10&lt;/strong&gt; exists in the array.&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; Why?&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; To make it simpler?! Why else? Listen along. So what is the longest increasing subsequence then?&lt;/br&gt;
+&lt;strong&gt;Friend:&lt;/strong&gt; 1 of course and LIS is {10}.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; So now, say, we add 12 and set its initial count to 1&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;strong&gt;Friend:&lt;/strong&gt; We check &lt;strong&gt;if(12&gt;10)&lt;/strong&gt; so 12’s count gets incremented? &lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; Yes, now that 12&gt;10, 12’s count becomes &lt;code class=&quot;language-text&quot;&gt;count of 10 + 1&lt;/code&gt; since count of 10 already represents the longest increasing subsequence that can be made with the existing elements. Count of 12 now represents {10} + {12} = {10 ,12} or simply &lt;code class=&quot;language-text&quot;&gt;count[i] = count[j]+1;&lt;/code&gt; which is 2&lt;/br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Friend:&lt;/strong&gt; So let me clear this up, when 10 was alone LIS is 1 and now that 12 is added and we find {10, 12} could be LIS since 12&gt;10 and so we add count of 10’s to 12’s count and add 1 to include the number itself.&lt;/br&gt;
+&lt;strong&gt;Me:&lt;/strong&gt; That’s right and the array becomes,&lt;/br&gt;&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;Now let us consider 32, increment &lt;code class=&quot;language-text&quot;&gt;i to 32 and j to 10&lt;/code&gt; i.e. j to the starting element of the array and traverse from the beginning to see &lt;strong&gt;adding 32&lt;/strong&gt; provides a longer subsequence.
+&lt;/br&gt;The array becomes,&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;32&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;/br&gt;&lt;strong&gt;Friend:&lt;/strong&gt; Yes, it does prove longer. Since &lt;strong&gt;(32&gt;10)&lt;/strong&gt; therefore we increment 32’s count —&gt; count[i] = count[j]+1;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Me:&lt;/strong&gt; We check all numbers before 32 to see if they can be added to form a sequence with it, so increment j, continue filling in the boxes!&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://user-images.githubusercontent.com/22789194/27852855-3ce86814-6150-11e7-9a31-bcb108e1308d.gif&quot; alt=&quot;animated&quot;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;/br&gt;&lt;strong&gt;Friend&lt;/strong&gt;: Okay I will, So &lt;strong&gt;if(32&gt;12)&lt;/strong&gt; —&gt; 32’s count = 12’s count + 1 = (2+1) = 3&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;32&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;/br&gt;Similarly, &lt;strong&gt;considering element 2&lt;/strong&gt; the array becomes,&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;32&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;/br&gt;The array stays the same since each case checking &lt;strong&gt;if(2&gt;10)&lt;/strong&gt; , &lt;strong&gt;if(2&gt;12)&lt;/strong&gt; or &lt;strong&gt;if(2&gt;32)&lt;/strong&gt; fails, and it’s count variable remains unchanged.&lt;/p&gt;
+&lt;p&gt;&lt;/br&gt; Now I’m adding the next number, &lt;strong&gt;22&lt;/strong&gt; and check for 10, 12, 32, similar to the previous one, for 10 and 12, the count of 22 is incremented to 3 and with 32 it fails and remains as 3, and j is incremented to point 2.&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;32&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;22&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;/br&gt;Now &lt;strong&gt;if(22 &gt; 2)&lt;/strong&gt; —&gt; count of 22 becomes &lt;code class=&quot;language-text&quot;&gt;count[j]+1&lt;/code&gt; i.e. 2?
+&lt;/br&gt;&lt;strong&gt;Me:&lt;/strong&gt; Haha, glad you paused and asked, in short, &lt;strong&gt;No&lt;/strong&gt;, we know that count reflects the longest subsequence. By traversing other elements in the array, we obtained 3 as the longest subsequence for 22. So why lower it to 2? Hence while adding &lt;code class=&quot;language-text&quot;&gt;count[i] = count[j]+1&lt;/code&gt; make sure it benefits the cause. Therefore place &lt;code class=&quot;language-text&quot;&gt;count[i] = max(count[j]+1,count[i])&lt;/code&gt; ie with the maximum of two numbers to avoid such cases.&lt;/p&gt;
+&lt;p&gt;And similarly, the rest of the array is traversed and the array becomes,&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th align=&quot;center&quot;&gt;array&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;10&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;12&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;32&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;2&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;22&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;23&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;25&lt;/th&gt;
+&lt;th align=&quot;center&quot;&gt;30&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;count&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;2&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;1&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;3&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;4&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;5&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;6&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;j&lt;/td&gt;
+&lt;td align=&quot;center&quot;&gt;i&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;Since the highest is 6, which gives the longest increasing subsequence, the video of the above traversal is &lt;a href=&quot;https://youtu.be/Ns4LCeeOFS4&quot;&gt;linked here(different example)&lt;/a&gt;. Let’s have a look at the code snippet of the same below.
+As we have learned,&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;We initialize the count array to 1&lt;/li&gt;
+&lt;li&gt;Then calculate the count for every element&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;c&quot;&gt;&lt;pre class=&quot;language-c&quot;&gt;&lt;code class=&quot;language-c&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;n&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+count&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;n&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;i&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;j&lt;span class=&quot;token operator&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;array&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt; array&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+  count&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;max&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;count&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;count&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;j&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;After that, we find the maximum of the count array and print it, &lt;a href=&quot;https://github.com/nobodyme/Dynamic-Programming/blob/master/longest-increasing-sub-sequence.C&quot;&gt;full code snippet is here&lt;/a&gt; and a look-alike problem just with a &lt;a href=&quot;https://github.com/nobodyme/dynamic-programming/blob/master/lis-pair.C&quot;&gt;pair of numbers&lt;/a&gt;.&lt;/p&gt;
+&lt;h3&gt;More to come&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Minimum coin change&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Points to remember&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Dynamic programming is just like any other kind, you get some, you don’t get some practice makes it all better. I have a lot to do too.&lt;/li&gt;
+&lt;li&gt;From my experience, it is similar to brute force but instead of exploring the whole input space, you find a way to store intermediate results that arise from the input and exhaustively explore that for the required result.&lt;/li&gt;
+&lt;li&gt;Yes, it is indeed a method of trading space for time. A recursive approach may utilize a little less space but dynamic programming approach is quicker.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Other resources&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.hackerearth.com/practice/notes/dynamic-programming-i-1/&quot;&gt;Hackerearth article explaining more on “Why dynamic programming”&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.quora.com/What-are-some-good-ways-to-approach-a-dynamic-programming-question/answer/Paul-Baltescu&quot;&gt;How to approach Dynamic Programming by Paul Baltescu on Quora&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://www.geeksforgeeks.org/fundamentals-of-algorithms/#DynamicProgramming&quot;&gt;Geeks for geeks tutorials&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.hackerearth.com/practice/notes/dynamic-programming-problems-involving-grids/&quot;&gt;Hackerearth article for problems involving grids&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Problems lists from various sites&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://practice.geeksforgeeks.org/topics/Dynamic-Programming/&quot;&gt;Practice problems - Geeks for Geeks&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://apps.topcoder.com/forums/?module=Thread&amp;#x26;start=0&amp;#x26;threadID=674592&quot;&gt;Problem list - top coder&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://codeforces.com/problemset/tags/dp?order=BY_SOLVED_DESC&quot;&gt;Problem sets - code forces&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.hackerrank.com/domains/algorithms/dynamic-programming&quot;&gt;Dp challenges - Hackerrank&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content:encoded></item><item><title><![CDATA[Fetch images from Reddit for your desktop wallpaper, python beginners]]></title><description><![CDATA[“There’s always somebody who has just begun, whom you can help and there’s always somebody who did the same mistake and can help you”. Just…]]></description><link>https://nobodyme.github.io/blog/fetch-images-from-reddit/</link><guid isPermaLink="false">https://nobodyme.github.io/blog/fetch-images-from-reddit/</guid><pubDate>Sat, 14 Jul 2018 08:40:32 GMT</pubDate><content:encoded>&lt;p&gt;&lt;em&gt;“There’s always somebody who has just begun, whom you can help and there’s always somebody who did the same mistake and can help you”.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;Just when I let that sink in, I called up my friend who wanted some wallpapers for her newly installed Ubuntu system. Me being the frequent lurker on Reddit loved the pictures in subreddits like &lt;a href=&quot;https://www.reddit.com/r/itookapicture/&quot;&gt;itookapicture&lt;/a&gt;, &lt;a href=&quot;https://www.reddit.com/r/CozyPlaces/&quot;&gt;cozyplaces&lt;/a&gt; and &lt;a href=&quot;https://www.reddit.com/r/wallpapers/&quot;&gt;wallpapers&lt;/a&gt; and wrote up a simple program to grab those and then set up as Desktop-slideshow using an app called &lt;a href=&quot;http://shotwell-project.org/doc/html/&quot;&gt;Shotwell&lt;/a&gt; when I was in the same position. So I just sent her over the link of the &lt;a href=&quot;https://github.com/nobodyme/reddit-fetch&quot;&gt;repo from github&lt;/a&gt;, while she was more than pleased to have it, she wanted to know how it does as well. I thought to myself, well she already knows the basics of python so it mustn’t be that hard. So I started off with &lt;em&gt;“so clone the GitHub repo and then do pip3 install -r requirements.txt, oh maybe use the virtualenv as well, so you don’t install the packages globally but just for the project and then we call the Reddit’s open-api …“&lt;/em&gt; and I realized she was already left scratching her head even before the coding part began.&lt;/p&gt;
+&lt;p&gt;That’s when I realized I was on the same page as well, I couldn’t even understand how all the code came together even when I was given the link to the GitHub repo a few years back. I wouldn’t know where to start, why certain things are done, blindly follow instructions and wouldn’t know how to fix it when it breaks. So for all you folks out there who just started learning python variables, if conditions, switch statements and for loops from some website, maybe this article will help you fill the missing parts that’ll get you going.&lt;/p&gt;
+&lt;p&gt;So what do we have on our plate?&lt;/p&gt;
+&lt;p&gt;All we need to do is ask Reddit to give us the pictures from the subreddits we want so that we could store them somewhere in a file and later use Shotwell for the slideshow.&lt;/p&gt;
+&lt;p&gt;But how do we do that?&lt;/p&gt;
+&lt;h3&gt;Understanding APIs and JSON&lt;/h3&gt;
+&lt;p&gt;What happens generally when you go to a link is that, your browser will send a request to the server like, &lt;em&gt;“Hey, can I wanna see the contents on this one, send this to me as HTML, please”&lt;/em&gt; and then the server responds to the request as an HTML page like the one you’re viewing right now because HTML is more friendly to humans. But we want our program to fetch the pictures right? So we need a response that’s friendly to parse by code but how does our program talk to the Reddit server? We want an interface that our program can talk to, just like we do through our browser. This is called an &lt;strong&gt;API (application programming interface)&lt;/strong&gt; and every application these days have an interface where programs can talk to and fetch information, some publicly available, some private, some available with paid subscriptions for their services. What this API commonly returns is data in a format called &lt;strong&gt;JSON&lt;/strong&gt; which stands for Javascript Object Notation and it is this format that our program will be easily able to parse and get us our wallpapers and it is just a bunch of key, pair values similar to a dictionary in python which you will all be familiar with.&lt;/p&gt;
+&lt;p&gt;So how do I get this JSON data from Reddit?&lt;/p&gt;
+&lt;p&gt;It’s easier than you think, Reddit follows the &lt;a href=&quot;https://en.wikipedia.org/wiki/Open_API&quot;&gt;OPEN-API standard&lt;/a&gt; and just placing .json after the link gives you all of the data in JSON format, maybe try this in your browser &lt;a href=&quot;https://www.reddit.com/r/wallpapers.json&quot;&gt;https://www.reddit.com/r/wallpapers.json&lt;/a&gt; those random data that you see is exactly what we need and if you look closely it will have all the information that you see on the web page in the form of a python dictionary.&lt;/p&gt;
+&lt;div&gt;
+&lt;img src=&quot;https://miro.medium.com/max/1400/1*uWXEspsNZwQFieM-cJBt4A.png&quot; width=&quot;100%&quot;&gt;
+&lt;center&gt;&lt;i&gt;Json data from reddit prettified using firefox&lt;/i&gt;&lt;/center&gt;
+&lt;div&gt;
+&lt;br&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;Now how do we obtain that data in code? Simple, just import the requests library,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; requests
+url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; ‘https&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;//&lt;/span&gt;www&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;reddit&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;com&lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt;r&lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt;wallpapers&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;json&apos;
+response &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;url&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;not&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ok&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+ &lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;“Error”&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+ exit&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+data &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;json&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;data&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;&lt;a href=&quot;http://docs.python-requests.org/en/master/&quot;&gt;Requests&lt;/a&gt; library just simplifies these HTTP calls for you, requests a URL returns a request object with a bunch of information which we can use to know if the request was successful like we can ask, Was the response ok(200)? Can we parse the data now? If not we can code our program to fail silently. That should print the data you saw on the browser right in your terminal or nope you would probably get an error stating &lt;strong&gt;“No module named requests”&lt;/strong&gt; &lt;em&gt;(or if you already have requests installed you would get a “Too many requests, error 429” which we will be handing down the line. Either way it’s good that you follow along without skipping to that)&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;Well if you google, you’d come up with something like do,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;&lt;span class=&quot;token function&quot;&gt;sudo&lt;/span&gt; pip &lt;span class=&quot;token function&quot;&gt;install&lt;/span&gt; requests&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;That sure works, but what this does is, install the requests library globally for your system. You’d think it’s convenient since it will be available for another program that uses requests as well, you wouldn’t have to run the command again but think about the case where different programs use different versions of the same library. That’s a conflict you do not want to handle plus let’s say you’re sharing this code to a friend of yours or posting it on GitHub, you would ideally like to have a list of the packages/libraries your code depends on, so to say, &lt;em&gt;“Hey, this is the list of packages you will need to run my code, so just install these”&lt;/em&gt;. Convenient right? So that’s what we will do.&lt;/p&gt;
+&lt;h3&gt;Understanding VIRTUALENV and PIP&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;We need an isolated environment where we can install libraries just for our program.&lt;/li&gt;
+&lt;li&gt;We will then need the list of libraries our code uses along with the exact version so that we can share it along with our code.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;If you python environment does not already have pip, &lt;a href=&quot;https://pip.pypa.io/en/stable/installation/&quot;&gt;here’s how you can install&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;PIP is the recursive acronym for “Pip install Packages” commonly used for installing python packages or libraries. Now let’s set up our development environment for our program.&lt;/p&gt;
+&lt;p&gt;Go to the project folder and then type,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;# creates a directory called env&lt;/span&gt;
+python3 &lt;span class=&quot;token parameter variable&quot;&gt;-m&lt;/span&gt; venv &lt;span class=&quot;token function&quot;&gt;env&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# activates the env directory so that our program&apos;s packages will be installed in it instead of the root&lt;/span&gt;
+&lt;span class=&quot;token builtin class-name&quot;&gt;source&lt;/span&gt; env/bin/activate&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;You should see an (env) sign before your prompt, if so, we are good to go.
+Now that our development environment is set up, let’s install the requests package.&lt;/p&gt;
+&lt;h3&gt;Installing requests module&lt;/h3&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;pip3 &lt;span class=&quot;token function&quot;&gt;install&lt;/span&gt; requests&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Now, this will place the package and its dependencies in the local folder. Great we have our package installed isolated for our program.&lt;/p&gt;
+&lt;p&gt;Now if we want to list the packages our program depends on, we can just do,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;pip3 freeze &lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt; requirements.txt&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This lists out all the dependencies and puts them into a file called requirements.txt. So now you can send over this file and say, &lt;em&gt;“Hey just install the ones in these files and my program will work fine”&lt;/em&gt;.&lt;/p&gt;
+&lt;p&gt;Just in case you want to install your friend’s program and he has sent you his file of dependencies, you can just do that by,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;pip3 &lt;span class=&quot;token function&quot;&gt;install&lt;/span&gt; &lt;span class=&quot;token parameter variable&quot;&gt;-r&lt;/span&gt; requirements.txt&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Suppose you want to go outside our program’s environment, you can just do type, “deactivate” at the prompt.&lt;/p&gt;
+&lt;h3&gt;Edge Cases&lt;/h3&gt;
+&lt;p&gt;So now that we have installed requests and everything is set, let’s run our program.&lt;/p&gt;
+&lt;p&gt;You would either see the data printed on your terminal or you would probably be greeted with this error message on testing for quite a while &lt;strong&gt;{‘message’: ‘Too Many Requests’, ‘error’: 429}&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;There are certain limits on how much you can access the Reddit API and your python code sets up some default user-agent for accessing the API. Since many people would probably use the default one, you quickly run out with the number of times you can request the data and that error is just Reddit’s way of telling you, &lt;em&gt;“Hey, you’re sending too many requests my way”&lt;/em&gt;. There are two ways to mitigate that,&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;You can set up a custom header when you request data from the API like, &lt;code class=&quot;language-text&quot;&gt;response = requests.get(url, headers={&apos;User-agent&apos;: &apos;your-bot-name 0.1&apos;})&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Or use the &lt;a href=&quot;http://praw.readthedocs.io/en/stable/getting_started/quick_start.html&quot;&gt;reddit’s PRAW library&lt;/a&gt; by creating client ID and app ID with Reddit.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Although the second one is easier in the long run. For the purpose of our application, we will stick with the former.&lt;/p&gt;
+&lt;p&gt;Now that we reliably get the data, let’s see how we can parse it for the information we need. We need the image’s URL so that we can use it to download the picture. As we already know, JSON data is similar to a dictionary. So just searching for URLs in the data and its location should help you understand how to obtain it.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;# array of posts in the page&lt;/span&gt;
+data &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;json&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;children&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# get first post from array of posts&lt;/span&gt;
+first_post &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; data&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# get the image url of the first post&lt;/span&gt;
+image_url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; first_post&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;url&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Now that we have the URL of the image, let’s download that and store it in a file as well.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;image &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image_url&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;200&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    output_filehandle &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;image1.jpg&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;mode&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;bx&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    output_filehandle&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;write&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;content&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Now we have got the image of the first post on the page. Depending upon a number of things our application could break resulting in an error.&lt;/p&gt;
+&lt;p&gt;If you look closely we have assumed that the image is of the type “jpg”, secondly, we assume that a file called “image1.jpg” is not already present. Now although the first case might not throw you an error, you won’t be able to open up the image since it may not be of the right format and the second case will throw &lt;strong&gt;&lt;em&gt;file already exists&lt;/em&gt;&lt;/strong&gt; error. And for our application we are going to have the tile of the post as the file name of our image.&lt;/p&gt;
+&lt;p&gt;So our code now looks like,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; requests
+url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;https://www.reddit.com/r/wallpapers.json&apos;&lt;/span&gt;
+response &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;url&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; headers&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;User-agent&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;your-bot-name 0.1&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;not&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ok&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;Error&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    exit&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+data &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;json&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;children&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+first_post &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; data&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+image_url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; first_post&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;url&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+image &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image_url&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# checks url and sets appropriate extension for the image file&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.png&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.png&apos;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpg&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url &lt;span class=&quot;token keyword&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;200&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;try&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        output_filehandle &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;first_post&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;title&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; extension&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; mode&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;bx&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+        output_filehandle&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;write&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;content&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;except&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;pass&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Now your program may work or may not still work as intended as we have two other edge cases to handle which you will only discover when you have tried different sets of data. If your program currently doesn’t work well for you, you have a set of data that presents you with the edge case right at the beginning. Yes, it’s better you stumble upon these at first than building everything and wonder what went wrong. So what’s the error?&lt;/p&gt;
+&lt;p&gt;The problem with these image links is that a lot of times image links on Reddit are from &lt;strong&gt;Imgur&lt;/strong&gt; and &lt;strong&gt;&lt;em&gt;sometimes&lt;/em&gt;&lt;/strong&gt; Imgur links don’t open up as image files but rather as a page with a collection of images. Try the URLs below, yourself.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Normal url: &lt;a href=&quot;https://i.redd.it/qcqy40krxn911.png&quot;&gt;https://i.redd.it/qcqy40krxn911.png&lt;/a&gt; (or .jpeg with extensions)&lt;/li&gt;
+&lt;li&gt;Imgur url: &lt;a href=&quot;https://imgur.com/zXpT3vJ&quot;&gt;https://imgur.com/zXpT3vJ&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Therefore in the second case, your program will try to download the HTML file as binary. On trial and error by opening the image on a new tab or by appending “.jpeg” to the URL you will find that it opens up as an image file just like the others if it already doesn’t open as one.&lt;/p&gt;
+&lt;p&gt;And sometimes the images uploaded are &lt;strong&gt;removed&lt;/strong&gt; as well, the link will direct to a thumbnail denoting the image has been removed. We don’t want that to clutter our list of wallpapers. So let’s handle these cases in our code as well.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; requests
+url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;https://www.reddit.com/r/wallpapers.json&apos;&lt;/span&gt;
+response &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;url&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;not&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ok&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;Error&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    exit&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+data &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;json&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;children&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+first_post &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; data&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+image_url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; first_post&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;url&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.png&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.png&apos;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpg&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url &lt;span class=&quot;token keyword&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    image_url &lt;span class=&quot;token operator&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt;
+    extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# prevents thumbnails denoting removed images from being downloaded&lt;/span&gt;
+image &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image_url&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; allow_redirects&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token boolean&quot;&gt;False&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;200&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;try&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        output_filehandle &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;first_post&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;title&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; extension&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; mode&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;bx&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+        output_filehandle&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;write&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;content&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;except&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;pass&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Now your code should work perfectly for all cases and now you check the image file that’s downloaded. Since we have successfully downloaded the image of the first post, let’s do that for all posts. By default we get a list of 25 posts for more posts say 100, we could modify the URL as,&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;[https://www.reddit.com/r/wallpapers.json?&amp;amp;limit=10](https://www.reddit.com/r/wallpapers.json?&amp;amp;limit=10)0[&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;https&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;//&lt;/span&gt;www&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;reddit&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;com&lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt;r&lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt;wallpapers&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;json&apos;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Now that our URL is set let’s loop overall posts to retrieve all images.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; requests
+url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;https://www.reddit.com/r/wallpapers.json?limit=100&apos;&lt;/span&gt;
+response &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;url&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;not&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ok&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;Error&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    exit&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+data &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; response&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;json&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;children&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt; i &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;data&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    current_post &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; data&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;data&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+    image_url &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; current_post&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;url&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.png&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.png&apos;&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpg&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url &lt;span class=&quot;token keyword&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;imgur&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; image_url&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        image_url &lt;span class=&quot;token operator&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt;
+        extension &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;.jpeg&apos;&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;continue&lt;/span&gt;
+    image &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; requests&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image_url&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; allow_redirects&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token boolean&quot;&gt;False&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;status_code &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;200&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;try&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+            output_filehandle &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;current_post&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;title&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; extension&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; mode&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;bx&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+            output_filehandle&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;write&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;image&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;content&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;except&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;token keyword&quot;&gt;pass&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Now that’s it, we have got our sets of images downloaded and I added the else part so that the program doesn’t break for cases that we still haven’t encountered. Now that you have the pictures downloaded you can now use Shotwell to &lt;a href=&quot;http://shotwell-project.org/doc/html/share-background.html&quot;&gt;set up a desktop slideshow&lt;/a&gt; by selecting all of these images in your machine.&lt;/p&gt;
+&lt;h3&gt;Conclusion&lt;/h3&gt;
+&lt;p&gt;Ideally, we would want to supply data to the program as a user, we can’t keep modifying the program if we wanted pictures from a different subreddit or more number pictures. Personally, I would even like to supply a series of subreddits to fetch from at a point and download each in a separate folder.&lt;/p&gt;
+&lt;p&gt;There are few other edge cases that you would face while handling different sets of data as well. For example, we set the file name to the title of the post, sometimes the titles may contain special characters which might not be an accepted file name format in your operating system. Sometimes the title might be too long that your OS doesn’t permit it as a valid file name.&lt;/p&gt;
+&lt;p&gt;You would see all of these improvements handled right here, in my &lt;a href=&quot;https://github.com/nobodyme/reddit-fetch/blob/master/grab_pictures.py&quot;&gt;code on github&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;You will also find a similar program that fetches the &lt;a href=&quot;https://github.com/nobodyme/reddit-fetch/blob/master/fetch_comments.py&quot;&gt;comments of a Reddit post&lt;/a&gt; in a file in the same repo. Hope it is of some help. Maybe give me a pull request if something can be improved. Cheers!&lt;/p&gt;</content:encoded></item></channel></rss>
