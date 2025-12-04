@@ -96,5 +96,12 @@
     "link": "https://www.youtube.com/watch?v=zjkBMFhNj_g",
     "reaction": "love",
     "tags": ["generative-ai"]
+  },
+  {
+    "date": "2025-12-02T10:00:00.000Z",
+    "title": "How to Detect, Track, and Identify Basketball Players with Computer Vision",
+    "link": "https://blog.roboflow.com/identify-basketball-players/",
+    "reaction": "to-the-moon",
+    "tags": ["computer-vision, AI"]
   }
 ]
