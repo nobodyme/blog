@@ -38,6 +38,7 @@ Then, since, I had time, I thought why not automate some of these like,
 2) Uploading dataset to s3
 3) Deploying the fine-tuned models with the given array of hyperparameters (so I didn't have to experiment one by one)
 4) Evaluation against the base model or a previously fine-tuned model to check for regressions (I thought this will be faster than submitting to the leaderboard)
+
 I even wrote scripts to increase service-quota limits for the required instances, if not already present. You can [find them all here](https://github.com/nobodyme/aws-ai-league/tree/main/jumpstart). 
 By doing these, I thought I'll just concentrate on preparing a good dataset on the event day.
 

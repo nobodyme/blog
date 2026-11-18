@@ -1,0 +1,64 @@
+---
+import "../normalize.css"
+import "../index.css"
+import "../style.css"
+import "prismjs/themes/prism.css"
+
+import Header from "../components/Header.astro"
+import Seo from "../components/Seo.astro"
+import { site, url } from "../site.js"
+
+interface Props {
+  title: string
+  description?: string
+}
+
+const { title, description } = Astro.props
+const isRootPath = Astro.url.pathname === url()
+const iconSizes = [48, 72, 96, 144, 192, 256, 384, 512]
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#663399" />
+    <Seo title={title} description={description} />
+    {
+      import.meta.env.PROD && (
+        <>
+          <link rel="preconnect" href="https://www.googletagmanager.com" />
+          <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+          <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${site.gtagId}`} />
+          <script is:inline define:vars={{ id: site.gtagId }}>
+            window.dataLayer = window.dataLayer || []
+            function gtag() {
+              dataLayer.push(arguments)
+            }
+            gtag("js", new Date())
+            gtag("config", id)
+          </script>
+        </>
+      )
+    }
+    <link rel="alternate" type="application/rss+xml" title={site.title} href={url("rss.xml")} />
+    <link rel="icon" href={url("favicon-32x32.png")} type="image/png" />
+    <link rel="manifest" href={url("manifest.webmanifest")} crossorigin="anonymous" />
+    {
+      iconSizes.map(s => (
+        <link rel="apple-touch-icon" sizes={`${s}x${s}`} href={url(`icons/icon-${s}x${s}.png`)} />
+      ))
+    }
+  </head>
+  <body>
+    <div>
+      <Header siteTitle={site.title} />
+      <div class="global-content-wrapper" data-is-root-path={String(isRootPath)}>
+        <main><slot /></main>
+      </div>
+    </div>
+  </body>
+</html>
