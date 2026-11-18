@@ -1,0 +1,62 @@
+---
+import { getCollection, render } from "astro:content"
+import Comments from "../components/Comments.astro"
+import Layout from "../layouts/Layout.astro"
+import { excerpt, formatDate, timeToRead } from "../lib/text.js"
+import { site, url } from "../site.js"
+
+export async function getStaticPaths() {
+  // Newest first, as in Gatsby: "previous" is the newer post, "next" the older one.
+  const posts = (await getCollection("blog")).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  return posts.map((post, i) => ({
+    params: { slug: post.id },
+    props: { post, previous: posts[i - 1], next: posts[i + 1] },
+  }))
+}
+
+const { post, previous, next } = Astro.props
+const { Content } = await render(post)
+const minutes = timeToRead(post.rendered?.html)
+const readingTimeLabel = minutes ? `${minutes} min read` : null
+---
+
+<Layout title={`${post.data.title} | ${site.title}`} description={post.data.description || excerpt(post, 160)}>
+  <article class="blog-post" itemscope itemtype="http://schema.org/Article">
+    <header>
+      <h1 itemprop="headline">{post.data.title}</h1>
+      <p class="meta">
+        <span>{formatDate(post.data.date)}</span>
+        {readingTimeLabel && <span class="meta-separator">•</span>}
+        {readingTimeLabel && <span>{readingTimeLabel}</span>}
+      </p>
+    </header>
+    <section itemprop="articleBody" class="blog-content">
+      <Content />
+    </section>
+  </article>
+  <nav class="blog-post-nav">
+    <hr class="hr" />
+    <ul style="display: flex; flex-wrap: wrap; justify-content: space-between; list-style: none; padding: 0">
+      <li>
+        {
+          previous && (
+            <a href={url(`${previous.id}/`)} rel="prev">
+              ← {previous.data.title}
+            </a>
+          )
+        }
+      </li>
+      <li>
+        {
+          next && (
+            <a href={url(`${next.id}/`)} rel="next">
+              {next.data.title} →
+            </a>
+          )
+        }
+      </li>
+    </ul>
+    <hr class="hr" />
+  </nav>
+  <Comments />
+</Layout>

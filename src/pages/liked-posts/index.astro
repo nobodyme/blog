@@ -1,0 +1,45 @@
+---
+import { getCollection } from "astro:content"
+import ExplodingHead from "../../assets/svg/exploding-head.svg"
+import Heart from "../../assets/svg/heart.svg"
+import Shuttle from "../../assets/svg/shuttle.svg"
+import Layout from "../../layouts/Layout.astro"
+import { fromNow } from "../../lib/text.js"
+import { site } from "../../site.js"
+
+const likedPosts = (await getCollection("likedPosts")).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+---
+
+<Layout title={`${site.title} | Liked Posts`}>
+  <div class="liked-page-header">Liked Posts</div>
+  <hr />
+  <div class="liked-post">
+    <ol style="list-style: none">
+      {
+        likedPosts.map(({ data: post }) => (
+          <li class="liked-post-item">
+            <div>
+              {post.reaction === "love" && (
+                <Heart class="liked-post-item-reaction" fill="red" color="red" width={25} height={25} />
+              )}
+              {post.reaction === "to-the-moon" && <Shuttle class="liked-post-item-reaction" width={25} height={25} />}
+              {post.reaction === "exploding-head" && (
+                <ExplodingHead
+                  class="liked-post-item-reaction"
+                  width={30}
+                  height={30}
+                  role="img"
+                  aria-label="exploding-head-emoji"
+                />
+              )}
+            </div>
+            <a class="liked-post-item-link" href={post.link} target="_blank" rel="noopener noreferrer">
+              <div class="liked-post-item-link-text">{post.title}</div>
+              <small class="meta">{fromNow(post.date)}</small>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</Layout>

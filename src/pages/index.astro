@@ -1,0 +1,50 @@
+---
+import { getCollection } from "astro:content"
+import Layout from "../layouts/Layout.astro"
+import { excerpt, formatDate } from "../lib/text.js"
+import { site, url } from "../site.js"
+
+const posts = (await getCollection("blog")).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+---
+
+<Layout title={`${site.title} | Home`}>
+  {
+    posts.length === 0 ? (
+      <p>No blog posts found.</p>
+    ) : (
+      <ol class="post-list">
+        <div style="margin-bottom: 20px">
+          <h3 style="margin-top: 0px">
+            <a href="https://www.linkedin.com/in/naveen-kumar-b11464128/" target="_blank" rel="noopener noreferrer">
+              Hi, I'm Naveen
+            </a>{" "}
+            👋
+          </h3>
+          <div style="color: rgb(95 103 110); margin-bottom: 20px">{site.description}</div>
+          <hr />
+        </div>
+        {posts.map(post => (
+          <li class="post-list-item">
+            <article itemscope itemtype="http://schema.org/Article">
+              <header>
+                <h2>
+                  <a href={url(`${post.id}/`)} itemprop="url">
+                    <span itemprop="headline">{post.data.title || post.id}</span>
+                  </a>
+                </h2>
+                <small class="meta">{formatDate(post.data.date)}</small>
+              </header>
+              <section>
+                <p
+                  style="color: rgb(95 103 110)"
+                  set:html={post.data.description || excerpt(post)}
+                  itemprop="description"
+                />
+              </section>
+            </article>
+          </li>
+        ))}
+      </ol>
+    )
+  }
+</Layout>
