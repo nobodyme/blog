@@ -1,7 +1,6 @@
 ---
-import { Image } from "astro:assets"
 import { getCollection } from "astro:content"
-import explodingHead from "../../assets/images/exploding-head.png"
+import ExplodingHead from "../../assets/svg/exploding-head.svg"
 import Heart from "../../assets/svg/heart.svg"
 import Shuttle from "../../assets/svg/shuttle.svg"
 import Layout from "../../layouts/Layout.astro"
@@ -25,14 +24,12 @@ const likedPosts = (await getCollection("likedPosts")).sort((a, b) => b.data.dat
               )}
               {post.reaction === "to-the-moon" && <Shuttle class="liked-post-item-reaction" width={25} height={25} />}
               {post.reaction === "exploding-head" && (
-                <Image
+                <ExplodingHead
                   class="liked-post-item-reaction"
-                  src={explodingHead}
-                  layout="fixed"
                   width={30}
                   height={30}
-                  quality={95}
-                  alt="exploding-head-emoji"
+                  role="img"
+                  aria-label="exploding-head-emoji"
                 />
               )}
             </div>
