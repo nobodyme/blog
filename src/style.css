@@ -344,9 +344,6 @@ a:focus {
 
 .post-list {
   list-style: none;
-}
-
-.post-list:first-child {
   margin-top: 0;
 }
 
