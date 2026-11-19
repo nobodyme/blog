@@ -8,9 +8,18 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Read-only by default; only the deploy job gets write access.
+permissions:
+  contents: read
+
 concurrency:
   group: pages-${{ github.ref }}
-  cancel-in-progress: true
+  # Supersede outdated PR builds, but never cancel a production deploy halfway:
+  # a later failing build would otherwise leave the site on an older version.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  SITE_URL: https://nobodyme.github.io/blog/
 
 jobs:
   build:
@@ -18,11 +27,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # Don't leave the token in .git/config while dependency code runs.
+          persist-credentials: false
 
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install
@@ -31,25 +43,22 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Check the build has .nojekyll
+        # Without it GitHub Pages runs Jekyll, which silently drops files and folders
+        # whose names start with "_" (that is how the site lost its CSS once).
+        run: test -f dist/.nojekyll || { echo "dist/.nojekyll is missing"; exit 1; }
+
       - name: Upload site
         uses: actions/upload-artifact@v7
         with:
           name: site
           path: dist
           retention-days: 7
-          # Keep dist/.nojekyll: without it GitHub Pages runs Jekyll, which drops
-          # the _astro/ folder (CSS, JS and images) because it starts with "_".
+          # upload-artifact skips dotfiles by default, which would drop .nojekyll.
           include-hidden-files: true
 
-      - name: Check the built site is GitHub Pages-ready
-        run: |
-          test -f dist/.nojekyll || { echo "dist/.nojekyll is missing"; exit 1; }
-          test -d dist/assets || { echo "dist/assets is missing"; exit 1; }
-          if find dist -name '_*' | grep -q .; then echo "Paths starting with _ would be dropped by Jekyll:"; find dist -name '_*'; exit 1; fi
-
   deploy:
-    # Publishes to the gh-pages branch, the same branch GitHub Pages serves today,
-    # so no repository settings need to change.
+    # Publishes to the gh-pages branch, which GitHub Pages serves.
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
@@ -69,8 +78,49 @@ jobs:
         run: test -f dist/.nojekyll || { echo "dist/.nojekyll is missing"; exit 1; }
 
       - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@v4
+        # Pinned to a commit because this third-party action runs with write access.
+        uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
         with:
           branch: gh-pages
           folder: dist
           single-commit: true
+
+  verify-live:
+    # GitHub Pages can report success while serving a broken site, so check what
+    # visitors actually get once the new version is live.
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download site
+        uses: actions/download-artifact@v8
+        with:
+          name: site
+          path: dist
+
+      - name: Wait for the new version and check its assets load
+        run: |
+          set -euo pipefail
+          origin="${SITE_URL%%/blog/*}"
+          # Every same-site asset the home page references (CSS, JS, icons, manifest).
+          assets=()
+          while IFS= read -r path; do assets+=("$path"); done < <(
+            grep -oE '(href|src)="/blog/[^"#?]+\.(css|js|png|svg|webp|ico|webmanifest)"' dist/index.html \
+              | sed -E 's/^(href|src)="//; s/"$//' | sort -u)
+          css=$(printf '%s\n' "${assets[@]}" | grep -m1 '\.css$') || { echo "No stylesheet found in dist/index.html"; exit 1; }
+          echo "Waiting for ${SITE_URL} to reference ${css}"
+          for attempt in $(seq 1 60); do
+            if curl -fsSL "${SITE_URL}?v=${GITHUB_SHA}" | grep -qF "${css}"; then
+              echo "New version is live (attempt ${attempt})"
+              break
+            fi
+            if [ "$attempt" = 60 ]; then echo "The live site never served the new build"; exit 1; fi
+            sleep 10
+          done
+          failed=0
+          for path in "${assets[@]}" /blog/rss.xml; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "${origin}${path}")
+            echo "${code} ${path}"
+            [ "$code" = 200 ] || failed=1
+          done
+          exit "$failed"
