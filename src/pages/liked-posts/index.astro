@@ -1,12 +1,23 @@
 ---
 import { getCollection } from "astro:content"
-import ExplodingHead from "../../assets/svg/exploding-head.svg"
+import explodingHeadSvg from "../../assets/svg/exploding-head.svg?raw"
 import Heart from "../../assets/svg/heart.svg"
 import Shuttle from "../../assets/svg/shuttle.svg"
 import Layout from "../../layouts/Layout.astro"
 import { fromNow } from "../../lib/text.js"
 
 const likedPosts = (await getCollection("likedPosts")).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+
+// The emoji SVG defines gradients by id; each copy on the page gets its own ids
+// so they stay unique (the page shows it once per "exploding-head" reaction).
+const explodingHead = (n: number) =>
+  explodingHeadSvg
+    .replace(/<!--.*?-->\s*/s, "")
+    .replaceAll("exploding-head-", `exploding-head-${n}-`)
+    .replace(
+      "<svg ",
+      '<svg class="liked-post-item-reaction" width="30" height="30" role="img" aria-label="exploding-head-emoji" ',
+    )
 ---
 
 <Layout title="Liked Posts">
@@ -15,7 +26,7 @@ const likedPosts = (await getCollection("likedPosts")).sort((a, b) => b.data.dat
   <div class="liked-post">
     <ol style="list-style: none">
       {
-        likedPosts.map(({ data: post }) => (
+        likedPosts.map(({ data: post }, n) => (
           <li class="liked-post-item">
             <div>
               {post.reaction === "love" && (
@@ -23,13 +34,7 @@ const likedPosts = (await getCollection("likedPosts")).sort((a, b) => b.data.dat
               )}
               {post.reaction === "to-the-moon" && <Shuttle class="liked-post-item-reaction" width={25} height={25} />}
               {post.reaction === "exploding-head" && (
-                <ExplodingHead
-                  class="liked-post-item-reaction"
-                  width={30}
-                  height={30}
-                  role="img"
-                  aria-label="exploding-head-emoji"
-                />
+                <Fragment set:html={explodingHead(n)} />
               )}
             </div>
             <a class="liked-post-item-link" href={post.link} target="_blank" rel="noopener noreferrer">

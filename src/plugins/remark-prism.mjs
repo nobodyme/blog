@@ -33,7 +33,10 @@ function highlight(language, code) {
 export default function remarkPrism() {
   return tree => {
     visit(tree, "code", node => {
-      const lang = node.lang ? node.lang.toLowerCase() : "text"
+      // Language names are used in attributes, so accept only plausible ones
+      // (c++, c#, objective-c, ...) and treat anything else as plain text.
+      const requested = node.lang ? node.lang.toLowerCase() : "text"
+      const lang = /^[\w#+.-]+$/.test(requested) ? requested : "text"
       const cls = `language-${lang}`
       node.type = "html"
       node.value =

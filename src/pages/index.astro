@@ -35,11 +35,15 @@ const posts = (await getCollection("blog")).sort((a, b) => b.data.date.valueOf()
                 <small class="meta">{formatDate(post.data.date)}</small>
               </header>
               <section>
-                <p
-                  style="color: rgb(95 103 110)"
-                  set:html={post.data.description || excerpt(post)}
-                  itemprop="description"
-                />
+                {/* A frontmatter description may contain HTML (as with Gatsby); the
+                    generated excerpt is plain text and must stay escaped. */}
+                {post.data.description ? (
+                  <p style="color: rgb(95 103 110)" set:html={post.data.description} itemprop="description" />
+                ) : (
+                  <p style="color: rgb(95 103 110)" itemprop="description">
+                    {excerpt(post)}
+                  </p>
+                )}
               </section>
             </article>
           </li>
