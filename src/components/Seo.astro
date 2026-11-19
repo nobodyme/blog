@@ -1,24 +1,56 @@
 ---
-// Page <title> and social meta tags. The site name is appended here, once:
+// Page <title>, canonical URL, social (Open Graph / Twitter) tags and JSON-LD.
+// The site name is appended here, once:
 // "Post title | The Curious Engineer", or just "The Curious Engineer" with no title.
 import { site } from "../site.js"
 
 interface Props {
   title?: string
   description?: string
+  /** Absolute URL of a large share image (e.g. a post's first picture). */
+  image?: { url: string; width: number; height: number; alt: string }
+  /** Set on blog posts: makes the page an Open Graph "article". */
+  published?: Date
+  /** Structured data for search engines, rendered as JSON-LD. */
+  jsonLd?: object
+  /** Keep the page out of search results (and give it no canonical URL). */
+  noindex?: boolean
 }
 
-const { title, description } = Astro.props
+const { title, description, image, published, jsonLd, noindex } = Astro.props
 const metaDescription = description || site.description
 const fullTitle = title ? `${title} | ${site.title}` : site.title
+// Built from the site URL, not the request, so it is always the public https address.
+const canonical = new URL(Astro.url.pathname, Astro.site).href
+// Without a post image, fall back to the site icon as a small square card.
+const shareImage = image ?? {
+  url: new URL("icons/icon-512x512.png", site.siteUrl).href,
+  width: 512,
+  height: 512,
+  alt: site.title,
+}
+// "<" is escaped so post text can never close the <script> early.
+const ldJson = jsonLd && JSON.stringify(jsonLd).replace(/</g, "\\u003c")
 ---
 
+<title>{fullTitle}</title>
 <meta name="description" content={metaDescription} />
+{noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
+<meta property="og:site_name" content={site.title} />
 <meta property="og:title" content={fullTitle} />
 <meta property="og:description" content={metaDescription} />
-<meta property="og:type" content="website" />
-<meta name="twitter:card" content="summary" />
+{!noindex && <meta property="og:url" content={canonical} />}
+<meta property="og:type" content={published ? "article" : "website"} />
+<meta property="og:image" content={shareImage.url} />
+<meta property="og:image:width" content={String(shareImage.width)} />
+<meta property="og:image:height" content={String(shareImage.height)} />
+<meta property="og:image:alt" content={shareImage.alt} />
+{published && <meta property="article:published_time" content={published.toISOString()} />}
+{published && <meta property="article:author" content={site.author.name} />}
+<meta name="twitter:card" content={image ? "summary_large_image" : "summary"} />
 <meta name="twitter:creator" content={site.social.twitter} />
 <meta name="twitter:title" content={fullTitle} />
 <meta name="twitter:description" content={metaDescription} />
-<title>{fullTitle}</title>
+<meta name="twitter:image" content={shareImage.url} />
+<meta name="twitter:image:alt" content={shareImage.alt} />
+{ldJson && <script type="application/ld+json" set:html={ldJson} />}

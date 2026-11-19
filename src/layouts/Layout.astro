@@ -7,13 +7,11 @@ import Header from "../components/Header.astro"
 import Seo from "../components/Seo.astro"
 import { site, url } from "../site.js"
 
-interface Props {
-  /** Page name; the site name is appended by <Seo>. Omit on the home page. */
-  title?: string
-  description?: string
-}
+import type { ComponentProps } from "astro/types"
 
-const { title, description } = Astro.props
+/** Page name (the site name is appended by <Seo>; omit on the home page) and share metadata. */
+type Props = ComponentProps<typeof Seo>
+
 const isRootPath = Astro.url.pathname === url()
 const iconSizes = [48, 72, 96, 144, 192, 256, 384, 512]
 ---
@@ -40,7 +38,7 @@ const iconSizes = [48, 72, 96, 144, 192, 256, 384, 512]
         }
       } catch (e) {}
     </script>
-    <Seo title={title} description={description} />
+    <Seo {...Astro.props} />
     {
       import.meta.env.PROD && (
         <>

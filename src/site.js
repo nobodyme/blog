@@ -3,10 +3,11 @@ export const site = {
   title: "The Curious Engineer",
   author: {
     name: "Naveen",
+    url: "https://www.linkedin.com/in/naveen-kumar-b11464128/",
     summary: "I experiment and break things.",
   },
   description:
-    "I build things on AWS, break them, and write down what the scars taught me.",
+    "I build things, break them, and write down what the scars taught me.",
   siteUrl: "https://nobodyme.github.io/blog/",
   social: {
     twitter: "_nobodyme_",

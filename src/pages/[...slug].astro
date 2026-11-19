@@ -1,4 +1,6 @@
 ---
+import path from "node:path"
+import { getImage } from "astro:assets"
 import { getCollection, render } from "astro:content"
 import Comments from "../components/Comments.astro"
 import Layout from "../layouts/Layout.astro"
@@ -18,19 +20,60 @@ const { post, previous, next } = Astro.props
 const { Content } = await render(post)
 const minutes = timeToRead(post.rendered?.html)
 const readingTimeLabel = minutes ? `${minutes} min read` : null
+const description = post.data.description || excerpt(post, 160)
+const postUrl = new URL(`${post.id}/`, site.siteUrl).href
+
+// Share image: the post's first local picture, resized to a 1200px JPEG (what
+// LinkedIn, Slack and X expect). Imported lazily so only that one file is processed.
+const postImages = import.meta.glob<{ default: ImageMetadata }>("/content/blog/**/*.{png,jpg,jpeg,webp}")
+const firstImage = post.body?.match(/!\[([^\]]*)\]\(\s*<?([^)\s>]+)/)
+const imageKey = firstImage && path.posix.join("/", path.posix.dirname(post.filePath ?? ""), decodeURI(firstImage[2]))
+const resized =
+  imageKey && postImages[imageKey]
+    ? // layout "none": one file, not the srcset the site-wide "constrained" layout would emit.
+      await getImage({
+        src: (await postImages[imageKey]()).default,
+        width: 1200,
+        format: "jpeg",
+        quality: 80,
+        layout: "none",
+      })
+    : null
+const image =
+  resized && firstImage
+    ? {
+        url: new URL(resized.src, site.siteUrl).href,
+        width: Number(resized.attributes.width),
+        height: Number(resized.attributes.height),
+        alt: firstImage[1] || post.data.title,
+      }
+    : undefined
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: post.data.title,
+  description,
+  datePublished: post.data.date.toISOString(),
+  url: postUrl,
+  mainEntityOfPage: postUrl,
+  ...(image && { image: image.url }),
+  author: { "@type": "Person", name: site.author.name, url: site.author.url },
+  isPartOf: { "@type": "Blog", name: site.title, url: site.siteUrl },
+}
 ---
 
-<Layout title={post.data.title} description={post.data.description || excerpt(post, 160)}>
-  <article class="blog-post" itemscope itemtype="http://schema.org/Article">
+<Layout title={post.data.title} description={description} image={image} published={post.data.date} jsonLd={jsonLd}>
+  <article class="blog-post">
     <header>
-      <h1 itemprop="headline">{post.data.title}</h1>
+      <h1>{post.data.title}</h1>
       <p class="meta">
         <span>{formatDate(post.data.date)}</span>
         {readingTimeLabel && <span class="meta-separator">•</span>}
         {readingTimeLabel && <span>{readingTimeLabel}</span>}
       </p>
     </header>
-    <section itemprop="articleBody" class="blog-content">
+    <section class="blog-content">
       <Content />
     </section>
   </article>
