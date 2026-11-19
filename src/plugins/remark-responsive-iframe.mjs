@@ -6,8 +6,13 @@ import { visit } from "unist-util-visit"
 const WRAPPER_STYLE = "margin-bottom: 1.0725rem"
 const toNumber = v =>
   v == null || v.trim().endsWith("%") ? NaN : parseInt(v, 10)
-const attr = (tag, name) =>
-  tag.match(new RegExp(`\\s${name}\\s*=\\s*["']?([^"'\\s>]+)`, "i"))?.[1]
+// Attribute value: double-quoted, single-quoted, or bare.
+const attr = (tag, name) => {
+  const m = tag.match(
+    new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"),
+  )
+  return m ? (m[1] ?? m[2] ?? m[3]) : undefined
+}
 
 export default function remarkResponsiveIframe() {
   return tree => {
@@ -19,7 +24,7 @@ export default function remarkResponsiveIframe() {
       const height = toNumber(attr(tag, "height"))
       if (!Number.isFinite(width) || !Number.isFinite(height)) return
 
-      let style = attr(tag, "style") ?? ""
+      let style = (attr(tag, "style") ?? "").trim().replaceAll('"', "&quot;")
       if (style && !style.endsWith(";")) style += ";"
       const newTag = tag
         .replace(/\s(width|height|style)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
@@ -31,7 +36,8 @@ export default function remarkResponsiveIframe() {
       node.value =
         `<div class="gatsby-resp-iframe-wrapper" style="padding-bottom: ${(height / width) * 100}%; ` +
         `position: relative; height: 0; overflow: hidden; ${WRAPPER_STYLE}">` +
-        node.value.replace(tag, newTag) +
+        // A function replacement, so "$'" or "$&" inside the tag stay literal.
+        node.value.replace(tag, () => newTag) +
         `</div>`
     })
   }

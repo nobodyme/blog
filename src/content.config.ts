@@ -2,18 +2,32 @@ import { defineCollection } from "astro:content"
 import { file, glob } from "astro/loaders"
 import { z } from "astro/zod"
 
-// Each post lives in content/blog/<slug>/index.md; the folder name is the URL slug,
-// matching the paths Gatsby generated (/blog/<slug>/). Drafts and TIL notes in
-// content/draft and content/TIL stay unpublished, as before.
+// Every markdown file under content/blog is a post, with the URL Gatsby's
+// createFilePath gave it: <slug>/index.md and <slug>.md both become /blog/<slug>/,
+// and nested folders keep their path. Drafts and TIL notes in content/draft and
+// content/TIL stay unpublished, as before.
+// Gatsby read dates as UTC. A date-time without a timezone ("2026-11-01T02:00")
+// would otherwise be read in the build machine's local time, and could show a
+// different day locally than on CI.
+const postDate = z.preprocess(
+  value =>
+    typeof value === "string" &&
+    /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(value.trim())
+      ? `${value.trim().replace(" ", "T")}Z`
+      : value,
+  z.coerce.date(),
+)
+
 const blog = defineCollection({
   loader: glob({
-    pattern: "*/index.md",
+    pattern: "**/*.md",
     base: "./content/blog",
-    generateId: ({ entry }) => entry.split("/")[0],
+    generateId: ({ entry }) =>
+      entry.replace(/\.md$/, "").replace(/(^|\/)index$/, ""),
   }),
   schema: z.object({
     title: z.string(),
-    date: z.coerce.date(),
+    date: postDate,
     description: z.string().optional(),
   }),
 })
@@ -28,9 +42,11 @@ const likedPosts = defineCollection({
       })),
   }),
   schema: z.object({
-    date: z.coerce.date(),
+    date: postDate,
     title: z.string(),
-    link: z.string(),
+    link: z
+      .string()
+      .regex(/^https?:\/\//, "Liked post links must be http(s) URLs"),
     reaction: z.string(),
     tags: z.array(z.string()).optional(),
   }),

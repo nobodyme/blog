@@ -18,9 +18,9 @@
     "node": ">=22.23.4"
   },
   "scripts": {
-    "dev": "astro dev",
-    "start": "astro dev",
-    "build": "astro build",
+    "dev": "astro dev --force",
+    "start": "astro dev --force",
+    "build": "astro build --force",
     "preview": "astro preview",
     "format": "prettier --write \"**/*.{js,mjs,ts,json,css}\"",
     "clean": "rm -rf dist .astro node_modules/.astro"

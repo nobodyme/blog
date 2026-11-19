@@ -8,6 +8,33 @@ import { site } from "../site.js"
 
 const siteUrl = site.siteUrl.replace(/\/$/, "")
 
+/**
+ * Feed readers resolve relative URLs inconsistently (often against the feed's
+ * own URL), so make every src/href/srcset/poster in post HTML absolute,
+ * resolved against the post's URL as a browser would.
+ */
+function absolutizeUrls(html, pageUrl) {
+  const resolve = value => {
+    try {
+      return new URL(value, pageUrl).href
+    } catch {
+      return value
+    }
+  }
+  return html
+    .replace(
+      /\s(src|href|poster)="([^"]*)"/g,
+      (_, name, value) => ` ${name}="${resolve(value)}"`,
+    )
+    .replace(/\ssrcset="([^"]*)"/g, (_, value) => {
+      const list = value
+        .split(",")
+        .map(candidate => candidate.trim().replace(/^\S+/, url => resolve(url)))
+        .join(", ")
+      return ` srcset="${list}"`
+    })
+}
+
 export async function GET() {
   const posts = (await getCollection("blog")).sort(
     (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
@@ -23,7 +50,7 @@ export async function GET() {
         description: excerpt(post),
         link,
         pubDate: post.data.date,
-        content: await container.renderToString(Content),
+        content: absolutizeUrls(await container.renderToString(Content), link),
         customData: `<guid isPermaLink="false">${link}</guid>`,
       }
     }),
