@@ -143,7 +143,7 @@ where m is the number of columns
 
 So the cost to reach the cell,
 
-```
+```text
 [1,1] = a[1,1] + min(minarr[0,0], minarr[0,1], minarr[1,0])
 minarr[1,1] = 8 + min(1,3,5)
 So, minarr[1,1] = 9

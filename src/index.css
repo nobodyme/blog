@@ -51,18 +51,78 @@
   --fontSize-5: 2.074rem;
   --fontSize-6: 2.488rem;
   --fontSize-7: 2.986rem;
+  color-scheme: light;
   --color-primary: #24292e;
   --color-link: #0366d6;
   --color-text: #2e353f;
   --color-text-light: #4f5969;
-  --color-text-lighter: #959da5;
+  /* 4.82:1 on white (was #959da5, 2.75:1) */
+  --color-text-lighter: #6a737d;
+  /* Post descriptions on the home page, 5.75:1 on white */
+  --color-text-muted: #5f676e;
   --color-heading: #1a202c;
   --color-accent: #d1dce5;
+  --color-background: #ffffff;
   --color-background-secondary: #f6f8fa;
   --red-50: #FEF2F2;
-	--red-200: #FECACA;
+  --red-200: #FECACA;
   --blue-50: #EFF6FF;
   --blue-200: #BFDBFE;
-  /* To be used */
-  --color-inline-code: rgba(27,31,35,.05);
+  --color-inline-code: rgba(27,31,35,.06);
+
+  /* Header binoculars */
+  --bino-frame: var(--color-primary);
+  --bino-glass: #dff0fe;
+  --bino-pupil: #101418;
+  --bino-sparkle: #fff;
+  --bino-blush: #f49bb0;
+
+  /* Prism token colours (code blocks); all >= 4.5:1 on --color-background-secondary */
+  --code-text: #24292e;
+  --code-comment: #57606a;
+  --code-keyword: #cf222e;
+  --code-string: #0a3069;
+  --code-number: #0550ae;
+  --code-function: #8250df;
+  --code-tag: #116329;
+  --code-variable: #953800;
+  --code-inserted-bg: #dafbe1;
+  --code-deleted-bg: #ffebe9;
+}
+
+/* Dark palette. Text tokens keep WCAG AA (>= 4.5:1) on --color-background (#0d1117):
+   primary 16.0, text 12.3, text-light 9.6, text-muted 7.8, text-lighter 6.2, link 7.5. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --color-primary: #e6edf3;
+    --color-link: #58a6ff;
+    --color-text: #c9d1d9;
+    --color-text-light: #b1bac4;
+    --color-text-lighter: #8b949e;
+    --color-text-muted: #9da7b3;
+    --color-heading: #f0f6fc;
+    --color-accent: #30363d;
+    --color-background: #0d1117;
+    --color-background-secondary: #161b22;
+    --red-50: #2a1215;
+    --red-200: #8e1519;
+    --blue-50: #0c1d33;
+    --blue-200: #1f4b8f;
+    --color-inline-code: rgba(110,118,129,.4);
+
+    /* Mid-grey frame: 4.1:1 against the page and 3.9:1 against the light glass */
+    --bino-frame: #6e7681;
+
+    --code-text: #c9d1d9;
+    --code-comment: #8b949e;
+    --code-keyword: #ff7b72;
+    --code-string: #a5d6ff;
+    --code-number: #79c0ff;
+    --code-function: #d2a8ff;
+    --code-tag: #7ee787;
+    --code-variable: #ffa657;
+    --code-inserted-bg: #033a16;
+    --code-deleted-bg: #67060c;
+  }
 }

@@ -68,7 +68,7 @@ The exact usecase to fine-tune our model was revealed on competition day, althou
 I honestly did not know what SLED encompassed. So, I set out to find it.
 First I tried my modified, [QnACrafter app](https://partyrock.aws/u/nobodymenav/hZpzbBFCU/QnACrafter2025-SLED). It auto selects different aspects when a topic is given (one can also manually specify aspects) and prepares question and answers for it, that gave me a hint but I wanted to dig deeper. Using a combination of generated aspects from PartyRock and a bit of googling, I wrote a few-shot prompt for ChatGPT to give me more SLED topics (the exact prompt below)
 
-```
+```text
 US State government, Local and Education - understand citizen needs in plain language. 
 Handle complex scenarios like "I want to open a food truck" or "My neighbor's tree fell on my property" while providing step-by-step guidance through permit applications and licensing.
 Datasets generated should include realistic user queries and appropriate concise and helpful answer like an assistant from US gov public services
@@ -94,7 +94,7 @@ And so on, for all possible things one would likely reach out
 
 It responded with the topic and subtopics below, exactly what I was looking for,
 
-```
+```text
  1. Business & Commerce
  - Business formation (LLC/DBA, Secretary of State filings)
  - General business license / local tax receipt
@@ -159,7 +159,7 @@ Based on the leaderboard, top 5 candidates along with their fine-tuned model fro
 
 Participants were given access to the site where the questions appear, had the ability to tweak the **system prompt** that goes into the model, **temperature** and **top_p**. We had about 60 seconds for each question and were allowed to generate answers multiple times and submit our best one. The prompt I used is pasted below,
 
-```
+```text
 You are a knowledgeable, efficient, and direct AI assistant that helps US residents navigate public services reducing friction.
 Utilize multi-step reasoning to provide concise answers, focusing on key current information in plain language and short sentences. Avoid jargon; if you must use a legal term, define it.
 If multiple questions are asked, split them up and address in order that yields the most logical and accurate response.

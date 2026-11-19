@@ -81,7 +81,7 @@ For generating consecutive scenes, I also passed in the prompt produced by Claud
   allowfullscreen
 ></iframe>
 
-```
+```text
 SONG_SUMMARY: # "In The End" - Linkin Park  The video tracks a journey through futile effort and inevitable loss, beginning with quiet resignation before building to emotional intensity and returning to acceptance. The energy rises from contemplative verses to powerful choruses, with a dramatic bridge that represents the final emotional breaking point. Visual motifs of clocks, pendulums, and things slipping away reinforce the central theme of wasted time and effort, while the nu-metal/rap-rock fusion reflects the early 2000s cultural moment when anger and vulnerability could coexist in mainstream music.
 
 SCENE_ID: shot_005

@@ -2,7 +2,6 @@
 import "../normalize.css"
 import "../index.css"
 import "../style.css"
-import "prismjs/themes/prism.css"
 
 import Header from "../components/Header.astro"
 import Seo from "../components/Seo.astro"
@@ -26,7 +25,8 @@ const iconSizes = [48, 72, 96, 144, 192, 256, 384, 512]
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="theme-color" content="#24292e" />
+    <meta name="theme-color" content="#24292e" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)" />
     <Seo title={title} description={description} />
     {
       import.meta.env.PROD && (
