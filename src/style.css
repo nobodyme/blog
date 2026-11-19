@@ -229,24 +229,6 @@ a:focus {
   stroke-linecap: round;
   opacity: 0;
 }
-.bino-hop {
-  animation: bino-hop 0.6s cubic-bezier(0.3, 1.7, 0.5, 1);
-  transform-origin: 50% 100%;
-}
-@keyframes bino-hop {
-  40% {
-    transform: translateY(-14%) scale(1.04, 0.97);
-  }
-  100% {
-    transform: none;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .bino-hop {
-    animation: none;
-  }
-}
-
 .header-icon {
   margin-right: var(--spacing-4);
   margin-bottom: var(--spacing-0);
