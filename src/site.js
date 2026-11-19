@@ -3,6 +3,7 @@ export const site = {
   title: "The Curious Engineer",
   author: {
     name: "Naveen",
+    url: "https://www.linkedin.com/in/naveen-kumar-b11464128/",
     summary: "I experiment and break things.",
   },
   description:

@@ -3,6 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { unified } from "@astrojs/markdown-remark"
+import sitemap from "@astrojs/sitemap"
 import { defineConfig } from "astro/config"
 
 import remarkExcerpt from "./src/plugins/remark-excerpt.mjs"
@@ -94,5 +95,6 @@ export default defineConfig({
     // Code is highlighted by remark-prism (same output as gatsby-remark-prismjs).
     syntaxHighlight: false,
   },
-  integrations: [copyPostAssets()],
+  // sitemap-index.xml for search engines; the 404 page is left out automatically.
+  integrations: [copyPostAssets(), sitemap()],
 })
