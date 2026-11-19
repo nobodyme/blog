@@ -6,7 +6,7 @@ export const site = {
     summary: "I experiment and break things.",
   },
   description:
-    "Engineer, architect, and habitual tinkerer building highly performant systems then turning the scars into posts",
+    "I build things on AWS, break them, and write down what the scars taught me.",
   siteUrl: "https://nobodyme.github.io/blog/",
   social: {
     twitter: "_nobodyme_",
