@@ -268,6 +268,92 @@ a:focus {
   top: 16px;
 }
 
+/* Light/dark toggle at the end of the header icons. It shows the theme a click
+   switches to: a moon on the light page, a sun on the dark one. */
+.header-divider {
+  width: 1px;
+  height: 24px;
+  margin-right: var(--spacing-4);
+  background: var(--color-accent);
+  position: relative;
+  top: 16px;
+}
+
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-heading);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mouse only: on touch screens :hover sticks after a tap and leaves a grey circle */
+@media (hover: hover) {
+  .theme-toggle:hover {
+    background: var(--color-background-secondary);
+  }
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+
+/* Solid shapes, to match the filled heart, LinkedIn, GitHub and RSS icons */
+.theme-icon {
+  grid-area: 1 / 1;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.35s ease, opacity 0.2s ease;
+}
+
+.theme-icon-sun path {
+  fill: none;
+  stroke-width: 2.4;
+}
+
+.theme-icon-sun {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.6);
+}
+
+:root[data-theme="dark"] .theme-icon-moon {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.6);
+}
+
+:root[data-theme="dark"] .theme-icon-sun {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-icon-moon {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.6);
+  }
+
+  :root:not([data-theme="light"]) .theme-icon-sun {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-icon {
+    transition: none;
+  }
+}
+
 .global-content-wrapper {
   margin: var(--spacing-0) auto;
   max-width: var(--maxWidth-wrapper);
@@ -632,7 +718,8 @@ footer span {
     margin: var(--spacing-2) var(--spacing-5) var(--spacing-8);
   }
 
-  .header-social-icon {
+  .header-social-icon,
+  .theme-toggle {
     fill: var(--color-text-lighter);
     color: var(--color-text-lighter);
   }
