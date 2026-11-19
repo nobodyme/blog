@@ -195,6 +195,59 @@ a:focus {
   text-decoration: none;
 }
 
+/* Binoculars in the header; the eyes are animated by Header.astro */
+.binoculars {
+  overflow: visible;
+  flex: none;
+}
+.bino-frame,
+.bino-lid {
+  fill: var(--color-primary);
+}
+.bino-glass {
+  fill: #dff0fe;
+}
+.bino-pupil {
+  fill: #101418;
+}
+.bino-sparkle {
+  fill: #fff;
+}
+.bino-shine {
+  fill: #fff;
+  opacity: 0.3;
+}
+.bino-blush {
+  fill: #f49bb0;
+}
+.bino-blush-group {
+  opacity: 0;
+}
+.bino-lash {
+  fill: none;
+  stroke: #dff0fe;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.bino-hop {
+  animation: bino-hop 0.6s cubic-bezier(0.3, 1.7, 0.5, 1);
+  transform-origin: 50% 100%;
+}
+@keyframes bino-hop {
+  40% {
+    transform: translateY(-14%) scale(1.04, 0.97);
+  }
+  100% {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bino-hop {
+    animation: none;
+  }
+}
+
 .header-icon {
   margin-right: var(--spacing-4);
   margin-bottom: var(--spacing-0);
