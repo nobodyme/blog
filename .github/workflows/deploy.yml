@@ -4,8 +4,7 @@ on:
   push:
     branches:
       - main
-  # Build (but don't deploy) every pull request, so a broken build is caught before merge.
-  pull_request:
+  # No pull_request trigger: nothing runs when a PR is opened or updated.
   workflow_dispatch:
 
 # Read-only by default; only the deploy job gets write access.
@@ -14,9 +13,9 @@ permissions:
 
 concurrency:
   group: pages-${{ github.ref }}
-  # Supersede outdated PR builds, but never cancel a production deploy halfway:
-  # a later failing build would otherwise leave the site on an older version.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # Never cancel a production deploy halfway: queue the next one instead, or a
+  # later failing build would leave the site on an older version.
+  cancel-in-progress: false
 
 env:
   SITE_URL: https://nobodyme.github.io/blog/
@@ -59,7 +58,8 @@ jobs:
 
   deploy:
     # Publishes to the gh-pages branch, which GitHub Pages serves.
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    # Manual runs from other branches only build.
+    if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     permissions:
