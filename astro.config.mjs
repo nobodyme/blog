@@ -72,6 +72,10 @@ export default defineConfig({
   site: "https://nobodyme.github.io",
   base: BASE,
   trailingSlash: "ignore",
+  // GitHub Pages runs Jekyll unless public/.nojekyll is deployed, and Jekyll drops
+  // folders starting with "_" (Astro's default "_astro"). Use a plain name so CSS,
+  // JS and images are served either way.
+  build: { assets: "assets" },
   // JSX whitespace rules (Astro 7 default), same as the old React components.
   compressHTML: "jsx",
   prefetch: { prefetchAll: true, defaultStrategy: "hover" },

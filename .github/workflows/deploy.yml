@@ -37,6 +37,15 @@ jobs:
           name: site
           path: dist
           retention-days: 7
+          # Keep dist/.nojekyll: without it GitHub Pages runs Jekyll, which drops
+          # the _astro/ folder (CSS, JS and images) because it starts with "_".
+          include-hidden-files: true
+
+      - name: Check the built site is GitHub Pages-ready
+        run: |
+          test -f dist/.nojekyll || { echo "dist/.nojekyll is missing"; exit 1; }
+          test -d dist/assets || { echo "dist/assets is missing"; exit 1; }
+          if find dist -name '_*' | grep -q .; then echo "Paths starting with _ would be dropped by Jekyll:"; find dist -name '_*'; exit 1; fi
 
   deploy:
     # Publishes to the gh-pages branch, the same branch GitHub Pages serves today,
@@ -55,6 +64,9 @@ jobs:
         with:
           name: site
           path: dist
+
+      - name: Check .nojekyll survived the artifact
+        run: test -f dist/.nojekyll || { echo "dist/.nojekyll is missing"; exit 1; }
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
