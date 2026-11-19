@@ -20,4 +20,4 @@ Requires Node 22.23.4+ (see `.nvmrc`).
 | `npm run preview` | Serve the production build locally                                             |
 | `npm run clean`   | Delete build output and caches (`dev` and `build` already start with a fresh content cache) |
 
-Pushing to `main` builds and publishes to the `gh-pages` branch via GitHub Actions (`.github/workflows/deploy.yml`). Pull requests are built but not deployed.
+Pushing to `main` builds and publishes to the `gh-pages` branch via GitHub Actions (`.github/workflows/deploy.yml`). Nothing runs on pull requests, so run `npm run build` locally before merging.
