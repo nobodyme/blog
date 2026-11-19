@@ -73,12 +73,7 @@ const lenses = [
             <g class="bino-blush-group" transform="translate(0 7)">
               <ellipse class="bino-blush" cx={cx + (cx < 50 ? -6.5 : 6.5)} cy="54.5" rx="3.6" ry="1.9" />
             </g>
-            <path
-              class="bino-lid"
-              transform="scale(1 0)"
-              d={`M${cx - 14} 31H${cx + 14}V54Q${cx} 64 ${cx - 14} 54Z`}
-            />
-            <path class="bino-lash" d={`M${cx - 7} 45.5Q${cx} 51 ${cx + 7} 45.5`} />
+            <path class="bino-lash" d={`M${cx - 7} 44.5Q${cx} 51 ${cx + 7} 44.5`} />
           </g>
         ))
       }
@@ -118,7 +113,6 @@ const lenses = [
     const eyes = all<SVGGElement>(".bino-eye")
     const cheeks = all<SVGPathElement>(".bino-cheek")
     const blushes = all<SVGGElement>(".bino-blush-group")
-    const lids = all<SVGPathElement>(".bino-lid")
     const lashes = all<SVGPathElement>(".bino-lash")
     const lensX = [29, 71]
     const LENS_Y = 45
@@ -205,7 +199,6 @@ const lenses = [
         look[i][0] += (tx - look[i][0]) * ease
         look[i][1] += (ty - look[i][1]) * ease
         if (Math.abs(tx - look[i][0]) > 0.01 || Math.abs(ty - look[i][1]) > 0.01) settled = false
-        eyes[i].setAttribute("transform", `translate(${look[i][0].toFixed(2)} ${look[i][1].toFixed(2)})`)
 
         const cheekShift = `translate(0 ${((1 - joy) * 13).toFixed(2)})`
         cheeks[i].setAttribute("transform", cheekShift)
@@ -220,10 +213,17 @@ const lenses = [
       }
       const p = (t - blinkStart) / BLINK_MS
       const blink = !rm && p >= 0 && p <= 1 ? Math.sin(Math.PI * p) : 0
-      const shut = Math.max(lid, blink)
+      // Eyes close by squashing flat; a closed-eye curve fades in as they shut.
+      const shut = Math.min(1, Math.max(lid, blink))
+      const open = Math.max(0.001, 1 - shut)
       for (let i = 0; i < 2; i++) {
-        lids[i].setAttribute("transform", `translate(0 31) scale(1 ${shut.toFixed(3)}) translate(0 -31)`)
-        lashes[i].style.opacity = Math.max(0, (lid - 0.85) / 0.15).toFixed(2)
+        // Move the eye, and squash it vertically around its own centre.
+        const [x, y] = look[i]
+        eyes[i].setAttribute(
+          "transform",
+          `translate(${x.toFixed(2)} ${(LENS_Y * (1 - open) + y).toFixed(2)}) scale(1 ${open.toFixed(3)})`,
+        )
+        lashes[i].style.opacity = Math.min(1, Math.max(0, (shut - 0.6) / 0.35)).toFixed(2)
       }
 
       // Fully asleep and still: stop until the cursor comes back.
