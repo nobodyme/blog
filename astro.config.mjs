@@ -72,6 +72,10 @@ export default defineConfig({
   site: "https://nobodyme.github.io",
   base: BASE,
   trailingSlash: "ignore",
+  // public/.nojekyll is what keeps GitHub Pages from running Jekyll, which drops
+  // anything starting with "_". The plain folder name (instead of "_astro") is
+  // just tidier; Astro can still emit "_"-prefixed bundle names (e.g. _slug_.css).
+  build: { assets: "assets" },
   // JSX whitespace rules (Astro 7 default), same as the old React components.
   compressHTML: "jsx",
   prefetch: { prefetchAll: true, defaultStrategy: "hover" },
