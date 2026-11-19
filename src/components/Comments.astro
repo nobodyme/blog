@@ -30,10 +30,22 @@
       "data-emit-metadata": "0",
       "data-input-position": "top",
       "data-lang": "en",
+      // The comments iframe loads only when it's scrolled near, not with the page.
+      "data-loading": "lazy",
       crossorigin: "anonymous",
     }
     for (var k in attrs) s.setAttribute(k, attrs[k])
     s.async = true
     document.currentScript.after(s)
+
+    // A theme toggled before the lazy iframe loaded never reached it, so send the
+    // current theme once giscus first talks to the page (its first height update).
+    addEventListener("message", function sendTheme(e) {
+      if (e.origin !== "https://giscus.app" || !e.data || !e.data.giscus) return
+      removeEventListener("message", sendTheme)
+      var root = document.documentElement
+      var theme = root.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+      e.source.postMessage({ giscus: { setConfig: { theme: theme } } }, "https://giscus.app")
+    })
   })()
 </script>

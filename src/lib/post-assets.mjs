@@ -65,10 +65,15 @@ export function listPostAssets(postsDir, dir = postsDir) {
   return out
 }
 
+/** Longest side of a published full-size photo; camera originals can be 5000px+. */
+export const MAX_PHOTO_SIDE = 2000
+
 /**
  * Write the published copy of a post asset. As gatsby-remark-images did,
  * full-size JPEG/PNG copies are re-encoded (JPEG q50 progressive, PNG palette)
  * and rotated upright according to their EXIF orientation; other files are copied.
+ * JPEGs (photos) are also capped at MAX_PHOTO_SIDE. PNGs are left at full size:
+ * they are screenshots and diagrams whose text must stay readable when zoomed.
  * @param {string} src absolute source path
  * @param {string} dest absolute destination path
  */
@@ -79,6 +84,12 @@ export async function publishPostAsset(src, dest) {
     if (ext === ".jpg" || ext === ".jpeg") {
       await sharp(src)
         .rotate()
+        .resize({
+          width: MAX_PHOTO_SIDE,
+          height: MAX_PHOTO_SIDE,
+          fit: "inside",
+          withoutEnlargement: true,
+        })
         .jpeg({ quality: 50, progressive: true })
         .toFile(dest)
     } else if (ext === ".png") {
