@@ -110,7 +110,10 @@ jobs:
           css=$(printf '%s\n' "${assets[@]}" | grep -m1 '\.css$') || { echo "No stylesheet found in dist/index.html"; exit 1; }
           echo "Waiting for ${SITE_URL} to reference ${css}"
           for attempt in $(seq 1 60); do
-            if curl -fsSL "${SITE_URL}?v=${GITHUB_SHA}" | grep -qF "${css}"; then
+            # Fetch first, then search: piping curl into `grep -q` makes curl fail
+            # with exit 23 when grep stops reading early, which pipefail treats as a miss.
+            page=$(curl -fsSL "${SITE_URL}?v=${GITHUB_SHA}" || true)
+            if grep -qF "${css}" <<< "$page"; then
               echo "New version is live (attempt ${attempt})"
               break
             fi
