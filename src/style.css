@@ -201,8 +201,7 @@ a:focus {
   overflow: visible;
   flex: none;
 }
-.bino-frame,
-.bino-lid {
+.bino-frame {
   fill: var(--bino-frame);
 }
 .bino-glass {
@@ -226,8 +225,8 @@ a:focus {
 }
 .bino-lash {
   fill: none;
-  stroke: var(--bino-glass);
-  stroke-width: 1.6;
+  stroke: var(--bino-pupil);
+  stroke-width: 2.4;
   stroke-linecap: round;
   opacity: 0;
 }
