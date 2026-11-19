@@ -102,9 +102,10 @@ const lenses = [
 </div>
 
 <script>
-  // "Wakes up" binoculars: the eyes say hello on load, doze off, and wake up
-  // happily when the cursor comes near. The animation loop only runs while
-  // something is moving, and never while the header is off-screen.
+  // "Watcher" binoculars: the eyes stay open and follow the cursor, blink now
+  // and then, and smile more as the cursor gets close. Nothing runs while the
+  // eyes are still: pointer moves and blink/glance timers start the loop, and
+  // it stops once everything has settled or the header is off-screen.
   const svg = document.querySelector<SVGSVGElement>(".binoculars")
 
   if (svg) {
@@ -117,23 +118,16 @@ const lenses = [
     const lensX = [29, 71]
     const LENS_Y = 45
     const MAX_LOOK = 4.2 // how far an eye can move from the lens centre
-    const AWAKE_MS = 2400 // stay awake this long after the cursor leaves
-    const DROWSY_MS = 1800 // half-closed eyes before falling asleep
     const BLINK_MS = 170
+    const rand = (min: number, max: number) => min + Math.random() * (max - min)
 
     let pointer: { x: number; y: number } | null = null
     let onScreen = true
     let running = false
-    const start = performance.now()
-    let awakeUntil = start + 2800
-    let delightUntil = start + 1100
-    let wasAsleep = false
-    let lid = 0
+    let delightUntil = performance.now() + 1100 // happy squint on load
     let joy = 0.45
-    let blinkAt = start + 2500 + Math.random() * 2500
     let blinkStart = -Infinity
     let idle = [0, 0]
-    let idleAt = 0
     const look = [
       [0, 0],
       [0, 0],
@@ -141,8 +135,6 @@ const lenses = [
 
     const hop = () => {
       if (reduceMotion.matches) return
-      svg.classList.remove("bino-hop")
-      void svg.getBoundingClientRect() // restart the CSS animation
       svg.classList.add("bino-hop")
     }
     svg.addEventListener("animationend", () => svg.classList.remove("bino-hop"))
@@ -150,50 +142,26 @@ const lenses = [
     const tick = (t: number) => {
       const box = svg.getBoundingClientRect()
       const scale = box.width / 100
-      const midX = box.left + box.width / 2
-      const midY = box.top + box.height / 2
       const reach = Math.max(150, box.width * 1.4)
-      const distance = pointer ? Math.hypot(pointer.x - midX, pointer.y - midY) : Infinity
-      const rm = reduceMotion.matches
+      const distance = pointer
+        ? Math.hypot(pointer.x - (box.left + box.width / 2), pointer.y - (box.top + box.height / 2))
+        : Infinity
 
-      if (distance < reach) awakeUntil = t + AWAKE_MS
-      const lidTarget = t < awakeUntil ? 0 : t < awakeUntil + DROWSY_MS ? 0.55 : 1
-      const asleep = lidTarget === 1
-      if (wasAsleep && lidTarget === 0) {
-        delightUntil = t + 1100
-        hop()
-      }
-      wasAsleep = lid > 0.6
-
-      // Smile at rest, smile more as the cursor gets close, squint with joy on waking.
-      let joyTarget = 0.45 + 0.3 * Math.max(0, 1 - distance / reach)
-      if (t < delightUntil) joyTarget = 1
-      if (lidTarget > 0) joyTarget = 0
+      // Smile at rest, smile more as the cursor gets close, squint with joy on load.
+      const joyTarget = t < delightUntil ? 1 : 0.45 + 0.3 * Math.max(0, 1 - distance / reach)
       joy += (joyTarget - joy) * 0.12
+      let settled = Math.abs(joyTarget - joy) < 0.005
 
-      if (!pointer && t > idleAt) {
-        idleAt = t + 900 + Math.random() * 1700
-        const angle = Math.random() * Math.PI * 2
-        const amount = rm ? 0 : Math.random() * 4.2
-        idle = [Math.cos(angle) * amount, Math.sin(angle) * amount * 0.7]
-      }
-
-      let settled = true
       for (let i = 0; i < 2; i++) {
-        let tx: number
-        let ty: number
-        if (asleep) {
-          tx = 0
-          ty = 2.5
-        } else if (pointer) {
+        let tx = idle[0]
+        let ty = idle[1]
+        if (pointer) {
           const dx = pointer.x - (box.left + lensX[i] * scale)
           const dy = pointer.y - (box.top + LENS_Y * scale)
           const d = Math.hypot(dx, dy) || 1
           const m = MAX_LOOK * (1 - Math.exp(-d / (60 + 40 * scale)))
           tx = (dx / d) * m
           ty = (dy / d) * m
-        } else {
-          ;[tx, ty] = idle
         }
         const ease = pointer ? 0.3 : 0.2
         look[i][0] += (tx - look[i][0]) * ease
@@ -206,18 +174,12 @@ const lenses = [
         blushes[i].style.opacity = Math.max(0, (joy - 0.55) * 1.8).toFixed(2)
       }
 
-      lid += (lidTarget - lid) * (lidTarget > lid ? 0.06 : 0.3)
-      if (!asleep && t > blinkAt) {
-        blinkStart = t
-        blinkAt = t + (Math.random() < 0.2 ? 240 + Math.random() * 80 : 2600 + Math.random() * 3900)
-      }
+      // Blink by squashing the eyes flat; a closed-eye curve shows at the bottom of the blink.
       const p = (t - blinkStart) / BLINK_MS
-      const blink = !rm && p >= 0 && p <= 1 ? Math.sin(Math.PI * p) : 0
-      // Eyes close by squashing flat; a closed-eye curve fades in as they shut.
-      const shut = Math.min(1, Math.max(lid, blink))
+      const blinking = p >= 0 && p <= 1
+      const shut = blinking ? Math.sin(Math.PI * p) : 0
       const open = Math.max(0.001, 1 - shut)
       for (let i = 0; i < 2; i++) {
-        // Move the eye, and squash it vertically around its own centre.
         const [x, y] = look[i]
         eyes[i].setAttribute(
           "transform",
@@ -226,9 +188,7 @@ const lenses = [
         lashes[i].style.opacity = Math.min(1, Math.max(0, (shut - 0.6) / 0.35)).toFixed(2)
       }
 
-      // Fully asleep and still: stop until the cursor comes back.
-      const done = asleep && lid > 0.995 && joy < 0.005 && settled
-      if (done || !onScreen) {
+      if ((settled && !blinking) || !onScreen) {
         running = false
         return
       }
@@ -241,28 +201,53 @@ const lenses = [
       requestAnimationFrame(tick)
     }
 
-    const isNear = (x: number, y: number) => {
-      const box = svg.getBoundingClientRect()
-      return Math.hypot(x - (box.left + box.width / 2), y - (box.top + box.height / 2)) < Math.max(150, box.width * 1.4)
+    // Blink every few seconds (sometimes twice), and glance around when there's no cursor.
+    const scheduleBlink = () => {
+      setTimeout(
+        () => {
+          if (onScreen && !document.hidden && !reduceMotion.matches) {
+            blinkStart = performance.now()
+            run()
+          }
+          scheduleBlink()
+        },
+        Math.random() < 0.2 ? rand(240, 320) : rand(2600, 6500),
+      )
+    }
+    const scheduleGlance = () => {
+      setTimeout(
+        () => {
+          if (!pointer && onScreen && !document.hidden && !reduceMotion.matches) {
+            const angle = rand(0, Math.PI * 2)
+            const amount = rand(0, 4.2)
+            idle = [Math.cos(angle) * amount, Math.sin(angle) * amount * 0.7]
+            run()
+          }
+          scheduleGlance()
+        },
+        rand(900, 2600),
+      )
     }
 
     const onPointer = (e: PointerEvent) => {
       pointer = { x: e.clientX, y: e.clientY }
-      if (running) return
-      if (isNear(e.clientX, e.clientY)) run()
+      run()
     }
     addEventListener("pointermove", onPointer, { passive: true })
     addEventListener("pointerdown", onPointer, { passive: true })
     document.documentElement.addEventListener("mouseleave", () => {
       pointer = null
+      run()
     })
 
     new IntersectionObserver(([entry]) => {
       onScreen = entry.isIntersecting
-      if (onScreen) run() // tick() stops itself straight away if there is nothing to animate
+      if (onScreen) run()
     }).observe(svg)
 
     hop()
     run()
+    scheduleBlink()
+    scheduleGlance()
   }
 </script>
