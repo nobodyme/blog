@@ -1,23 +1,24 @@
 ---
-// Same tags react-helmet produced from the old src/components/seo.js.
+// Page <title> and social meta tags. The site name is appended here, once:
+// "Post title | The Curious Engineer", or just "The Curious Engineer" with no title.
 import { site } from "../site.js"
 
 interface Props {
-  title: string
+  title?: string
   description?: string
 }
 
 const { title, description } = Astro.props
 const metaDescription = description || site.description
-const fullTitle = site.title ? `${title} | ${site.title}` : title
+const fullTitle = title ? `${title} | ${site.title}` : site.title
 ---
 
 <meta name="description" content={metaDescription} />
-<meta property="og:title" content={title} />
+<meta property="og:title" content={fullTitle} />
 <meta property="og:description" content={metaDescription} />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:creator" content={site.social.twitter} />
-<meta name="twitter:title" content={title} />
+<meta name="twitter:title" content={fullTitle} />
 <meta name="twitter:description" content={metaDescription} />
 <title>{fullTitle}</title>

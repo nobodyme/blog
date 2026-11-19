@@ -5,12 +5,11 @@ import Heart from "../../assets/svg/heart.svg"
 import Shuttle from "../../assets/svg/shuttle.svg"
 import Layout from "../../layouts/Layout.astro"
 import { fromNow } from "../../lib/text.js"
-import { site } from "../../site.js"
 
 const likedPosts = (await getCollection("likedPosts")).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
 ---
 
-<Layout title={`${site.title} | Liked Posts`}>
+<Layout title="Liked Posts">
   <div class="liked-page-header">Liked Posts</div>
   <hr />
   <div class="liked-post">
