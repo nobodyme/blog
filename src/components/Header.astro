@@ -11,7 +11,7 @@ interface Props {
 
 const { siteTitle } = Astro.props
 
-// Lens centres in the binoculars' 100 x 64 drawing.
+// Lens centres in the binoculars drawing (viewBox trimmed to x 10..90).
 const lenses = [
   { side: "l", cx: 29 },
   { side: "r", cx: 71 },
@@ -20,7 +20,7 @@ const lenses = [
 
 <div class="global-header">
   <a class="header-title" href={url()}>
-    <svg class="header-icon binoculars" viewBox="0 0 100 64" width="44" height="28" aria-hidden="true" focusable="false">
+    <svg class="header-icon binoculars" viewBox="10 0 80 64" width="60" height="48" aria-hidden="true" focusable="false">
       <defs>
         {
           lenses.map(({ side, cx }) => (
@@ -117,6 +117,8 @@ const lenses = [
     const lashes = all<SVGPathElement>(".bino-lash")
     const lensX = [29, 71]
     const LENS_Y = 45
+    const VIEW_X = 10 // the SVG's viewBox is trimmed to x 10..90
+    const VIEW_W = 80
     const MAX_LOOK = 4.2 // how far an eye can move from the lens centre
     const BLINK_MS = 170
     const rand = (min: number, max: number) => min + Math.random() * (max - min)
@@ -133,15 +135,9 @@ const lenses = [
       [0, 0],
     ]
 
-    const hop = () => {
-      if (reduceMotion.matches) return
-      svg.classList.add("bino-hop")
-    }
-    svg.addEventListener("animationend", () => svg.classList.remove("bino-hop"))
-
     const tick = (t: number) => {
       const box = svg.getBoundingClientRect()
-      const scale = box.width / 100
+      const scale = box.width / VIEW_W
       const reach = Math.max(150, box.width * 1.4)
       const distance = pointer
         ? Math.hypot(pointer.x - (box.left + box.width / 2), pointer.y - (box.top + box.height / 2))
@@ -156,7 +152,7 @@ const lenses = [
         let tx = idle[0]
         let ty = idle[1]
         if (pointer) {
-          const dx = pointer.x - (box.left + lensX[i] * scale)
+          const dx = pointer.x - (box.left + (lensX[i] - VIEW_X) * scale)
           const dy = pointer.y - (box.top + LENS_Y * scale)
           const d = Math.hypot(dx, dy) || 1
           const m = MAX_LOOK * (1 - Math.exp(-d / (60 + 40 * scale)))
@@ -245,7 +241,6 @@ const lenses = [
       if (onScreen) run()
     }).observe(svg)
 
-    hop()
     run()
     scheduleBlink()
     scheduleGlance()
