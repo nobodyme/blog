@@ -18,6 +18,7 @@ body {
   font-family: var(--font-body);
   font-size: var(--fontSize-1);
   color: var(--color-primary);
+  background-color: var(--color-background);
 }
 
 footer {
@@ -201,30 +202,30 @@ a:focus {
   flex: none;
 }
 .bino-frame {
-  fill: var(--color-primary);
+  fill: var(--bino-frame);
 }
 .bino-glass {
-  fill: #dff0fe;
+  fill: var(--bino-glass);
 }
 .bino-pupil {
-  fill: #101418;
+  fill: var(--bino-pupil);
 }
 .bino-sparkle {
-  fill: #fff;
+  fill: var(--bino-sparkle);
 }
 .bino-shine {
-  fill: #fff;
+  fill: var(--bino-sparkle);
   opacity: 0.3;
 }
 .bino-blush {
-  fill: #f49bb0;
+  fill: var(--bino-blush);
 }
 .bino-blush-group {
   opacity: 0;
 }
 .bino-lash {
   fill: none;
-  stroke: #101418;
+  stroke: var(--bino-pupil);
   stroke-width: 2.4;
   stroke-linecap: round;
   opacity: 0;
@@ -327,6 +328,10 @@ a:focus {
   margin-bottom: var(--spacing-8);
 }
 
+.post-description {
+  color: var(--color-text-muted);
+}
+
 /* Markdown images (src/plugins/rehype-images.mjs): the image covers the blurred
    placeholder box, exactly like gatsby-remark-images' inline styles did. */
 .gatsby-resp-image-image {
@@ -339,8 +344,158 @@ a:focus {
   left: 0;
 }
 
+/* Code: a small Prism theme driven by the --code-* tokens in index.css, so it
+   follows the light/dark palette (replaces prismjs/themes/prism.css). */
+code[class*="language-"],
+pre[class*="language-"] {
+  color: var(--code-text);
+  font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+  font-size: 1em;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  line-height: 1.5;
+  tab-size: 4;
+  hyphens: none;
+  text-shadow: none;
+}
+
+pre[class*="language-"] {
+  margin: var(--spacing-2) 0;
+  padding: 1em;
+  overflow: auto;
+  border-radius: 6px;
+}
+
+.gatsby-highlight {
+  position: relative;
+}
+
 .gatsby-highlight pre[class*="language-"] {
   background-color: var(--color-background-secondary);
+  border: 1px solid var(--color-accent);
+}
+
+/* Fence language in the top-right corner. The label sits on the wrapper, not the
+   scrolling <pre>, so it stays put while wide blocks scroll horizontally. */
+.gatsby-highlight[data-language]:not([data-language="text"])::after {
+  content: attr(data-language);
+  position: absolute;
+  top: calc(var(--spacing-2) + 1px);
+  right: 1px;
+  padding: 0.1rem 0.5rem;
+  border-bottom-left-radius: 6px;
+  border-top-right-radius: 5px;
+  background-color: var(--color-background-secondary);
+  color: var(--color-text-lighter);
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  font-weight: var(--fontWeight-semibold);
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+}
+
+.gatsby-highlight[data-language]:not([data-language="text"]) pre[class*="language-"] {
+  padding-top: var(--spacing-6);
+}
+
+/* Inline code */
+:not(pre) > code[class*="language-"] {
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  background-color: var(--color-inline-code);
+  color: inherit;
+  white-space: normal;
+}
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: var(--code-comment);
+  font-style: italic;
+}
+
+.token.punctuation {
+  color: var(--code-text);
+}
+
+.token.namespace {
+  opacity: 0.8;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol {
+  color: var(--code-number);
+}
+
+.token.tag,
+.token.selector {
+  color: var(--code-tag);
+}
+
+.token.attr-name,
+.token.class-name,
+.token.function {
+  color: var(--code-function);
+}
+
+.token.string,
+.token.char,
+.token.attr-value,
+.token.regex,
+.token.url,
+.token.builtin {
+  color: var(--code-string);
+}
+
+.token.operator,
+.token.entity {
+  color: var(--code-keyword);
+  background: none;
+}
+
+.token.atrule,
+.token.keyword,
+.token.important {
+  color: var(--code-keyword);
+}
+
+.token.variable,
+.token.key {
+  color: var(--code-variable);
+}
+
+.token.inserted {
+  color: var(--code-tag);
+  background-color: var(--code-inserted-bg);
+}
+
+.token.deleted {
+  color: var(--code-keyword);
+  background-color: var(--code-deleted-bg);
+}
+
+.token.important,
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+.token.entity {
+  cursor: help;
 }
 
 .meta {

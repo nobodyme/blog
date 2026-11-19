@@ -20,7 +20,7 @@ const posts = (await getCollection("blog")).sort((a, b) => b.data.date.valueOf()
             </a>{" "}
             👋
           </h3>
-          <div style="color: rgb(95 103 110); margin-bottom: 20px">{site.description}</div>
+          <div class="post-description" style="margin-bottom: 20px">{site.description}</div>
           <hr />
         </div>
         {posts.map(post => (
@@ -38,9 +38,9 @@ const posts = (await getCollection("blog")).sort((a, b) => b.data.date.valueOf()
                 {/* A frontmatter description may contain HTML (as with Gatsby); the
                     generated excerpt is plain text and must stay escaped. */}
                 {post.data.description ? (
-                  <p style="color: rgb(95 103 110)" set:html={post.data.description} itemprop="description" />
+                  <p class="post-description" set:html={post.data.description} itemprop="description" />
                 ) : (
-                  <p style="color: rgb(95 103 110)" itemprop="description">
+                  <p class="post-description" itemprop="description">
                     {excerpt(post)}
                   </p>
                 )}

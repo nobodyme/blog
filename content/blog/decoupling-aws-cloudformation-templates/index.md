@@ -18,7 +18,7 @@ We decided to split our infrastructure into multiple stacks. CloudFormation has 
 Hence obviously, there came instances where one stack depended on the resources created by another stack, at that time we exported that particular resource and imported it in the stack that required it like shown in the example below,
 
 **ParentStack**
-```
+```yaml
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'main-parent-stack'
 
@@ -37,7 +37,7 @@ Resources:
 
 **NestedStackA**
 
-```
+```yaml
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'nested stack A'
 
@@ -63,7 +63,7 @@ Outputs:
 
 **NestedStackB**
 
-```
+```yaml
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'nested stack B'
 
@@ -113,7 +113,7 @@ The thing about parameters in CloudFormation is that it's not always known befor
 3) The NestedStackB just referenced the resource from the parameter.
 
 **ParentStack**
-```
+```yaml
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'main-parent-stack'
 
@@ -133,7 +133,7 @@ Resources:
 
 **NestedStackA**
 
-```
+```yaml
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'nested stack A'
 
@@ -159,7 +159,7 @@ Outputs:
 
 **NestedStackB**
 
-```
+```yaml
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'nested stack B'
 

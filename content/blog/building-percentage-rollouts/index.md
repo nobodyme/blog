@@ -78,7 +78,7 @@ if __name__ == '__main__':
   print(f'Flag turned on for: {total_true} users')
 ```
 Running the above script should show you,
-```
+```text
 Flag turned on for: 300105 users
 ```
 
