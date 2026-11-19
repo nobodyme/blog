@@ -21,12 +21,12 @@ Before that, we need to identify whether a problem has the following properties,
 
 ### Problems:
 
-  - [Minimum cost problem](#problem-1)
-  - [Longest increasing subsequence](#problem-2)
+  - [Minimum cost problem](#minimum-cost-problem)
+  - [Longest increasing subsequence](#longest-increasing-subsequence)
 
 
 
-### Minimum cost problem <a name="problem-1"></a>
+### Minimum cost problem
 
 Given a cost matrix cost[][] and a position (m, n) in cost[][], write a function that returns cost of minimum cost path to reach (m, n) from (0, 0). Each cell of the matrix represents a cost to traverse through that cell. The total cost of a path to reach (m, n) is the sum of all the costs on that path (including both source and destination). You can only traverse down, right and diagonally lower cells from a given cell, i.e., from a given cell (i, j), cells (i+1, j), (i, j+1) and (i+1, j+1) can be traversed. You may assume that all costs are positive integers.
 
@@ -181,7 +181,7 @@ Now that our table is filled, we simply return the cell of the given destination
 
 Hence by considering the elements one by one we have built up our solution or in DP terms, we have acquired our solution in bottom-up fashion(tabulation method) from the sub-problems. There's another approach to it called memoization. The difference between both is explained in the [article over here](http://www.geeksforgeeks.org/tabulation-vs-memoizatation/).
 
-### Longest increasing subsequence <a name="problem-2"></a>
+### Longest increasing subsequence
 
 The Longest Increasing Subsequence (LIS) problem is to find the length of the longest subsequence of a given sequence such that all elements of the subsequence are sorted in increasing order.
 For example, the length of LIS for {10, 12, 32, 2, 22, 23, 25, 30} is 6 and LIS is {10, 12, 22, 23, 25, 30}

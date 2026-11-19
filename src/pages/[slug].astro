@@ -20,7 +20,7 @@ const minutes = timeToRead(post.rendered?.html)
 const readingTimeLabel = minutes ? `${minutes} min read` : null
 ---
 
-<Layout title={`${post.data.title} | ${site.title}`} description={post.data.description || excerpt(post, 160)}>
+<Layout title={post.data.title} description={post.data.description || excerpt(post, 160)}>
   <article class="blog-post" itemscope itemtype="http://schema.org/Article">
     <header>
       <h1 itemprop="headline">{post.data.title}</h1>

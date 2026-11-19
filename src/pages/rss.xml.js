@@ -40,7 +40,7 @@ export async function GET() {
       atom: "http://www.w3.org/2005/Atom",
     },
     customData:
-      `<image><url>src/assets/images/binoculars-40.png</url><title>${site.title}</title><link>${siteUrl}</link></image>` +
+      `<image><url>${siteUrl}/icons/icon-144x144.png</url><title>${site.title}</title><link>${siteUrl}</link><width>144</width><height>144</height></image>` +
       `<generator>Astro</generator><lastBuildDate>${new Date().toUTCString()}</lastBuildDate>`,
     items,
   })

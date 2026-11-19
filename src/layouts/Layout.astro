@@ -9,7 +9,8 @@ import Seo from "../components/Seo.astro"
 import { site, url } from "../site.js"
 
 interface Props {
-  title: string
+  /** Page name; the site name is appended by <Seo>. Omit on the home page. */
+  title?: string
   description?: string
 }
 
