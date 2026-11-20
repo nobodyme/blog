@@ -544,6 +544,12 @@ a:focus {
     transform-origin: 0 50%;
     pointer-events: none;
     animation: reading-progress linear both;
+  }
+
+  /* Its own rule on purpose: in the same rule, the CSS minifier folds the
+     timeline into the animation shorthand, where browsers reject it and drop
+     the whole animation. The extra specificity also beats the shorthand's reset. */
+  .blog-post > .reading-progress {
     animation-timeline: --post;
     animation-range: contain 0% contain 100%;
   }
