@@ -4,6 +4,17 @@ on:
   push:
     branches:
       - main
+    # Skip pushes that only touch files the site build never reads. A push that
+    # also changes anything else still builds. Run it by hand (workflow_dispatch)
+    # to force a deploy.
+    paths-ignore:
+      - '*.md' # root only (README, CLAUDE, DEVELOPMENT); posts in content/ still build
+      - 'LICENSE-*'
+      - '.claude/**'
+      - '.gitignore'
+      - '.prettierrc'
+      - '.prettierignore'
+      - 'giscus.json' # read by giscus.app from the repo, not by the build
   # No pull_request trigger: nothing runs when a PR is opened or updated.
   workflow_dispatch:
 
