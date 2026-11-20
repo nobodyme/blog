@@ -44,7 +44,10 @@ const jsonLd = {
             <article>
               <header>
                 <h2>
-                  <a href={url(`${post.id}/`)}>{post.data.title || post.id}</a>
+                  <a href={url(`${post.id}/`)}>
+                    {post.data.title || post.id}
+                    <span class="post-arrow" aria-hidden="true">→</span>
+                  </a>
                 </h2>
                 <small class="meta">{formatDate(post.data.date)}</small>
               </header>
