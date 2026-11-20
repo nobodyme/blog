@@ -370,10 +370,60 @@ a:focus {
   line-height: var(--lineHeight-normal);
 }
 
-.post-list-item header span:hover,
-.post-list-item header span:focus {
-  text-decoration: underline;
-  color: var(--color-link);
+/* The whole entry is the link: the title's ::after stretches over the article, so
+   a tap on the date or excerpt opens the post too. Still one link per post. */
+.post-list-item article {
+  position: relative;
+  margin: calc(-1 * var(--spacing-3));
+  padding: var(--spacing-3);
+  border-radius: 10px;
+  transition: background-color 0.15s ease;
+}
+
+.post-list-item h2 a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.post-list-item h2 a:hover,
+.post-list-item h2 a:focus {
+  text-decoration: none;
+}
+
+.post-list-item h2 a:focus-visible {
+  outline: none;
+}
+
+.post-list-item article:has(a:focus-visible) {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+
+/* Hidden on touch screens, where it would never show but still take up room */
+.post-arrow {
+  display: none;
+}
+
+/* Mouse only: on touch screens :hover sticks after a tap */
+@media (hover: hover) {
+  .post-arrow {
+    display: inline-block;
+    margin-left: 0.3em;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+
+  .post-list-item article:hover {
+    background-color: var(--color-background-secondary);
+  }
+
+  .post-list-item article:hover .post-arrow {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .blog-post header h1 {
@@ -385,8 +435,108 @@ a:focus {
   font-family: var(--font-heading);
 }
 
-.blog-post-nav ul {
+/* Newer / Older links at the end of a post: stacked on phones, side by side
+   (Older always on the right) from 600px. */
+.post-nav {
+  display: grid;
+  gap: var(--spacing-3);
+  list-style: none;
+  margin: var(--spacing-0) var(--spacing-0) var(--spacing-8);
+  padding: var(--spacing-0);
+}
+
+.post-nav li {
   margin: var(--spacing-0);
+}
+
+.post-nav a {
+  display: block;
+  height: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--color-accent);
+  border-radius: 10px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.post-nav a:hover,
+.post-nav a:focus {
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .post-nav a:hover {
+    background-color: var(--color-background-secondary);
+    border-color: var(--color-link);
+  }
+}
+
+.post-nav small {
+  display: block;
+  margin-bottom: var(--spacing-1);
+  color: var(--color-text-lighter);
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  font-weight: var(--fontWeight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.post-nav span {
+  display: block;
+  font-weight: var(--fontWeight-semibold);
+  line-height: var(--lineHeight-tight);
+}
+
+.post-nav-older {
+  text-align: right;
+}
+
+@media (min-width: 600px) {
+  .post-nav {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .post-nav-older {
+    grid-column: 2;
+  }
+}
+
+/* Reading progress: a 2px line along the top of the screen that fills as the
+   article scrolls past. CSS scroll-driven animation, so no JS or scroll listener;
+   browsers without support don't show it. */
+.reading-progress {
+  display: none;
+}
+
+@supports (animation-timeline: view()) {
+  .blog-post {
+    view-timeline: --post block;
+  }
+
+  .reading-progress {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    height: 2px;
+    background: var(--color-link);
+    transform-origin: 0 50%;
+    pointer-events: none;
+    animation: reading-progress linear both;
+    animation-timeline: --post;
+    animation-range: contain 0% contain 100%;
+  }
+
+  @keyframes reading-progress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
 }
 
 .gatsby-highlight {

@@ -65,6 +65,7 @@ const jsonLd = {
 
 <Layout title={post.data.title} description={description} image={image} published={post.data.date} jsonLd={jsonLd}>
   <article class="blog-post">
+    <div class="reading-progress" aria-hidden="true"></div>
     <header>
       <h1>{post.data.title}</h1>
       <p class="meta">
@@ -77,29 +78,30 @@ const jsonLd = {
       <Content />
     </section>
   </article>
-  <nav class="blog-post-nav">
+  <nav class="blog-post-nav" aria-label="More posts">
     <hr class="hr" />
-    <ul style="display: flex; flex-wrap: wrap; justify-content: space-between; list-style: none; padding: 0">
-      <li>
-        {
-          previous && (
+    <ul class="post-nav">
+      {
+        previous && (
+          <li class="post-nav-newer">
             <a href={url(`${previous.id}/`)} rel="prev">
-              ← {previous.data.title}
+              <small>← Newer</small>
+              <span>{previous.data.title}</span>
             </a>
-          )
-        }
-      </li>
-      <li>
-        {
-          next && (
+          </li>
+        )
+      }
+      {
+        next && (
+          <li class="post-nav-older">
             <a href={url(`${next.id}/`)} rel="next">
-              {next.data.title} →
+              <small>Older →</small>
+              <span>{next.data.title}</span>
             </a>
-          )
-        }
-      </li>
+          </li>
+        )
+      }
     </ul>
-    <hr class="hr" />
   </nav>
   <Comments />
 </Layout>
