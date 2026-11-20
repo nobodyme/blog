@@ -26,7 +26,7 @@ Plus, reading about these hyperparameters experiments from [Finetuning LLMs with
 
 The crux of what I learnt from these articles,
 - Even 1000 high quality examples is good enough to fine-tune a model
-- An `epoch` is a hyperparameter representing one complete pass through the entire training dataset during the model training process. So, the plan was to increase epoch slowly from 1 to see which yeilds the best result.
+- An `epoch` is a hyperparameter representing one complete pass through the entire training dataset during the model training process. So, the plan was to increase epoch slowly from 1 to see which yields the best result.
 - `lora_r` (rank) ranges from 4 to 256, with 8, 16, and 32 being common choices (determines the number of trainable parameters in the adaptation layers - high value meaning longer training time and more adaptability)
 - `lora_alpha` is a scaling factor that controls the magnitude of the LoRA weight updates, controls impact of adaptations and is generally kept 2x of lora_r (though above blog also notes successes with 0.5x of lora_r)
 - Setting lora_r or number of epoch too high can lead to overfitting
