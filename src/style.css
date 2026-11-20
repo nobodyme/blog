@@ -21,6 +21,25 @@ body {
   background-color: var(--color-background);
 }
 
+/* Faint dot grid behind the header and home intro, fading out before the posts.
+   One CSS gradient, no image. It scrolls with the page (not fixed), so it's
+   painted once instead of on every scroll. */
+body::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  height: 26rem;
+  background-image: radial-gradient(circle, var(--color-dot) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  background-position: center top;
+  -webkit-mask-image: radial-gradient(ellipse 75% 100% at 50% 0, #000 35%, transparent 100%);
+  mask-image: radial-gradient(ellipse 75% 100% at 50% 0, #000 35%, transparent 100%);
+  pointer-events: none;
+}
+
 footer {
   padding: var(--spacing-6) var(--spacing-0);
 }

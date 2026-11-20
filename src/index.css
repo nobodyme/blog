@@ -64,6 +64,8 @@
   --color-accent: #d1dce5;
   --color-background: #ffffff;
   --color-background-secondary: #f6f8fa;
+  /* Dot grid behind the header (style.css body::before) */
+  --color-dot: #d3dce5;
   --red-50: #FEF2F2;
   --red-200: #FECACA;
   --blue-50: #EFF6FF;
@@ -107,6 +109,7 @@
     --color-accent: #30363d;
     --color-background: #0d1117;
     --color-background-secondary: #161b22;
+    --color-dot: #262e38;
     --red-50: #2a1215;
     --red-200: #8e1519;
     --blue-50: #0c1d33;
@@ -141,6 +144,7 @@
   --color-accent: #30363d;
   --color-background: #0d1117;
   --color-background-secondary: #161b22;
+  --color-dot: #262e38;
   --red-50: #2a1215;
   --red-200: #8e1519;
   --blue-50: #0c1d33;
