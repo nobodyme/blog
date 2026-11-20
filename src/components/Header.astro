@@ -1,117 +1,65 @@
 ---
 import Github from "../assets/svg/github.svg"
-import Heart from "../assets/svg/heart.svg"
 import LinkedIn from "../assets/svg/linkedin.svg"
-import Rss from "../assets/svg/rss.svg"
 import { url } from "../site.js"
+import Binoculars from "./Binoculars.astro"
 
 interface Props {
   siteTitle: string
+  /** False on the home page, which shows the binoculars large in its intro instead. */
+  showMascot: boolean
+  /** The section this page belongs to, underlined in the nav. */
+  current?: "posts" | "liked"
+  /** True on the home page itself, so "Posts" is marked as the current page. */
+  isHome?: boolean
 }
 
-const { siteTitle } = Astro.props
-
-// Lens centres in the binoculars drawing (viewBox trimmed to x 10..90).
-const lenses = [
-  { side: "l", cx: 29 },
-  { side: "r", cx: 71 },
-]
+const { siteTitle, showMascot, current, isHome = false } = Astro.props
+const postsCurrent = current === "posts" ? (isHome ? "page" : "true") : undefined
+const likedCurrent = current === "liked" ? "page" : undefined
 ---
 
-<div class="global-header">
-  <a class="header-title" href={url()}>
-    <svg class="header-icon binoculars" viewBox="10 0 80 64" width="60" height="48" aria-hidden="true" focusable="false">
-      <defs>
-        {
-          lenses.map(({ side, cx }) => (
-            <>
-              <clipPath id={`bino-glass-${side}`}>
-                <circle cx={cx} cy="45" r="13" />
-              </clipPath>
-              <mask id={`bino-smile-${side}`} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="70">
-                <rect width="100" height="70" fill="#fff" />
-                <path
-                  class="bino-cheek"
-                  fill="#000"
-                  transform="translate(0 7)"
-                  d={`M${cx - 15} 62V52Q${cx} 42 ${cx + 15} 52V62Z`}
-                />
-              </mask>
-            </>
-          ))
-        }
-      </defs>
-      <g class="bino-frame">
-        <rect x="21" y="3" width="16" height="13" rx="4" />
-        <rect x="63" y="3" width="16" height="13" rx="4" />
-        <rect x="45" y="11" width="10" height="9" rx="2" />
-        <path d="M12 45C12 31 16 21 20 14H38C42 21 46 31 46 45Z" />
-        <path d="M54 45C54 31 58 21 62 14H80C84 21 88 31 88 45Z" />
-        <rect x="40" y="22" width="20" height="12" rx="3" />
-        <circle cx="29" cy="45" r="17" />
-        <circle cx="71" cy="45" r="17" />
-      </g>
-      {
-        lenses.map(({ side, cx }) => (
-          <g clip-path={`url(#bino-glass-${side})`}>
-            <circle class="bino-glass" cx={cx} cy="45" r="13" />
-            <g mask={`url(#bino-smile-${side})`}>
-              <g class="bino-eye">
-                <circle class="bino-pupil" cx={cx} cy="45" r="7.6" />
-                <circle class="bino-sparkle" cx={cx - 2.7} cy="42.2" r="2.5" />
-                <circle class="bino-sparkle" cx={cx + 2.6} cy="47.8" r="1.1" />
-              </g>
-            </g>
-            <ellipse
-              class="bino-shine"
-              cx={cx - 5}
-              cy="40"
-              rx="3.8"
-              ry="2.1"
-              transform={`rotate(-38 ${cx - 5} 40)`}
-            />
-            <g class="bino-blush-group" transform="translate(0 7)">
-              <ellipse class="bino-blush" cx={cx + (cx < 50 ? -6.5 : 6.5)} cy="54.5" rx="3.6" ry="1.9" />
-            </g>
-            <path class="bino-lash" d={`M${cx - 7} 44.5Q${cx} 51 ${cx + 7} 44.5`} />
-          </g>
-        ))
-      }
-    </svg>
-    <h3 class="header-text">{siteTitle}</h3>
+<header class="site-header">
+  <a class="site-title" href={url()}>
+    {showMascot && <Binoculars class="site-title-mascot" width={40} height={32} />}
+    <span>{siteTitle}</span>
   </a>
-  <div class="header-social">
-    <a class="header-social-link" href={url("liked-posts/")} aria-label="Liked posts" title="Liked posts">
-      <Heart class="header-social-icon" width={35} height={35} />
+  <nav class="site-nav" aria-label="Site">
+    <a href={url()} aria-current={postsCurrent}>Posts</a>
+    <a href={url("liked-posts/")} aria-current={likedCurrent}>Liked</a>
+    <a href={url("rss.xml")} target="_blank" rel="noopener noreferrer" aria-label="RSS (opens in a new tab)">RSS</a>
+    <span class="site-nav-divider" aria-hidden="true"></span>
+    <a
+      class="site-nav-icon"
+      href="https://github.com/nobodyme"
+      aria-label="GitHub (opens in a new tab)"
+      title="GitHub"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <Github width={24} height={24} />
     </a>
     <a
-      class="header-social-link"
+      class="site-nav-icon"
       href="https://www.linkedin.com/in/naveen-kumar-b11464128/"
       aria-label="LinkedIn (opens in a new tab)"
       title="LinkedIn"
       target="_blank"
       rel="noopener noreferrer"
     >
-      <LinkedIn class="header-social-icon" width={30} height={30} />
+      <LinkedIn width={22} height={22} />
     </a>
-    <a class="header-social-link" href="https://github.com/nobodyme" aria-label="GitHub (opens in a new tab)" title="GitHub" target="_blank" rel="noopener noreferrer">
-      <Github class="header-social-icon" width={30} height={30} />
-    </a>
-    <a class="header-social-link" href={url("rss.xml")} aria-label="RSS feed (opens in a new tab)" title="RSS feed" target="_blank" rel="noopener noreferrer">
-      <Rss class="header-social-icon" width={28} height={28} />
-    </a>
-    <span class="header-divider" aria-hidden="true"></span>
-    <button type="button" class="header-social-link theme-toggle" aria-label="Switch to dark theme" title="Switch to dark theme">
-      <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
+    <button type="button" class="theme-toggle" aria-label="Switch to dark theme" title="Switch to dark theme">
+      <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
         <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
       </svg>
-      <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
+      <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
         <circle cx="12" cy="12" r="4.2"></circle>
         <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"></path>
       </svg>
     </button>
-  </div>
-</div>
+  </nav>
+</header>
 
 <script>
   // Theme toggle. With no saved choice the site follows the system theme; a click
@@ -150,149 +98,5 @@ const lenses = [
     })
     systemDark.addEventListener("change", sync)
     sync()
-  }
-
-  // "Watcher" binoculars: the eyes stay open and follow the cursor, blink now
-  // and then, and smile more as the cursor gets close. Nothing runs while the
-  // eyes are still: pointer moves and blink/glance timers start the loop, and
-  // it stops once everything has settled or the header is off-screen.
-  const svg = document.querySelector<SVGSVGElement>(".binoculars")
-
-  if (svg) {
-    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)")
-    const all = <T extends Element>(selector: string) => Array.from(svg.querySelectorAll<T>(selector))
-    const eyes = all<SVGGElement>(".bino-eye")
-    const cheeks = all<SVGPathElement>(".bino-cheek")
-    const blushes = all<SVGGElement>(".bino-blush-group")
-    const lashes = all<SVGPathElement>(".bino-lash")
-    const lensX = [29, 71]
-    const LENS_Y = 45
-    const VIEW_X = 10 // the SVG's viewBox is trimmed to x 10..90
-    const VIEW_W = 80
-    const MAX_LOOK = 4.2 // how far an eye can move from the lens centre
-    const BLINK_MS = 170
-    const rand = (min: number, max: number) => min + Math.random() * (max - min)
-
-    let pointer: { x: number; y: number } | null = null
-    let onScreen = true
-    let running = false
-    let delightUntil = performance.now() + 1100 // happy squint on load
-    let joy = 0.45
-    let blinkStart = -Infinity
-    let idle = [0, 0]
-    const look = [
-      [0, 0],
-      [0, 0],
-    ]
-
-    const tick = (t: number) => {
-      const box = svg.getBoundingClientRect()
-      const scale = box.width / VIEW_W
-      const reach = Math.max(150, box.width * 1.4)
-      const distance = pointer
-        ? Math.hypot(pointer.x - (box.left + box.width / 2), pointer.y - (box.top + box.height / 2))
-        : Infinity
-
-      // Smile at rest, smile more as the cursor gets close, squint with joy on load.
-      const joyTarget = t < delightUntil ? 1 : 0.45 + 0.3 * Math.max(0, 1 - distance / reach)
-      joy += (joyTarget - joy) * 0.12
-      let settled = Math.abs(joyTarget - joy) < 0.005
-
-      for (let i = 0; i < 2; i++) {
-        let tx = idle[0]
-        let ty = idle[1]
-        if (pointer) {
-          const dx = pointer.x - (box.left + (lensX[i] - VIEW_X) * scale)
-          const dy = pointer.y - (box.top + LENS_Y * scale)
-          const d = Math.hypot(dx, dy) || 1
-          const m = MAX_LOOK * (1 - Math.exp(-d / (60 + 40 * scale)))
-          tx = (dx / d) * m
-          ty = (dy / d) * m
-        }
-        const ease = pointer ? 0.3 : 0.2
-        look[i][0] += (tx - look[i][0]) * ease
-        look[i][1] += (ty - look[i][1]) * ease
-        if (Math.abs(tx - look[i][0]) > 0.01 || Math.abs(ty - look[i][1]) > 0.01) settled = false
-
-        const cheekShift = `translate(0 ${((1 - joy) * 13).toFixed(2)})`
-        cheeks[i].setAttribute("transform", cheekShift)
-        blushes[i].setAttribute("transform", cheekShift)
-        blushes[i].style.opacity = Math.max(0, (joy - 0.55) * 1.8).toFixed(2)
-      }
-
-      // Blink by squashing the eyes flat; a closed-eye curve shows at the bottom of the blink.
-      const p = (t - blinkStart) / BLINK_MS
-      const blinking = p >= 0 && p <= 1
-      const shut = blinking ? Math.sin(Math.PI * p) : 0
-      const open = Math.max(0.001, 1 - shut)
-      for (let i = 0; i < 2; i++) {
-        const [x, y] = look[i]
-        eyes[i].setAttribute(
-          "transform",
-          `translate(${x.toFixed(2)} ${(LENS_Y * (1 - open) + y).toFixed(2)}) scale(1 ${open.toFixed(3)})`,
-        )
-        lashes[i].style.opacity = Math.min(1, Math.max(0, (shut - 0.6) / 0.35)).toFixed(2)
-      }
-
-      if ((settled && !blinking) || !onScreen) {
-        running = false
-        return
-      }
-      requestAnimationFrame(tick)
-    }
-
-    const run = () => {
-      if (running || !onScreen) return
-      running = true
-      requestAnimationFrame(tick)
-    }
-
-    // Blink every few seconds (sometimes twice), and glance around when there's no cursor.
-    const scheduleBlink = () => {
-      setTimeout(
-        () => {
-          if (onScreen && !document.hidden && !reduceMotion.matches) {
-            blinkStart = performance.now()
-            run()
-          }
-          scheduleBlink()
-        },
-        Math.random() < 0.2 ? rand(240, 320) : rand(2600, 6500),
-      )
-    }
-    const scheduleGlance = () => {
-      setTimeout(
-        () => {
-          if (!pointer && onScreen && !document.hidden && !reduceMotion.matches) {
-            const angle = rand(0, Math.PI * 2)
-            const amount = rand(0, 4.2)
-            idle = [Math.cos(angle) * amount, Math.sin(angle) * amount * 0.7]
-            run()
-          }
-          scheduleGlance()
-        },
-        rand(900, 2600),
-      )
-    }
-
-    const onPointer = (e: PointerEvent) => {
-      pointer = { x: e.clientX, y: e.clientY }
-      run()
-    }
-    addEventListener("pointermove", onPointer, { passive: true })
-    addEventListener("pointerdown", onPointer, { passive: true })
-    document.documentElement.addEventListener("mouseleave", () => {
-      pointer = null
-      run()
-    })
-
-    new IntersectionObserver(([entry]) => {
-      onScreen = entry.isIntersecting
-      if (onScreen) run()
-    }).observe(svg)
-
-    run()
-    scheduleBlink()
-    scheduleGlance()
   }
 </script>

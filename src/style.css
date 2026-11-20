@@ -196,26 +196,126 @@ a:focus {
 }
 
 /* Custom classes */
-.global-header {
+/* Site header: wordmark on the left, text links and icons on the right. The
+   binoculars sit beside the wordmark on every page except home, where they are
+   large in the intro (index.astro). */
+.site-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: var(--spacing-2) var(--spacing-20) var(--spacing-8);
+  gap: var(--spacing-2) var(--spacing-6);
+  padding: var(--spacing-3) var(--spacing-8);
+  border-bottom: 1px solid var(--color-accent);
 }
 
-.header-title {
-  font-family: var(--font-heading);
-  text-decoration: none;
+.site-title {
   display: flex;
-  justify-content: center;
   align-items: center;
-}
-
-.header-title:hover {
+  gap: var(--spacing-3);
+  min-height: 44px;
+  color: var(--color-heading);
+  font-family: var(--font-heading);
+  font-size: var(--fontSize-2);
+  font-weight: var(--fontWeight-extrabold);
+  letter-spacing: -0.03em;
   text-decoration: none;
 }
 
-/* Binoculars in the header; the eyes are animated by Header.astro */
+.site-title:hover,
+.site-title:focus {
+  text-decoration: none;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-5);
+}
+
+.site-nav a {
+  padding: var(--spacing-2) 0;
+  color: var(--color-text-light);
+  font-family: var(--font-heading);
+  font-weight: var(--fontWeight-medium);
+  text-decoration: none;
+}
+
+.site-nav a:hover,
+.site-nav a:focus {
+  color: var(--color-heading);
+  text-decoration: none;
+}
+
+/* The section you're in, underlined in the binoculars' blush */
+.site-nav a[aria-current] {
+  color: var(--color-heading);
+  text-decoration: underline;
+  text-decoration-color: var(--bino-blush);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 8px;
+}
+
+.site-nav-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--color-accent);
+}
+
+.site-nav .site-nav-icon {
+  display: grid;
+  place-items: center;
+  color: var(--color-heading);
+}
+
+.site-nav-icon svg {
+  display: block;
+  fill: currentColor;
+}
+
+/* Home intro: the greeting, the tagline and the binoculars at full size */
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-8);
+  margin: var(--spacing-2) 0 var(--spacing-8);
+}
+
+.home-hero-title {
+  margin: 0 0 var(--spacing-4);
+  font-size: clamp(2.5rem, 9vw, 3.5rem);
+  font-weight: var(--fontWeight-black);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  color: var(--color-heading);
+}
+
+.home-hero-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.home-hero-title a:hover,
+.home-hero-title a:focus-visible {
+  text-decoration: underline;
+  text-decoration-color: var(--bino-blush);
+  text-decoration-thickness: 4px;
+  text-underline-offset: 6px;
+}
+
+.home-hero-tagline {
+  margin: 0;
+  max-width: 30ch;
+  font-size: var(--fontSize-2);
+  line-height: var(--lineHeight-normal);
+  color: var(--color-text-light);
+}
+
+.home-hero-rule {
+  margin: 0 0 var(--spacing-8);
+}
+
+/* Binoculars (Binoculars.astro), which animates the eyes */
 .binoculars {
   overflow: visible;
   flex: none;
@@ -249,37 +349,8 @@ a:focus {
   stroke-linecap: round;
   opacity: 0;
 }
-.header-icon {
-  margin-right: var(--spacing-4);
-  margin-bottom: var(--spacing-0);
-  position: relative;
-  top: 10px;
-}
-
-.header-social {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.header-social-link {
-  margin-right: var(--spacing-4);
-  margin-bottom: var(--spacing-0);
-  position: relative;
-  top: 16px;
-}
-
-/* Light/dark toggle at the end of the header icons. It shows the theme a click
+/* Light/dark toggle at the end of the header. It shows the theme a click
    switches to: a moon on the light page, a sun on the dark one. */
-.header-divider {
-  width: 1px;
-  height: 24px;
-  margin-right: var(--spacing-4);
-  background: var(--color-accent);
-  position: relative;
-  top: 16px;
-}
-
 .theme-toggle {
   display: grid;
   place-items: center;
@@ -823,10 +894,6 @@ footer span {
   margin-bottom: 20px;
 }
 
-.header-social-icon {
-  fill: var(--color-heading);  /* this doesn't do the job */
-  color: var(--color-heading);
-}
 
 
 /* Media queries */
@@ -841,46 +908,33 @@ footer span {
   }
 }
 
-@media (max-width: 800px) {
-  .global-header {
-    margin: var(--spacing-2) var(--spacing-10) var(--spacing-8);
-  }
-}
-
+/* Phones: the wordmark on its own row, the links and icons on the row below */
 @media (max-width: 700px) {
-  .global-header {
-    flex-direction: column;
-    justify-content: center;
-    margin: var(--spacing-2) var(--spacing-5) var(--spacing-8);
+  .site-header {
+    flex-wrap: wrap;
+    padding: var(--spacing-2) var(--spacing-5);
   }
 
-  .header-social-icon,
-  .theme-toggle {
-    fill: var(--color-text-lighter);
-    color: var(--color-text-lighter);
+  .site-nav {
+    width: 100%;
+    gap: var(--spacing-4);
+  }
+
+  .site-nav-divider {
+    margin-left: auto;
   }
 }
 
-@media (max-width: 400px) {
-  .header-title {
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+/* Small phones: the binoculars lead the home intro, above the greeting */
+@media (max-width: 560px) {
+  .home-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-3);
   }
 
-  .header-text {
-    margin-top: var(--spacing-8);
-    margin-bottom: var(--spacing-1);
-  }
-
-  .header-icon {
-    margin-right: var(--spacing-4);
-    position: relative;
-    top: 20px;
-  }
-
-  .header-social-icon {
-    fill: var(--color-text-lighter);
-    color: var(--color-text-lighter);
+  .home-hero-mascot {
+    order: -1;
+    width: 96px;
+    height: 77px;
   }
 }
