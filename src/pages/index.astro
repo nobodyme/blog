@@ -28,16 +28,7 @@ const jsonLd = {
       <p>No blog posts found.</p>
     ) : (
       <>
-      <div style="margin-bottom: 20px">
-        <h3 style="margin-top: 0px">
-          <a href="https://www.linkedin.com/in/naveen-kumar-b11464128/" target="_blank" rel="noopener noreferrer">
-            Hi, I'm Naveen
-          </a>{" "}
-          👋
-        </h3>
-        <div class="post-description" style="margin-bottom: 20px">{site.description}</div>
-        <hr />
-      </div>
+      <h1 class="visually-hidden">Posts</h1>
       <ol class="post-list">
         {posts.map(post => (
           <li class="post-list-item">

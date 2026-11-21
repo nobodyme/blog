@@ -196,26 +196,135 @@ a:focus {
 }
 
 /* Custom classes */
-.global-header {
+/* Site header: the binoculars and wordmark on the left, text links and the
+   theme toggle on the right. Same size and spacing as the header it replaced:
+   60x48 binoculars, a 27.6px title and 80px side margins. */
+.site-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: var(--spacing-2) var(--spacing-20) var(--spacing-8);
+  gap: var(--spacing-2) var(--spacing-6);
+  padding: 2.875rem var(--spacing-20) var(--spacing-12);
 }
 
-.header-title {
-  font-family: var(--font-heading);
-  text-decoration: none;
+.site-title {
   display: flex;
-  justify-content: center;
   align-items: center;
-}
-
-.header-title:hover {
+  gap: var(--spacing-4);
+  min-height: 44px;
+  color: var(--color-heading);
+  font-family: var(--font-heading);
+  font-size: var(--fontSize-4);
+  font-weight: var(--fontWeight-bold);
+  letter-spacing: -0.025em;
   text-decoration: none;
 }
 
-/* Binoculars in the header; the eyes are animated by Header.astro */
+.site-title:hover,
+.site-title:focus {
+  text-decoration: none;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-5);
+}
+
+.site-nav a {
+  padding: var(--spacing-2) 0;
+  color: var(--color-text-light);
+  font-family: var(--font-heading);
+  font-weight: var(--fontWeight-medium);
+  text-decoration: none;
+}
+
+.site-nav a:hover,
+.site-nav a:focus {
+  color: var(--color-heading);
+  text-decoration: none;
+}
+
+/* The section you're in, underlined in the binoculars' blush */
+.site-nav a[aria-current] {
+  color: var(--color-heading);
+  text-decoration: underline;
+  text-decoration-color: var(--bino-blush);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 8px;
+}
+
+.site-nav-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--color-accent);
+}
+
+/* About page: the greeting, the tagline and links (a photo is planned above them) */
+.about {
+  margin-top: var(--spacing-2);
+}
+
+.about-title {
+  margin: 0 0 var(--spacing-4);
+  font-size: clamp(2.5rem, 9vw, 3.5rem);
+  font-weight: var(--fontWeight-black);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  color: var(--color-heading);
+}
+
+.about-lede {
+  font-size: var(--fontSize-2);
+  line-height: var(--lineHeight-normal);
+  color: var(--color-heading);
+}
+
+.about p {
+  margin: 0 0 var(--spacing-4);
+}
+
+.about-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2) var(--spacing-6);
+  margin: var(--spacing-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about-links li {
+  margin: 0;
+}
+
+.about-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  /* 44px tap target, including the logo-only X link */
+  min-width: 44px;
+  min-height: 44px;
+  font-weight: var(--fontWeight-medium);
+}
+
+.about-links svg {
+  fill: currentColor;
+}
+
+/* Visible to screen readers only (the home page's heading) */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Binoculars (Binoculars.astro), in the header on every page; the script animates the eyes */
 .binoculars {
   overflow: visible;
   flex: none;
@@ -239,6 +348,9 @@ a:focus {
 .bino-blush {
   fill: var(--bino-blush);
 }
+.bino-cheek-dot {
+  fill: var(--bino-blush);
+}
 .bino-blush-group {
   opacity: 0;
 }
@@ -249,37 +361,8 @@ a:focus {
   stroke-linecap: round;
   opacity: 0;
 }
-.header-icon {
-  margin-right: var(--spacing-4);
-  margin-bottom: var(--spacing-0);
-  position: relative;
-  top: 10px;
-}
-
-.header-social {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.header-social-link {
-  margin-right: var(--spacing-4);
-  margin-bottom: var(--spacing-0);
-  position: relative;
-  top: 16px;
-}
-
-/* Light/dark toggle at the end of the header icons. It shows the theme a click
+/* Light/dark toggle at the end of the header. It shows the theme a click
    switches to: a moon on the light page, a sun on the dark one. */
-.header-divider {
-  width: 1px;
-  height: 24px;
-  margin-right: var(--spacing-4);
-  background: var(--color-accent);
-  position: relative;
-  top: 16px;
-}
-
 .theme-toggle {
   display: grid;
   place-items: center;
@@ -777,10 +860,15 @@ footer span {
 }
 
 /* liked page */
-.liked-page-header {
+/* The page's h1 says what the list is (other people's articles). It keeps the
+   look of the small grey label it replaced, so it undoes the global h1 styles. */
+.liked-page-title {
+  margin: 0;
+  font-family: var(--font-body);
   font-size: var(--fontSize-2);
-  color: var(--color-primary);
   font-weight: var(--fontWeight-medium);
+  line-height: var(--lineHeight-normal);
+  letter-spacing: normal;
   color: var(--color-text-lighter);
 }
 
@@ -823,10 +911,6 @@ footer span {
   margin-bottom: 20px;
 }
 
-.header-social-icon {
-  fill: var(--color-heading);  /* this doesn't do the job */
-  color: var(--color-heading);
-}
 
 
 /* Media queries */
@@ -842,45 +926,28 @@ footer span {
 }
 
 @media (max-width: 800px) {
-  .global-header {
-    margin: var(--spacing-2) var(--spacing-10) var(--spacing-8);
+  .site-header {
+    padding-inline: var(--spacing-10);
   }
 }
 
+/* Phones: the wordmark on its own row, the links and icons on the row below */
 @media (max-width: 700px) {
-  .global-header {
-    flex-direction: column;
-    justify-content: center;
-    margin: var(--spacing-2) var(--spacing-5) var(--spacing-8);
+  .site-header {
+    flex-wrap: wrap;
+    padding: var(--spacing-5) var(--spacing-5) var(--spacing-6);
   }
 
-  .header-social-icon,
-  .theme-toggle {
-    fill: var(--color-text-lighter);
-    color: var(--color-text-lighter);
-  }
-}
-
-@media (max-width: 400px) {
-  .header-title {
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+  .site-title {
+    font-size: var(--fontSize-3);
   }
 
-  .header-text {
-    margin-top: var(--spacing-8);
-    margin-bottom: var(--spacing-1);
+  .site-nav {
+    width: 100%;
+    gap: var(--spacing-4);
   }
 
-  .header-icon {
-    margin-right: var(--spacing-4);
-    position: relative;
-    top: 20px;
-  }
-
-  .header-social-icon {
-    fill: var(--color-text-lighter);
-    color: var(--color-text-lighter);
+  .site-nav-divider {
+    margin-left: auto;
   }
 }

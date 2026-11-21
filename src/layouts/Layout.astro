@@ -13,6 +13,8 @@ import type { ComponentProps } from "astro/types"
 type Props = ComponentProps<typeof Seo>
 
 const isRootPath = Astro.url.pathname === url()
+const path = Astro.url.pathname
+const section = path.startsWith(url("liked-posts")) ? "liked" : path.startsWith(url("about")) ? "about" : "posts"
 const iconSizes = [48, 72, 96, 144, 192, 256, 384, 512]
 ---
 
@@ -67,7 +69,7 @@ const iconSizes = [48, 72, 96, 144, 192, 256, 384, 512]
   </head>
   <body>
     <div>
-      <Header siteTitle={site.title} />
+      <Header siteTitle={site.title} current={section} isHome={isRootPath} />
       <div class="global-content-wrapper" data-is-root-path={String(isRootPath)}>
         <main><slot /></main>
       </div>
