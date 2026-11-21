@@ -1,11 +1,13 @@
 ---
 import Github from "../assets/svg/github.svg"
 import LinkedIn from "../assets/svg/linkedin.svg"
+import X from "../assets/svg/x.svg"
 import Binoculars from "../components/Binoculars.astro"
 import Layout from "../layouts/Layout.astro"
 import { site } from "../site.js"
 
 const github = "https://github.com/nobodyme"
+const x = `https://x.com/${site.social.twitter}`
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -16,7 +18,7 @@ const jsonLd = {
     name: site.author.name,
     url: site.author.url,
     description: site.description,
-    sameAs: [github, site.author.url],
+    sameAs: [github, site.author.url, x],
   },
 }
 ---
@@ -37,6 +39,11 @@ const jsonLd = {
         <li>
           <a href={site.author.url} target="_blank" rel="noopener noreferrer">
             <LinkedIn width={20} height={20} aria-hidden="true" />LinkedIn
+          </a>
+        </li>
+        <li>
+          <a href={x} target="_blank" rel="noopener noreferrer">
+            <X width={18} height={18} aria-hidden="true" />X
           </a>
         </li>
       </ul>
