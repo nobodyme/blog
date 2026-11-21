@@ -76,3 +76,46 @@ const iconSizes = [48, 72, 96, 144, 192, 256, 384, 512]
     </div>
   </body>
 </html>
+
+<script>
+  // Fetch pages before they're opened, so they show at once: the header tabs as
+  // soon as this page is up (a few KB each), any other page link the moment it's
+  // pressed (touchstart / mousedown come ~100ms before the click).
+  // Only where <link rel="prefetch"> works (Chrome, Edge, Firefox): iOS Safari
+  // downloads a page again when it's opened even if fetch() just got it, so
+  // there it would only cost data. The header's loading underline covers it.
+  // Skipped with Save-Data or on 2G.
+  {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } })
+      .connection
+    const slow = connection?.saveData || /2g/.test(connection?.effectiveType ?? "")
+    const supported = document.createElement("link").relList.supports?.("prefetch")
+    const fetched = new Set([location.pathname])
+
+    const prefetch = (link: HTMLAnchorElement | null) => {
+      // Pages only (their URLs end in "/"), on this site, opening in this tab.
+      if (!link || link.target || link.origin !== location.origin || !link.pathname.endsWith("/")) return
+      if (fetched.has(link.pathname)) return
+      fetched.add(link.pathname)
+      const hint = document.createElement("link")
+      hint.rel = "prefetch"
+      hint.href = link.pathname
+      document.head.append(hint)
+    }
+
+    if (supported && !slow) {
+      document.querySelectorAll<HTMLAnchorElement>(".site-nav a").forEach(prefetch)
+    }
+    // Registered everywhere: a touchstart listener is also what lets iOS Safari
+    // show :active (the press feedback on post cards and tabs).
+    for (const type of ["touchstart", "mousedown"]) {
+      document.addEventListener(
+        type,
+        e => {
+          if (supported && !slow) prefetch((e.target as Element).closest("a"))
+        },
+        { passive: true },
+      )
+    }
+  }
+</script>

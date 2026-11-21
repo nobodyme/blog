@@ -76,7 +76,8 @@ export default defineConfig({
   build: { assets: "assets" },
   // JSX whitespace rules (Astro 7 default), same as the old React components.
   compressHTML: "jsx",
-  prefetch: { prefetchAll: true, defaultStrategy: "hover" },
+  // No Astro prefetch: pages are fetched ahead by the small script in
+  // Layout.astro, which skips Safari (it can't reuse a page fetched that way).
   image: {
     layout: "constrained",
   },

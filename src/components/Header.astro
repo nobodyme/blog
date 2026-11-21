@@ -77,4 +77,54 @@ const ariaCurrent = (section: Props["current"]) =>
     systemDark.addEventListener("change", sync)
     sync()
   }
+
+  // Tab switching. Pressing a tab moves the underline to it straight away, so the
+  // tap registers even before the next page arrives; style.css turns it into a
+  // loading bar if the page takes a moment. It's marked on press, not on click,
+  // because iOS Safari won't start new CSS animations once the next page has
+  // started loading, so the loading bar has to be running by then. Left alone:
+  // the page you're on, RSS (new tab), and clicks that open a new tab or window.
+  {
+    const nav = document.querySelector<HTMLElement>(".site-nav")
+    type Press = MouseEvent | PointerEvent
+    const tab = (e: Press) => {
+      const link = (e.target as Element).closest("a")
+      if (!link || link.target || link.getAttribute("aria-current") === "page") return null
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return null
+      return link
+    }
+    const reset = () => {
+      if (!nav) return
+      delete nav.dataset.navigating
+      nav.querySelector("[data-pending]")?.removeAttribute("data-pending")
+    }
+    const select = (link: HTMLAnchorElement) => {
+      if (!nav || link.hasAttribute("data-pending")) return
+      reset()
+      link.dataset.pending = ""
+      nav.dataset.navigating = ""
+    }
+
+    nav?.addEventListener("pointerdown", e => {
+      const link = e.isPrimary ? tab(e) : null
+      if (link) select(link)
+    })
+    // A press that turns into a scroll, a long-press menu, or a drag off the tab
+    // never becomes a click: put the underline back.
+    nav?.addEventListener("pointercancel", reset)
+    nav?.addEventListener("pointerup", e => {
+      const link = nav.querySelector("[data-pending]")
+      if (link && !link.contains(document.elementFromPoint(e.clientX, e.clientY))) reset()
+    })
+    // Keyboard (Enter) clicks come without a press.
+    nav?.addEventListener("click", e => {
+      const link = e.defaultPrevented ? null : tab(e)
+      if (link) select(link)
+      else reset()
+    })
+    // Going Back can restore this page as it was left (bfcache), mid-switch: undo it.
+    window.addEventListener("pageshow", e => {
+      if (e.persisted) reset()
+    })
+  }
 </script>
