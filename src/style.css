@@ -860,11 +860,15 @@ footer span {
 }
 
 /* liked page */
-.liked-page-header {
-  font-size: var(--fontSize-2);
-  color: var(--color-primary);
-  font-weight: var(--fontWeight-medium);
-  color: var(--color-text-lighter);
+/* The nav already says "Liked"; the title says what the list is: other people's articles */
+.liked-page-title {
+  margin: 0 0 var(--spacing-4);
+  font-size: var(--fontSize-4);
+  font-weight: var(--fontWeight-bold);
+  line-height: var(--lineHeight-tight);
+  letter-spacing: -0.025em;
+  color: var(--color-heading);
+  text-wrap: balance;
 }
 
 .liked-post {
