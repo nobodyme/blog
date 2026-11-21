@@ -12,6 +12,9 @@ html {
   font-size: var(--fontSize-root);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* No grey flash on tap in iOS Safari. Things you tap answer with their own
+     :active state instead (post cards, Newer/Older, the theme toggle). */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -23,8 +26,21 @@ body {
 
 /* Faint dot grid behind the header and home intro, fading out before the posts.
    One CSS gradient, no image. It scrolls with the page (not fixed), so it's
-   painted once instead of on every scroll. */
+   painted once instead of on every scroll. The fade eases out (smoothstep stops)
+   instead of falling at a constant rate, which left a faint ring where it began. */
 body::before {
+  --grid-fade: radial-gradient(
+    ellipse 75% 100% at 50% 0,
+    #000 35%,
+    rgb(0 0 0 / 0.96) 43%,
+    rgb(0 0 0 / 0.85) 51%,
+    rgb(0 0 0 / 0.69) 59%,
+    rgb(0 0 0 / 0.51) 67%,
+    rgb(0 0 0 / 0.33) 75%,
+    rgb(0 0 0 / 0.17) 83%,
+    rgb(0 0 0 / 0.05) 91%,
+    transparent 100%
+  );
   content: "";
   position: absolute;
   top: 0;
@@ -35,8 +51,8 @@ body::before {
   background-image: radial-gradient(circle, var(--color-dot) 1px, transparent 1.5px);
   background-size: 22px 22px;
   background-position: center top;
-  -webkit-mask-image: radial-gradient(ellipse 75% 100% at 50% 0, #000 35%, transparent 100%);
-  mask-image: radial-gradient(ellipse 75% 100% at 50% 0, #000 35%, transparent 100%);
+  -webkit-mask-image: var(--grid-fade);
+  mask-image: var(--grid-fade);
   pointer-events: none;
 }
 
@@ -374,7 +390,12 @@ a:focus {
   background: transparent;
   color: var(--color-heading);
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms var(--ease-out);
+}
+
+/* Dips slightly while pressed, so a tap is acknowledged before the icons swap */
+.theme-toggle:active {
+  transform: scale(0.94);
 }
 
 /* Mouse only: on touch screens :hover sticks after a tap and leaves a grey circle */
@@ -397,7 +418,13 @@ a:focus {
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-  transition: transform 0.35s ease, opacity 0.2s ease;
+  /* Under 300ms with a strong ease-out, so the swap starts at once and lands
+     softly. The outgoing icon blurs a little, which hides the moment both
+     icons overlap. */
+  transition:
+    transform 250ms var(--ease-out),
+    opacity 200ms var(--ease-out),
+    filter 200ms var(--ease-out);
 }
 
 .theme-icon-sun path {
@@ -408,33 +435,42 @@ a:focus {
 .theme-icon-sun {
   opacity: 0;
   transform: rotate(-90deg) scale(0.6);
+  filter: blur(2px);
 }
 
 :root[data-theme="dark"] .theme-icon-moon {
   opacity: 0;
   transform: rotate(90deg) scale(0.6);
+  filter: blur(2px);
 }
 
 :root[data-theme="dark"] .theme-icon-sun {
   opacity: 1;
   transform: none;
+  filter: none;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .theme-icon-moon {
     opacity: 0;
     transform: rotate(90deg) scale(0.6);
+    filter: blur(2px);
   }
 
   :root:not([data-theme="light"]) .theme-icon-sun {
     opacity: 1;
     transform: none;
+    filter: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .theme-icon {
     transition: none;
+  }
+
+  .theme-toggle:active {
+    transform: none;
   }
 }
 
@@ -479,7 +515,9 @@ a:focus {
   margin: calc(-1 * var(--spacing-3));
   padding: var(--spacing-3);
   border-radius: 10px;
-  transition: background-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    transform 160ms var(--ease-out);
 }
 
 .post-list-item h2 a::after {
@@ -507,6 +545,20 @@ a:focus {
 @media (hover: hover) {
   .post-list-item article:hover {
     background-color: var(--color-background-secondary);
+  }
+}
+
+/* Press feedback, the only feedback a touch screen gets (it has no hover). The
+   article matches :active while the stretched title link inside it is pressed. */
+.post-list-item article:active,
+.post-nav a:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-list-item article:active,
+  .post-nav a:active {
+    transform: none;
   }
 }
 
@@ -539,7 +591,10 @@ a:focus {
   padding: var(--spacing-3) var(--spacing-4);
   border: 1px solid var(--color-accent);
   border-radius: 10px;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 160ms var(--ease-out);
 }
 
 .post-nav a:hover,
