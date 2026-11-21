@@ -1,0 +1,202 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><meta name="generator" content="Astro v7.4.12"><meta name="theme-color" content="#24292e" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)"><script>
+      // Apply the theme picked with the header toggle before anything is drawn,
+      // so a saved choice never flashes the other theme. No choice: follow the system.
+      try {
+        var theme = localStorage.getItem("theme")
+        if (theme === "light" || theme === "dark") {
+          document.documentElement.dataset.theme = theme
+          document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
+            m.content = theme === "dark" ? "#0d1117" : "#24292e"
+          })
+        }
+      } catch (e) {}
+    </script><title>Decoupling AWS CloudFormation Templates | The Curious Engineer</title><meta name="description" content="While using CloudFormation templates for deploying our infrastructure, we had to face the fact that a CloudFormation stack can only contain a maximum of 20…"><link rel="canonical" href="https://nobodyme.github.io/blog/decoupling-aws-cloudformation-templates/"><meta property="og:site_name" content="The Curious Engineer"><meta property="og:title" content="Decoupling AWS CloudFormation Templates | The Curious Engineer"><meta property="og:description" content="While using CloudFormation templates for deploying our infrastructure, we had to face the fact that a CloudFormation stack can only contain a maximum of 20…"><meta property="og:url" content="https://nobodyme.github.io/blog/decoupling-aws-cloudformation-templates/"><meta property="og:type" content="article"><meta property="og:image" content="https://nobodyme.github.io/blog/icons/icon-512x512.png"><meta property="og:image:width" content="512"><meta property="og:image:height" content="512"><meta property="og:image:alt" content="The Curious Engineer"><meta property="article:published_time" content="2021-05-15T20:08:57.486Z"><meta property="article:author" content="Naveen"><meta name="twitter:card" content="summary"><meta name="twitter:creator" content="_nobodyme_"><meta name="twitter:title" content="Decoupling AWS CloudFormation Templates | The Curious Engineer"><meta name="twitter:description" content="While using CloudFormation templates for deploying our infrastructure, we had to face the fact that a CloudFormation stack can only contain a maximum of 20…"><meta name="twitter:image" content="https://nobodyme.github.io/blog/icons/icon-512x512.png"><meta name="twitter:image:alt" content="The Curious Engineer"><script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Decoupling AWS CloudFormation Templates","description":"While using CloudFormation templates for deploying our infrastructure, we had to face the fact that a CloudFormation stack can only contain a maximum of 20…","datePublished":"2021-05-15T20:08:57.486Z","url":"https://nobodyme.github.io/blog/decoupling-aws-cloudformation-templates/","mainEntityOfPage":"https://nobodyme.github.io/blog/decoupling-aws-cloudformation-templates/","author":{"@type":"Person","name":"Naveen","url":"https://www.linkedin.com/in/naveen-kumar-b11464128/"},"isPartOf":{"@type":"Blog","name":"The Curious Engineer","url":"https://nobodyme.github.io/blog/"}}</script><link rel="preconnect" href="https://www.googletagmanager.com"><link rel="dns-prefetch" href="https://www.googletagmanager.com"><script async src="https://www.googletagmanager.com/gtag/js?id=G-RTEDBEVJXZ"></script><script>(function(){const id = "G-RTEDBEVJXZ";
+
+            window.dataLayer = window.dataLayer || []
+            function gtag() {
+              dataLayer.push(arguments)
+            }
+            gtag("js", new Date())
+            gtag("config", id)
+          })();</script><link rel="alternate" type="application/rss+xml" title="The Curious Engineer" href="/blog/rss.xml"><link rel="icon" href="/blog/favicon-32x32.png" type="image/png"><link rel="manifest" href="/blog/manifest.webmanifest" crossorigin="anonymous"><link rel="apple-touch-icon" sizes="48x48" href="/blog/icons/icon-48x48.png"><link rel="apple-touch-icon" sizes="72x72" href="/blog/icons/icon-72x72.png"><link rel="apple-touch-icon" sizes="96x96" href="/blog/icons/icon-96x96.png"><link rel="apple-touch-icon" sizes="144x144" href="/blog/icons/icon-144x144.png"><link rel="apple-touch-icon" sizes="192x192" href="/blog/icons/icon-192x192.png"><link rel="apple-touch-icon" sizes="256x256" href="/blog/icons/icon-256x256.png"><link rel="apple-touch-icon" sizes="384x384" href="/blog/icons/icon-384x384.png"><link rel="apple-touch-icon" sizes="512x512" href="/blog/icons/icon-512x512.png"><link rel="stylesheet" href="/blog/assets/Layout.BGAHUCu-.css"><script type="module" src="/blog/assets/page.B3sWyS9n.js"></script></head><body><div><header class="site-header"><a class="site-title" href="/blog/"><svg class="binoculars" viewBox="10 0 80 64" width="60" height="48" aria-hidden="true" focusable="false"><defs><clipPath id="bino-header-glass-l"><circle cx="29" cy="45" r="13"></circle></clipPath><mask id="bino-header-smile-l" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="70"><rect width="100" height="70" fill="#fff"></rect><path class="bino-cheek" fill="#000" transform="translate(0 7)" d="M14 62V52Q29 42 44 52V62Z"></path></mask><clipPath id="bino-header-glass-r"><circle cx="71" cy="45" r="13"></circle></clipPath><mask id="bino-header-smile-r" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="70"><rect width="100" height="70" fill="#fff"></rect><path class="bino-cheek" fill="#000" transform="translate(0 7)" d="M56 62V52Q71 42 86 52V62Z"></path></mask></defs><g class="bino-frame"><rect x="21" y="3" width="16" height="13" rx="4"></rect><rect x="63" y="3" width="16" height="13" rx="4"></rect><rect x="45" y="11" width="10" height="9" rx="2"></rect><path d="M12 45C12 31 16 21 20 14H38C42 21 46 31 46 45Z"></path><path d="M54 45C54 31 58 21 62 14H80C84 21 88 31 88 45Z"></path><rect x="40" y="22" width="20" height="12" rx="3"></rect><circle cx="29" cy="45" r="17"></circle><circle cx="71" cy="45" r="17"></circle></g><g clip-path="url(#bino-header-glass-l)"><circle class="bino-glass" cx="29" cy="45" r="13"></circle><g mask="url(#bino-header-smile-l)"><g class="bino-eye"><circle class="bino-pupil" cx="29" cy="45" r="7.6"></circle><circle class="bino-sparkle" cx="26.3" cy="42.2" r="2.5"></circle><circle class="bino-sparkle" cx="31.6" cy="47.8" r="1.1"></circle></g></g><ellipse class="bino-shine" cx="24" cy="40" rx="3.8" ry="2.1" transform="rotate(-38 24 40)"></ellipse><ellipse class="bino-cheek-dot" cx="21.5" cy="53" rx="3.6" ry="1.9"></ellipse><g class="bino-blush-group" transform="translate(0 7)"><ellipse class="bino-blush" cx="22.5" cy="54.5" rx="3.6" ry="1.9"></ellipse></g><path class="bino-lash" d="M22 44.5Q29 51 36 44.5"></path></g><g clip-path="url(#bino-header-glass-r)"><circle class="bino-glass" cx="71" cy="45" r="13"></circle><g mask="url(#bino-header-smile-r)"><g class="bino-eye"><circle class="bino-pupil" cx="71" cy="45" r="7.6"></circle><circle class="bino-sparkle" cx="68.3" cy="42.2" r="2.5"></circle><circle class="bino-sparkle" cx="73.6" cy="47.8" r="1.1"></circle></g></g><ellipse class="bino-shine" cx="66" cy="40" rx="3.8" ry="2.1" transform="rotate(-38 66 40)"></ellipse><ellipse class="bino-cheek-dot" cx="78.5" cy="53" rx="3.6" ry="1.9"></ellipse><g class="bino-blush-group" transform="translate(0 7)"><ellipse class="bino-blush" cx="77.5" cy="54.5" rx="3.6" ry="1.9"></ellipse></g><path class="bino-lash" d="M64 44.5Q71 51 78 44.5"></path></g></svg><script type="module">document.querySelectorAll(`.binoculars`).forEach(e=>{let t=matchMedia(`(prefers-reduced-motion: reduce)`),n=t=>Array.from(e.querySelectorAll(t)),r=n(`.bino-eye`),i=n(`.bino-cheek`),a=n(`.bino-blush-group`),o=n(`.bino-lash`),s=[29,71],c=(e,t)=>e+Math.random()*(t-e),l=null,u=!0,d=!1,f=performance.now()+1100,p=.45,m=-1/0,h=[0,0],g=[[0,0],[0,0]],_=t=>{let n=e.getBoundingClientRect(),c=n.width/80,v=Math.max(150,n.width*1.4),y=l?Math.hypot(l.x-(n.left+n.width/2),l.y-(n.top+n.height/2)):1/0,b=t<f?1:.45+.3*Math.max(0,1-y/v);p+=(b-p)*.12;let x=Math.abs(b-p)<.005;for(let e=0;e<2;e++){let t=h[0],r=h[1];if(l){let i=l.x-(n.left+(s[e]-10)*c),a=l.y-(n.top+45*c),o=Math.hypot(i,a)||1,u=4.2*(1-Math.exp(-o/(60+40*c)));t=i/o*u,r=a/o*u}let o=l?.3:.2;g[e][0]+=(t-g[e][0])*o,g[e][1]+=(r-g[e][1])*o,(Math.abs(t-g[e][0])>.01||Math.abs(r-g[e][1])>.01)&&(x=!1);let u=`translate(0 ${((1-p)*13).toFixed(2)})`;i[e].setAttribute(`transform`,u),a[e].setAttribute(`transform`,u),a[e].style.opacity=Math.max(0,(p-.55)*1.8).toFixed(2)}let S=(t-m)/170,C=S>=0&&S<=1,w=C?Math.sin(Math.PI*S):0,T=Math.max(.001,1-w);for(let e=0;e<2;e++){let[t,n]=g[e];r[e].setAttribute(`transform`,`translate(${t.toFixed(2)} ${(45*(1-T)+n).toFixed(2)}) scale(1 ${T.toFixed(3)})`),o[e].style.opacity=Math.min(1,Math.max(0,(w-.6)/.35)).toFixed(2)}x&&!C||!u?d=!1:requestAnimationFrame(_)},v=()=>{!d&&u&&(d=!0,requestAnimationFrame(_))},y=()=>{setTimeout(()=>{u&&!document.hidden&&!t.matches&&(m=performance.now(),v()),y()},Math.random()<.2?c(240,320):c(2600,6500))},b=()=>{setTimeout(()=>{if(!l&&u&&!document.hidden&&!t.matches){let e=c(0,Math.PI*2),t=c(0,4.2);h=[Math.cos(e)*t,Math.sin(e)*t*.7],v()}b()},c(900,2600))},x=e=>{l={x:e.clientX,y:e.clientY},v()};addEventListener(`pointermove`,x,{passive:!0}),addEventListener(`pointerdown`,x,{passive:!0}),document.documentElement.addEventListener(`mouseleave`,()=>{l=null,v()}),new IntersectionObserver(([e])=>{u=e.isIntersecting,u&&v()}).observe(e),v(),y(),b()});</script><span>The Curious Engineer</span></a><nav class="site-nav" aria-label="Site"><a href="/blog/" aria-current="true">Posts</a><a href="/blog/liked-posts/">Liked</a><a href="/blog/about/">About</a><a href="/blog/rss.xml" target="_blank" rel="noopener noreferrer" aria-label="RSS (opens in a new tab)">RSS</a><span class="site-nav-divider" aria-hidden="true"></span><button type="button" class="theme-toggle" aria-label="Switch to dark theme" title="Switch to dark theme"><svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg><svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"></path></svg></button></nav></header><script type="module">{let e=document.documentElement,t=document.querySelector(`.theme-toggle`),n=window.matchMedia(`(prefers-color-scheme: dark)`),r={light:`#24292e`,dark:`#0d1117`},i=()=>e.dataset.theme||(n.matches?`dark`:`light`),a=()=>{let n=i(),a=`Switch to ${n===`dark`?`light`:`dark`} theme`;t?.setAttribute(`aria-label`,a),t?.setAttribute(`title`,a),document.querySelectorAll(`meta[name="theme-color"]`).forEach(t=>{t.content=e.dataset.theme?r[n]:t.media.includes(`dark`)?r.dark:r.light}),document.querySelector(`iframe.giscus-frame`)?.contentWindow?.postMessage({giscus:{setConfig:{theme:n}}},`https://giscus.app`)};t?.addEventListener(`click`,()=>{let t=i()===`dark`?`light`:`dark`,r=n.matches?`dark`:`light`;try{t===r?localStorage.removeItem(`theme`):localStorage.setItem(`theme`,t)}catch{}t===r?delete e.dataset.theme:e.dataset.theme=t,a()}),n.addEventListener(`change`,a),a()}</script><div class="global-content-wrapper" data-is-root-path="false"><main><article class="blog-post"><header><h1>Decoupling AWS CloudFormation Templates</h1><p class="meta"><span>May 15, 2021</span><span class="meta-separator">•</span><span>3 min read</span></p></header><section class="blog-content"><p>While using <a href="https://aws.amazon.com/cloudformation/">CloudFormation</a> templates for deploying our infrastructure, we had to face the fact that a CloudFormation stack can only contain a maximum of <a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cloudformation-limits.html">200 resources</a>(now 500).</p>
+<h3 id="working-around-the-limit">Working around the limit</h3>
+<p>We decided to split our infrastructure into multiple stacks. CloudFormation has two main design patterns to achieve this, the <a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-stack.html">Nested Stack mode</a> and the <a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/walkthrough-crossstackref.html">Cross Stack Reference mode</a>. We went with Nested Stack Mode and we decided to split our resources based on the resource type. Similar resources were grouped in a single stack like shown below, <br></p>
+<ul>
+<li>main-stack.yaml
+<ul>
+<li>backend-lambda-stack.yaml</li>
+<li>api-gateway-stack.yaml</li>
+<li>batch-stack.yaml</li>
+<li>…</li>
+</ul>
+</li>
+</ul>
+<p>Hence obviously, there came instances where one stack depended on the resources created by another stack, at that time we exported that particular resource and imported it in the stack that required it like shown in the example below,</p>
+<p><strong>ParentStack</strong></p>
+<div class="gatsby-highlight" data-language="yaml"><pre class="language-yaml"><code class="language-yaml"><span class="token key atrule">AWSTemplateFormatVersion</span><span class="token punctuation">:</span> <span class="token string">'2010-09-09'</span>
+<span class="token key atrule">Description</span><span class="token punctuation">:</span> <span class="token string">'main-parent-stack'</span>
+
+<span class="token key atrule">Resources</span><span class="token punctuation">:</span>
+  <span class="token key atrule">NestedStackA</span><span class="token punctuation">:</span>
+    <span class="token key atrule">Type</span><span class="token punctuation">:</span> AWS<span class="token punctuation">:</span><span class="token punctuation">:</span>CloudFormation<span class="token punctuation">:</span><span class="token punctuation">:</span>Stack
+    <span class="token key atrule">Properties</span><span class="token punctuation">:</span>
+      <span class="token key atrule">TemplateURL</span><span class="token punctuation">:</span> <span class="token string">"https://testbucket-bucket.s3.amazonaws.com/nestedStack-A.yaml"</span>
+
+  <span class="token key atrule">NestedStackB</span><span class="token punctuation">:</span>
+    <span class="token key atrule">Type</span><span class="token punctuation">:</span> AWS<span class="token punctuation">:</span><span class="token punctuation">:</span>CloudFormation<span class="token punctuation">:</span><span class="token punctuation">:</span>Stack
+    <span class="token key atrule">DependsOn</span><span class="token punctuation">:</span> NestedStackA
+    <span class="token key atrule">Properties</span><span class="token punctuation">:</span>
+      <span class="token key atrule">TemplateURL</span><span class="token punctuation">:</span> <span class="token string">"https://testbucket-bucket.s3.amazonaws.com/nestedStack-B.yaml"</span></code></pre></div>
+<p><strong>NestedStackA</strong></p>
+<div class="gatsby-highlight" data-language="yaml"><pre class="language-yaml"><code class="language-yaml"><span class="token key atrule">AWSTemplateFormatVersion</span><span class="token punctuation">:</span> <span class="token string">'2010-09-09'</span>
+<span class="token key atrule">Description</span><span class="token punctuation">:</span> <span class="token string">'nested stack A'</span>
+
+<span class="token key atrule">Resources</span><span class="token punctuation">:</span>
+  <span class="token key atrule">ABatchJobDefinition</span><span class="token punctuation">:</span>
+    <span class="token key atrule">Type</span><span class="token punctuation">:</span> AWS<span class="token punctuation">:</span><span class="token punctuation">:</span>Batch<span class="token punctuation">:</span><span class="token punctuation">:</span>JobDefinition
+    <span class="token key atrule">Properties</span><span class="token punctuation">:</span>
+      <span class="token punctuation">...</span>
+      <span class="token punctuation">...</span>
+        <span class="token key atrule">Command</span><span class="token punctuation">:</span>
+          <span class="token punctuation">-</span> python3
+          <span class="token punctuation">-</span> /app/script.py
+          <span class="token punctuation">-</span> Ref<span class="token punctuation">:</span><span class="token punctuation">:</span>jobId
+          <span class="token punctuation">-</span> Ref<span class="token punctuation">:</span><span class="token punctuation">:</span>role
+
+<span class="token key atrule">Outputs</span><span class="token punctuation">:</span>
+  <span class="token key atrule">BatchArn</span><span class="token punctuation">:</span>
+    <span class="token key atrule">Value</span><span class="token punctuation">:</span>
+      <span class="token key atrule">Ref</span><span class="token punctuation">:</span> ABatchJobDefinition
+    <span class="token key atrule">Export</span><span class="token punctuation">:</span>
+      <span class="token key atrule">Name</span><span class="token punctuation">:</span> <span class="token string">"ABatchJobDefinition"</span></code></pre></div>
+<p><strong>NestedStackB</strong></p>
+<div class="gatsby-highlight" data-language="yaml"><pre class="language-yaml"><code class="language-yaml"><span class="token key atrule">AWSTemplateFormatVersion</span><span class="token punctuation">:</span> <span class="token string">'2010-09-09'</span>
+<span class="token key atrule">Description</span><span class="token punctuation">:</span> <span class="token string">'nested stack B'</span>
+
+<span class="token key atrule">Resources</span><span class="token punctuation">:</span>
+  <span class="token key atrule">NestedTestLambdaFunction</span><span class="token punctuation">:</span>
+    <span class="token punctuation">...</span>
+    <span class="token punctuation">...</span>
+      <span class="token key atrule">Environment</span><span class="token punctuation">:</span>
+        <span class="token key atrule">Variables</span><span class="token punctuation">:</span>
+          <span class="token key atrule">batchJob</span><span class="token punctuation">:</span> <span class="token tag">!ImportValue</span> <span class="token string">"ABatchJobDefinition"</span></code></pre></div>
+<p>While this worked well, there came the problem when we wanted to update the resource that is shared. In this case, it’s the batch definition. Now whenever an update changed the output value of the shared resource, CloudFormation would complain that the <a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-stack-exports.html">resource is in use by another stack</a> and therefore cannot be updated.</p>
+<div class="error-box">
+  Export ABatchJobDefinition cannot be updated as it is in use by main-stack-NestedStackB-1F4FO24RCWJGY
+</div>
+<br>
+<p>In our specific case, we wanted to pass an extra command-line argument to our python script along with <code class="language-text">jobId</code> and <code class="language-text">role</code> and that updated the output value or the logical id of the resource, since it created a new version of the batch definition. <br>
+(Note: Not all updates change the output value)</p>
+<p>Now, what do we do? <br></p>
+<p>One solution is to <a href="https://aws.amazon.com/premiumsupport/knowledge-center/cloudformation-stack-export-name-error/">follow this process</a>,</p>
+<ol>
+<li>Update NestedStackB to replace the import statements with the actual output value and deploy it.</li>
+<li>Now that the dependency has been removed, update NestedStackA with the additional parameter and deploy it.</li>
+<li>Then again in NestedStackB replace the actual output value with the import statement like earlier and deploy it again.</li>
+</ol>
+<p>Sure that works, but,</p>
+<ul>
+<li>What if we want to update that resource again by adding another parameter? <br></li>
+<li>What if there are multiple stacks that use the same resource in the future? <br></li>
+</ul>
+<p>Either way, just repeating the above method would not be the best long-term approach.</p>
+<h3 id="how-do-we-decouple-them">How do we decouple them?</h3>
+<p>We tried a few things and then something clicked, this problem was strikingly similar to managing <code class="language-text">state</code> in a react component. What do you do when you have to share state between two sibling components?</p>
+<p>We <a href="https://reactjs.org/docs/lifting-state-up.html">lift the state up</a> to the parent component and pass down the state as props to both the sibling. We tried to see if something similar would work. One difference is now we don’t import the resource that we want rather, we pass it down as a <a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html">parameter</a> to the stack that needs it and reference it from there.</p>
+<p>The thing about parameters in CloudFormation is that it’s not always known beforehand and can change depending on the user’s input. So when we supply a resource as a parameter, CloudFormation shouldn’t expect it to remain constant.</p>
+<ol>
+<li>We exported the resource to be shared as usual from NestedStackA.</li>
+<li>From the parent stack, we passed the output as a parameter to the NestedStackB.</li>
+<li>The NestedStackB just referenced the resource from the parameter.</li>
+</ol>
+<p><strong>ParentStack</strong></p>
+<div class="gatsby-highlight" data-language="yaml"><pre class="language-yaml"><code class="language-yaml"><span class="token key atrule">AWSTemplateFormatVersion</span><span class="token punctuation">:</span> <span class="token string">'2010-09-09'</span>
+<span class="token key atrule">Description</span><span class="token punctuation">:</span> <span class="token string">'main-parent-stack'</span>
+
+<span class="token key atrule">Resources</span><span class="token punctuation">:</span>
+  <span class="token key atrule">NestedStackA</span><span class="token punctuation">:</span>
+    <span class="token key atrule">Type</span><span class="token punctuation">:</span> AWS<span class="token punctuation">:</span><span class="token punctuation">:</span>CloudFormation<span class="token punctuation">:</span><span class="token punctuation">:</span>Stack
+    <span class="token key atrule">Properties</span><span class="token punctuation">:</span>
+      <span class="token key atrule">TemplateURL</span><span class="token punctuation">:</span> <span class="token string">"https://testbucket-bucket.s3.amazonaws.com/nestedStack-A.yaml"</span>
+
+  <span class="token key atrule">NestedStackB</span><span class="token punctuation">:</span>
+    <span class="token key atrule">Type</span><span class="token punctuation">:</span> AWS<span class="token punctuation">:</span><span class="token punctuation">:</span>CloudFormation<span class="token punctuation">:</span><span class="token punctuation">:</span>Stack
+    <span class="token key atrule">Properties</span><span class="token punctuation">:</span>
+      <span class="token key atrule">TemplateURL</span><span class="token punctuation">:</span> <span class="token string">"https://testbucket-bucket.s3.amazonaws.com/nestedStack-B.yaml"</span>
+      <span class="token key atrule">Parameters</span><span class="token punctuation">:</span>
+        <span class="token key atrule">ABatchJobDefinition</span><span class="token punctuation">:</span> <span class="token tag">!GetAtt</span> NestedStackA.Outputs.BatchArn</code></pre></div>
+<p><strong>NestedStackA</strong></p>
+<div class="gatsby-highlight" data-language="yaml"><pre class="language-yaml"><code class="language-yaml"><span class="token key atrule">AWSTemplateFormatVersion</span><span class="token punctuation">:</span> <span class="token string">'2010-09-09'</span>
+<span class="token key atrule">Description</span><span class="token punctuation">:</span> <span class="token string">'nested stack A'</span>
+
+<span class="token key atrule">Resources</span><span class="token punctuation">:</span>
+  <span class="token key atrule">ABatchJobDefinition</span><span class="token punctuation">:</span>
+    <span class="token key atrule">Type</span><span class="token punctuation">:</span> AWS<span class="token punctuation">:</span><span class="token punctuation">:</span>Batch<span class="token punctuation">:</span><span class="token punctuation">:</span>JobDefinition
+    <span class="token key atrule">Properties</span><span class="token punctuation">:</span>
+      <span class="token punctuation">...</span>
+      <span class="token punctuation">...</span>
+        <span class="token key atrule">Command</span><span class="token punctuation">:</span>
+          <span class="token punctuation">-</span> python3
+          <span class="token punctuation">-</span> /app/script.py
+          <span class="token punctuation">-</span> Ref<span class="token punctuation">:</span><span class="token punctuation">:</span>jobId
+          <span class="token punctuation">-</span> Ref<span class="token punctuation">:</span><span class="token punctuation">:</span>role
+
+<span class="token key atrule">Outputs</span><span class="token punctuation">:</span>
+  <span class="token key atrule">BatchArn</span><span class="token punctuation">:</span>
+    <span class="token key atrule">Value</span><span class="token punctuation">:</span>
+      <span class="token key atrule">Ref</span><span class="token punctuation">:</span> ABatchJobDefinition
+    <span class="token key atrule">Export</span><span class="token punctuation">:</span>
+      <span class="token key atrule">Name</span><span class="token punctuation">:</span> <span class="token string">"ABatchJobDefinition"</span></code></pre></div>
+<p><strong>NestedStackB</strong></p>
+<div class="gatsby-highlight" data-language="yaml"><pre class="language-yaml"><code class="language-yaml"><span class="token key atrule">AWSTemplateFormatVersion</span><span class="token punctuation">:</span> <span class="token string">'2010-09-09'</span>
+<span class="token key atrule">Description</span><span class="token punctuation">:</span> <span class="token string">'nested stack B'</span>
+
+<span class="token key atrule">Parameters</span><span class="token punctuation">:</span>
+  <span class="token key atrule">ABatchJobDefinition</span><span class="token punctuation">:</span>
+      <span class="token key atrule">Type</span><span class="token punctuation">:</span> String
+
+<span class="token key atrule">Resources</span><span class="token punctuation">:</span>
+  <span class="token key atrule">NestedTestLambdaFunction</span><span class="token punctuation">:</span>
+    <span class="token punctuation">...</span>
+    <span class="token punctuation">...</span>
+      <span class="token key atrule">Environment</span><span class="token punctuation">:</span>
+        <span class="token key atrule">Variables</span><span class="token punctuation">:</span>
+          <span class="token key atrule">batchJob</span><span class="token punctuation">:</span> <span class="token tag">!Ref</span> ABatchJobDefinition</code></pre></div>
+<p>And that worked, which we later confirmed with AWS Support to be the right way to go about sharing resources in the Nested Stack mode. This allowed us to continue to update resources in the stack without worrying about change.</p></section></article><nav class="blog-post-nav" aria-label="More posts"><hr class="hr"><ul class="post-nav"><li class="post-nav-newer"><a href="/blog/building-percentage-rollouts/" rel="prev"><small>← Newer</small><span>Building Reliable Percentage Rollouts In-House</span></a></li><li class="post-nav-older"><a href="/blog/dynamic-programming/" rel="next"><small>Older →</small><span>Dynamic Programming</span></a></li></ul></nav><div class="comment-container"><h4>Comments</h4><p>Want to share feedback, or discuss further ideas? Feel free to leave a comment here! This comment thread directly maps to a <a href="https://github.com/nobodyme/blog/discussions/categories/post-comments">discussion on GitHub</a>, so you can also comment there if you prefer.</p><div class="giscus"></div></div><script>
+  // Giscus is loaded here (not with a static <script>) so it starts in the theme the
+  // page is showing: the header toggle's saved choice, or the system theme. The toggle
+  // updates it later with a postMessage.
+  ;(function () {
+    var picked = document.documentElement.dataset.theme
+    var s = document.createElement("script")
+    var attrs = {
+      src: "https://giscus.app/client.js",
+      id: "giscus-script",
+      "data-repo": "nobodyme/blog",
+      "data-repo-id": "MDEwOlJlcG9zaXRvcnkzNjU3NTQxMTI=",
+      "data-category-id": "DIC_kwDOFcz3AM4CA8kh",
+      "data-mapping": "pathname",
+      "data-theme": picked === "light" || picked === "dark" ? picked : "preferred_color_scheme",
+      "data-reactions-enabled": "1",
+      "data-emit-metadata": "0",
+      "data-input-position": "top",
+      "data-lang": "en",
+      // The comments iframe loads only when it's scrolled near, not with the page.
+      "data-loading": "lazy",
+      crossorigin: "anonymous",
+    }
+    for (var k in attrs) s.setAttribute(k, attrs[k])
+    s.async = true
+    document.currentScript.after(s)
+
+    // A theme toggled before the lazy iframe loaded never reached it, so send the
+    // current theme once giscus first talks to the page (its first height update).
+    addEventListener("message", function sendTheme(e) {
+      if (e.origin !== "https://giscus.app" || !e.data || !e.data.giscus) return
+      removeEventListener("message", sendTheme)
+      var root = document.documentElement
+      var theme = root.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+      e.source.postMessage({ giscus: { setConfig: { theme: theme } } }, "https://giscus.app")
+    })
+  })()
+</script></main></div></div></body></html>
