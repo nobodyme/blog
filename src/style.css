@@ -261,27 +261,16 @@ a:focus {
   background: var(--color-accent);
 }
 
-.site-nav .site-nav-icon {
+/* About page: the binoculars at full size beside the greeting, then the bio and links */
+.about {
   display: grid;
-  place-items: center;
-  color: var(--color-heading);
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--spacing-2) var(--spacing-8);
+  margin-top: var(--spacing-2);
 }
 
-.site-nav-icon svg {
-  display: block;
-  fill: currentColor;
-}
-
-/* Home intro: the greeting, the tagline and the binoculars at full size */
-.home-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--spacing-8);
-  margin: var(--spacing-2) 0 var(--spacing-8);
-}
-
-.home-hero-title {
+.about-title {
   margin: 0 0 var(--spacing-4);
   font-size: clamp(2.5rem, 9vw, 3.5rem);
   font-weight: var(--fontWeight-black);
@@ -290,32 +279,55 @@ a:focus {
   color: var(--color-heading);
 }
 
-.home-hero-title a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.home-hero-title a:hover,
-.home-hero-title a:focus-visible {
-  text-decoration: underline;
-  text-decoration-color: var(--bino-blush);
-  text-decoration-thickness: 4px;
-  text-underline-offset: 6px;
-}
-
-.home-hero-tagline {
-  margin: 0;
-  max-width: 30ch;
+.about-lede {
   font-size: var(--fontSize-2);
   line-height: var(--lineHeight-normal);
-  color: var(--color-text-light);
+  color: var(--color-heading);
 }
 
-.home-hero-rule {
-  margin: 0 0 var(--spacing-8);
+.about p {
+  margin: 0 0 var(--spacing-4);
 }
 
-/* Binoculars (Binoculars.astro), which animates the eyes */
+.about-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2) var(--spacing-6);
+  margin: var(--spacing-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about-links li {
+  margin: 0;
+}
+
+.about-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-height: 44px;
+  font-weight: var(--fontWeight-medium);
+}
+
+.about-links svg {
+  fill: currentColor;
+}
+
+/* Visible to screen readers only (the home page's heading) */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Binoculars (Binoculars.astro), which animates the eyes: in the header on every page, large on About */
 .binoculars {
   overflow: visible;
   flex: none;
@@ -925,15 +937,14 @@ footer span {
   }
 }
 
-/* Small phones: the binoculars lead the home intro, above the greeting */
+/* Small phones: the About page's binoculars sit above the greeting */
 @media (max-width: 560px) {
-  .home-hero {
+  .about {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--spacing-3);
   }
 
-  .home-hero-mascot {
-    order: -1;
+  .about-mascot {
     width: 96px;
     height: 77px;
   }

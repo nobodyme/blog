@@ -1,6 +1,5 @@
 ---
 import { getCollection } from "astro:content"
-import Binoculars from "../components/Binoculars.astro"
 import Layout from "../layouts/Layout.astro"
 import { excerpt, formatDate } from "../lib/text.js"
 import { site, url } from "../site.js"
@@ -29,18 +28,7 @@ const jsonLd = {
       <p>No blog posts found.</p>
     ) : (
       <>
-      {/* The home page's binoculars live here, large; every other page has them in the header. */}
-      <section class="home-hero">
-        <div>
-          <h1 class="home-hero-title">
-            Hi, I'm{" "}
-            <a href={site.author.url} target="_blank" rel="noopener noreferrer">Naveen</a>.
-          </h1>
-          <p class="home-hero-tagline">{site.description}</p>
-        </div>
-        <Binoculars class="home-hero-mascot" width={150} height={120} />
-      </section>
-      <hr class="home-hero-rule" />
+      <h1 class="visually-hidden">Posts</h1>
       <ol class="post-list">
         {posts.map(post => (
           <li class="post-list-item">

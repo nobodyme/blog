@@ -1,13 +1,15 @@
 ---
-// The "watcher" binoculars. One per page: in the header on posts and other
-// pages, and large in the intro on the home page (see Layout.astro).
+// The "watcher" binoculars: small in the header on every page, and large on the
+// About page. Each copy animates on its own.
 interface Props {
   width: number
   height: number
   class?: string
+  /** Prefix for the SVG's clip and mask ids, unique per copy on a page. */
+  id: string
 }
 
-const { width, height, class: className } = Astro.props
+const { width, height, class: className, id } = Astro.props
 
 // Lens centres in the binoculars drawing (viewBox trimmed to x 10..90).
 const lenses = [
@@ -21,10 +23,10 @@ const lenses = [
     {
       lenses.map(({ side, cx }) => (
         <>
-          <clipPath id={`bino-glass-${side}`}>
+          <clipPath id={`${id}-glass-${side}`}>
             <circle cx={cx} cy="45" r="13" />
           </clipPath>
-          <mask id={`bino-smile-${side}`} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="70">
+          <mask id={`${id}-smile-${side}`} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="70">
             <rect width="100" height="70" fill="#fff" />
             <path
               class="bino-cheek"
@@ -49,9 +51,9 @@ const lenses = [
   </g>
   {
     lenses.map(({ side, cx }) => (
-      <g clip-path={`url(#bino-glass-${side})`}>
+      <g clip-path={`url(#${id}-glass-${side})`}>
         <circle class="bino-glass" cx={cx} cy="45" r="13" />
-        <g mask={`url(#bino-smile-${side})`}>
+        <g mask={`url(#${id}-smile-${side})`}>
           <g class="bino-eye">
             <circle class="bino-pupil" cx={cx} cy="45" r="7.6" />
             <circle class="bino-sparkle" cx={cx - 2.7} cy="42.2" r="2.5" />
@@ -79,10 +81,9 @@ const lenses = [
   // "Watcher" binoculars: the eyes stay open and follow the cursor, blink now
   // and then, and smile more as the cursor gets close. Nothing runs while the
   // eyes are still: pointer moves and blink/glance timers start the loop, and
-  // it stops once everything has settled or the header is off-screen.
-  const svg = document.querySelector<SVGSVGElement>(".binoculars")
-
-  if (svg) {
+  // it stops once everything has settled or the binoculars are off-screen.
+  // Every copy on the page (header, About page) runs its own copy of this.
+  const watch = (svg: SVGSVGElement) => {
     const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)")
     const all = <T extends Element>(selector: string) => Array.from(svg.querySelectorAll<T>(selector))
     const eyes = all<SVGGElement>(".bino-eye")
@@ -219,4 +220,6 @@ const lenses = [
     scheduleBlink()
     scheduleGlance()
   }
+
+  document.querySelectorAll<SVGSVGElement>(".binoculars").forEach(watch)
 </script>

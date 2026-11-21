@@ -1,54 +1,32 @@
 ---
-import Github from "../assets/svg/github.svg"
-import LinkedIn from "../assets/svg/linkedin.svg"
 import { url } from "../site.js"
 import Binoculars from "./Binoculars.astro"
 
 interface Props {
   siteTitle: string
-  /** False on the home page, which shows the binoculars large in its intro instead. */
-  showMascot: boolean
   /** The section this page belongs to, underlined in the nav. */
-  current?: "posts" | "liked"
+  current?: "posts" | "liked" | "about"
   /** True on the home page itself, so "Posts" is marked as the current page. */
   isHome?: boolean
 }
 
-const { siteTitle, showMascot, current, isHome = false } = Astro.props
-const postsCurrent = current === "posts" ? (isHome ? "page" : "true") : undefined
-const likedCurrent = current === "liked" ? "page" : undefined
+const { siteTitle, current, isHome = false } = Astro.props
+// "page" when the link is this exact page; "true" when this page is inside that section (a post).
+const ariaCurrent = (section: Props["current"]) =>
+  current === section ? (section === "posts" && !isHome ? "true" : "page") : undefined
 ---
 
 <header class="site-header">
   <a class="site-title" href={url()}>
-    {showMascot && <Binoculars class="site-title-mascot" width={40} height={32} />}
+    <Binoculars id="bino-header" width={40} height={32} />
     <span>{siteTitle}</span>
   </a>
   <nav class="site-nav" aria-label="Site">
-    <a href={url()} aria-current={postsCurrent}>Posts</a>
-    <a href={url("liked-posts/")} aria-current={likedCurrent}>Liked</a>
+    <a href={url()} aria-current={ariaCurrent("posts")}>Posts</a>
+    <a href={url("liked-posts/")} aria-current={ariaCurrent("liked")}>Liked</a>
+    <a href={url("about/")} aria-current={ariaCurrent("about")}>About</a>
     <a href={url("rss.xml")} target="_blank" rel="noopener noreferrer" aria-label="RSS (opens in a new tab)">RSS</a>
     <span class="site-nav-divider" aria-hidden="true"></span>
-    <a
-      class="site-nav-icon"
-      href="https://github.com/nobodyme"
-      aria-label="GitHub (opens in a new tab)"
-      title="GitHub"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <Github width={24} height={24} />
-    </a>
-    <a
-      class="site-nav-icon"
-      href="https://www.linkedin.com/in/naveen-kumar-b11464128/"
-      aria-label="LinkedIn (opens in a new tab)"
-      title="LinkedIn"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <LinkedIn width={22} height={22} />
-    </a>
     <button type="button" class="theme-toggle" aria-label="Switch to dark theme" title="Switch to dark theme">
       <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
         <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
