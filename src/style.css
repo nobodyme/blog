@@ -351,6 +351,9 @@ a:focus {
 .bino-blush {
   fill: var(--bino-blush);
 }
+.bino-cheek-dot {
+  fill: var(--bino-blush);
+}
 .bino-blush-group {
   opacity: 0;
 }

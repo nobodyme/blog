@@ -68,6 +68,8 @@ const lenses = [
           ry="2.1"
           transform={`rotate(-38 ${cx - 5} 40)`}
         />
+        {/* Always-on cheeks, on the outer lower edge of each lens; the blush below adds to them when happy */}
+        <ellipse class="bino-cheek-dot" cx={cx + (cx < 50 ? -7.5 : 7.5)} cy="53" rx="3.6" ry="1.9" />
         <g class="bino-blush-group" transform="translate(0 7)">
           <ellipse class="bino-blush" cx={cx + (cx < 50 ? -6.5 : 6.5)} cy="54.5" rx="3.6" ry="1.9" />
         </g>
