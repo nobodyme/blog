@@ -585,50 +585,6 @@ a:focus {
   }
 }
 
-/* Reading progress: a 2px line along the top of the screen that fills as the
-   article scrolls past. CSS scroll-driven animation, so no JS or scroll listener;
-   browsers without support don't show it. */
-.reading-progress {
-  display: none;
-}
-
-@supports (animation-timeline: view()) {
-  .blog-post {
-    view-timeline: --post block;
-  }
-
-  .reading-progress {
-    display: block;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 10;
-    height: 2px;
-    background: var(--color-link);
-    transform-origin: 0 50%;
-    pointer-events: none;
-    animation: reading-progress linear both;
-  }
-
-  /* Its own rule on purpose: in the same rule, the CSS minifier folds the
-     timeline into the animation shorthand, where browsers reject it and drop
-     the whole animation. The extra specificity also beats the shorthand's reset. */
-  .blog-post > .reading-progress {
-    animation-timeline: --post;
-    animation-range: contain 0% contain 100%;
-  }
-
-  @keyframes reading-progress {
-    from {
-      transform: scaleX(0);
-    }
-    to {
-      transform: scaleX(1);
-    }
-  }
-}
-
 .gatsby-highlight {
   margin-bottom: var(--spacing-8);
 }
