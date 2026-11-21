@@ -306,6 +306,8 @@ a:focus {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-2);
+  /* 44px tap target, including the logo-only X link */
+  min-width: 44px;
   min-height: 44px;
   font-weight: var(--fontWeight-medium);
 }

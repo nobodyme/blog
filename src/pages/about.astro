@@ -42,8 +42,9 @@ const jsonLd = {
           </a>
         </li>
         <li>
-          <a href={x} target="_blank" rel="noopener noreferrer">
-            <X width={18} height={18} aria-hidden="true" />X
+          {/* Logo only: the X logo is already the letter X, so a text label would repeat it. */}
+          <a href={x} target="_blank" rel="noopener noreferrer" aria-label="X" title="X">
+            <X width={18} height={18} aria-hidden="true" />
           </a>
         </li>
       </ul>
