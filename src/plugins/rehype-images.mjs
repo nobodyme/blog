@@ -143,8 +143,6 @@ export default function rehypeImages({ base = "/", postsDir }) {
                 style: "display: block",
                 target: "_blank",
                 rel: ["noopener"],
-                // Don't let hover-prefetch download the full-size original.
-                dataAstroPrefetch: "false",
               },
               children: [placeholderSpan, node],
             },
