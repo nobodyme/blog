@@ -3,21 +3,12 @@
   "configurations": [
     {
       "name": "blog",
-      "runtimeExecutable": "/bin/sh",
+      "runtimeExecutable": "/bin/zsh",
       "runtimeArgs": [
         "-c",
-        "PATH=/opt/homebrew/opt/node@24/bin:/opt/homebrew/bin:$PATH npm run dev"
+        ". \"$HOME/.nvm/nvm.sh\" && nvm use --silent && npm run dev"
       ],
       "port": 4321
-    },
-    {
-      "name": "blog-dark",
-      "runtimeExecutable": "/bin/sh",
-      "runtimeArgs": [
-        "-c",
-        "cd /Users/nobody1/Code/blog-dark-mode && PATH=/opt/homebrew/opt/node@24/bin:$PATH npx astro dev --port 4330 --host"
-      ],
-      "port": 4330
     }
   ]
 }
