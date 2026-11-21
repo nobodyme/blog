@@ -51,6 +51,8 @@
   --fontSize-5: 2.074rem;
   --fontSize-6: 2.488rem;
   --fontSize-7: 2.986rem;
+  /* Strong ease-out for UI motion: moves at once, settles softly (presses, the theme icon) */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   color-scheme: light;
   --color-primary: #24292e;
   --color-link: #0366d6;
