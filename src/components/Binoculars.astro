@@ -1,6 +1,6 @@
 ---
-// The "watcher" binoculars: small in the header on every page, and large on the
-// About page. Each copy animates on its own.
+// The "watcher" binoculars, shown in the header on every page. Each copy on a
+// page gets its own id prefix and animates on its own.
 interface Props {
   width: number
   height: number
@@ -84,7 +84,7 @@ const lenses = [
   // and then, and smile more as the cursor gets close. Nothing runs while the
   // eyes are still: pointer moves and blink/glance timers start the loop, and
   // it stops once everything has settled or the binoculars are off-screen.
-  // Every copy on the page (header, About page) runs its own copy of this.
+  // Every copy on the page runs its own copy of this.
   const watch = (svg: SVGSVGElement) => {
     const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)")
     const all = <T extends Element>(selector: string) => Array.from(svg.querySelectorAll<T>(selector))

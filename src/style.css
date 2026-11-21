@@ -196,27 +196,27 @@ a:focus {
 }
 
 /* Custom classes */
-/* Site header: wordmark on the left, text links and icons on the right. The
-   binoculars sit beside the wordmark on every page except home, where they are
-   large in the intro (index.astro). */
+/* Site header: the binoculars and wordmark on the left, text links and the
+   theme toggle on the right. Same size and spacing as the header it replaced:
+   60x48 binoculars, a 27.6px title and 80px side margins. */
 .site-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-2) var(--spacing-6);
-  padding: var(--spacing-3) var(--spacing-8);
+  padding: 2.875rem var(--spacing-20) var(--spacing-12);
 }
 
 .site-title {
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
+  gap: var(--spacing-4);
   min-height: 44px;
   color: var(--color-heading);
   font-family: var(--font-heading);
-  font-size: var(--fontSize-2);
-  font-weight: var(--fontWeight-extrabold);
-  letter-spacing: -0.03em;
+  font-size: var(--fontSize-4);
+  font-weight: var(--fontWeight-bold);
+  letter-spacing: -0.025em;
   text-decoration: none;
 }
 
@@ -260,12 +260,8 @@ a:focus {
   background: var(--color-accent);
 }
 
-/* About page: the binoculars at full size beside the greeting, then the bio and links */
+/* About page: the greeting, the tagline and links (a photo is planned above them) */
 .about {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: var(--spacing-2) var(--spacing-8);
   margin-top: var(--spacing-2);
 }
 
@@ -328,7 +324,7 @@ a:focus {
   border: 0;
 }
 
-/* Binoculars (Binoculars.astro), which animates the eyes: in the header on every page, large on About */
+/* Binoculars (Binoculars.astro), in the header on every page; the script animates the eyes */
 .binoculars {
   overflow: visible;
   flex: none;
@@ -929,11 +925,21 @@ footer span {
   }
 }
 
+@media (max-width: 800px) {
+  .site-header {
+    padding-inline: var(--spacing-10);
+  }
+}
+
 /* Phones: the wordmark on its own row, the links and icons on the row below */
 @media (max-width: 700px) {
   .site-header {
     flex-wrap: wrap;
-    padding: var(--spacing-2) var(--spacing-5);
+    padding: var(--spacing-5) var(--spacing-5) var(--spacing-6);
+  }
+
+  .site-title {
+    font-size: var(--fontSize-3);
   }
 
   .site-nav {
@@ -943,18 +949,5 @@ footer span {
 
   .site-nav-divider {
     margin-left: auto;
-  }
-}
-
-/* Small phones: the About page's binoculars sit above the greeting */
-@media (max-width: 560px) {
-  .about {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--spacing-3);
-  }
-
-  .about-mascot {
-    width: 96px;
-    height: 77px;
   }
 }

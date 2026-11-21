@@ -2,7 +2,6 @@
 import Github from "../assets/svg/github.svg"
 import LinkedIn from "../assets/svg/linkedin.svg"
 import X from "../assets/svg/x.svg"
-import Binoculars from "../components/Binoculars.astro"
 import Layout from "../layouts/Layout.astro"
 import { site } from "../site.js"
 
@@ -25,7 +24,7 @@ const jsonLd = {
 
 <Layout title="About" description={site.description} jsonLd={jsonLd}>
   <section class="about">
-    <Binoculars id="bino-about" class="about-mascot" width={150} height={120} />
+    {/* TODO: a photo of me goes here. */}
     <div>
       <h1 class="about-title">Hi, I'm {site.author.name}.</h1>
       <p class="about-lede">{site.description}.</p>
