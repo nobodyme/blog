@@ -1050,6 +1050,12 @@ footer span {
 
 /* Phones: the wordmark on its own row, the links and icons on the row below */
 @media (max-width: 700px) {
+  /* The header is much shorter here, so the full 26rem of dots ran on past the
+     first heading into the text. 18rem fades out just below that heading. */
+  body::before {
+    height: 18rem;
+  }
+
   .site-header {
     flex-wrap: wrap;
     padding: var(--spacing-5) var(--spacing-5) var(--spacing-6);
@@ -1066,5 +1072,11 @@ footer span {
 
   .site-nav-divider {
     margin-left: auto;
+  }
+
+  /* 48px from the tabs to the first heading instead of 64px: a gap sized for the
+     roomy desktop header looked loose under the compact one. */
+  .global-content-wrapper {
+    padding-top: var(--spacing-6);
   }
 }
