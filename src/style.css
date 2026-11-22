@@ -1074,9 +1074,9 @@ footer span {
     margin-left: auto;
   }
 
-  /* 48px from the tabs to the first heading instead of 64px: a gap sized for the
+  /* 32px from the tabs to the first heading instead of 64px: a gap sized for the
      roomy desktop header looked loose under the compact one. */
   .global-content-wrapper {
-    padding-top: var(--spacing-6);
+    padding-top: var(--spacing-2);
   }
 }
