@@ -248,6 +248,7 @@ a:focus {
 }
 
 .site-nav a {
+  position: relative;
   padding: var(--spacing-2) 0;
   color: var(--color-text-light);
   font-family: var(--font-heading);
@@ -256,18 +257,123 @@ a:focus {
 }
 
 .site-nav a:hover,
-.site-nav a:focus {
+.site-nav a:focus,
+.site-nav a:active {
   color: var(--color-heading);
   text-decoration: none;
 }
 
-/* The section you're in, underlined in the binoculars' blush */
-.site-nav a[aria-current] {
+/* The underline in the binoculars' blush: under the section you're in, and under
+   a tab the moment you tap it (data-pending, set in Header.astro) while the old
+   tab lets go. It's a bar rather than text-decoration so it can turn into a
+   loading bar. 4px up from the bottom puts it where text-underline-offset: 8px
+   used to. */
+.site-nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--spacing-1);
+  height: 3px;
+  background: var(--bino-blush);
+  opacity: 0;
+}
+
+.site-nav a[aria-current],
+.site-nav a[data-pending] {
   color: var(--color-heading);
-  text-decoration: underline;
-  text-decoration-color: var(--bino-blush);
-  text-decoration-thickness: 3px;
-  text-underline-offset: 8px;
+}
+
+.site-nav a[aria-current]::after,
+.site-nav a[data-pending]::after {
+  opacity: 1;
+}
+
+.site-nav[data-navigating] a[aria-current]:not([data-pending]) {
+  color: var(--color-text-light);
+}
+
+.site-nav[data-navigating] a[aria-current]:not([data-pending])::after {
+  opacity: 0;
+}
+
+/* Loading: if the page hasn't arrived 250ms after the press (about 150ms after
+   the click a tap ends in; prefetched pages are in by then), the underline fades
+   to a track and a blush segment sweeps along it until the new page replaces
+   this one.
+   Once iOS Safari starts loading the next page it stops this page's scripts and
+   won't start an animation, or let a delayed one begin, but keeps running ones
+   going. So everything starts at the press with no animation-delay, only
+   opacity and transform animate, and the 250ms wait is the first stretch of the
+   nav-loading-show / -track keyframes instead. */
+.site-nav a[data-pending] {
+  overflow: hidden;
+}
+
+.site-nav a[data-pending]::after {
+  animation: nav-loading-track 250ms linear both;
+}
+
+.site-nav a[data-pending]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: var(--spacing-1);
+  width: 40%;
+  height: 3px;
+  background: var(--bino-blush);
+  animation:
+    nav-loading-show 250ms linear both,
+    nav-loading-sweep 1.1s var(--ease-in-out) infinite;
+}
+
+@keyframes nav-loading-track {
+  0%,
+  99% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes nav-loading-show {
+  0%,
+  99% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes nav-loading-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@keyframes nav-loading-pulse {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.35;
+  }
+}
+
+/* Reduced motion: no sweep, the underline gently pulses instead */
+@media (prefers-reduced-motion: reduce) {
+  .site-nav a[data-pending]::before {
+    content: none;
+  }
+
+  .site-nav a[data-pending]::after {
+    animation: nav-loading-pulse 0.8s ease-in-out infinite alternate;
+  }
 }
 
 .site-nav-divider {
