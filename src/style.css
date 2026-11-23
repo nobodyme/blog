@@ -607,7 +607,7 @@ a:focus {
 }
 
 .post-list-item header {
-  margin-bottom: var(--spacing-4);
+  margin-bottom: var(--spacing-2);
 }
 
 .post-list-item header span {
@@ -989,12 +989,18 @@ footer span {
   color: var(--color-text-lighter);
 }
 
+/* The rule under the subheading gets room on both sides (it was 8px above and
+   12px below, squeezed between the subheading and the first item) */
+.liked-page-title + hr {
+  margin: var(--spacing-4) 0 0;
+}
+
 .liked-post {
-  margin-top: var(--spacing-3);
+  margin-top: var(--spacing-6);
 }
 
 .liked-post-item {
-  margin-bottom: var(--spacing-10);
+  margin-bottom: var(--spacing-6);
   display: flex;
   align-items: top;
   justify-content: left;
@@ -1074,9 +1080,18 @@ footer span {
     margin-left: auto;
   }
 
-  /* 48px from the tabs to the first heading instead of 64px: a gap sized for the
+  /* 32px from the tabs to the first heading instead of 64px: a gap sized for the
      roomy desktop header looked loose under the compact one. */
   .global-content-wrapper {
-    padding-top: var(--spacing-6);
+    padding-top: var(--spacing-2);
+  }
+
+  .post-list-item {
+    margin-bottom: var(--spacing-8);
+  }
+
+  /* 40px post titles wrapped to four lines on a phone */
+  .blog-post header h1 {
+    font-size: var(--fontSize-5);
   }
 }
