@@ -14,7 +14,14 @@ type Props = ComponentProps<typeof Seo>
 
 const isRootPath = Astro.url.pathname === url()
 const path = Astro.url.pathname
-const section = path.startsWith(url("liked-posts")) ? "liked" : path.startsWith(url("about")) ? "about" : "posts"
+// Daily has no tab yet, so nothing is underlined there.
+const section = path.startsWith(url("liked-posts"))
+  ? "liked"
+  : path.startsWith(url("about"))
+    ? "about"
+    : path.startsWith(url("daily"))
+      ? undefined
+      : "posts"
 const iconSizes = [48, 72, 96, 144, 192, 256, 384, 512]
 ---
 

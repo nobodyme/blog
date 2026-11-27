@@ -591,6 +591,63 @@ a:focus {
   margin-top: 0;
 }
 
+/* The one-line link to the newest Daily, above the posts on the home page */
+.daily-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-3);
+  /* Starts where a post card's box does (the list is indented 20px and each card
+     reaches 12px past it), so the text lines up with the post titles, and ends at
+     the page margin like the header. */
+  margin: 0 0 var(--spacing-8) calc(var(--spacing-5) - var(--spacing-3));
+  padding: var(--spacing-3);
+  border-radius: 10px;
+  background: var(--color-background-secondary);
+  color: var(--color-text-muted);
+  font-size: var(--fontSize-0);
+  text-decoration: none;
+  transition: transform 160ms var(--ease-out);
+}
+
+.daily-bar:hover,
+.daily-bar:focus {
+  text-decoration: none;
+}
+
+.daily-bar:active {
+  transform: scale(0.98);
+}
+
+.daily-bar-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bino-blush);
+}
+
+.daily-bar-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.daily-bar b {
+  color: var(--color-heading);
+  font-weight: var(--fontWeight-semibold);
+}
+
+.daily-bar-go {
+  color: var(--color-link);
+  font-weight: var(--fontWeight-semibold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daily-bar:active {
+    transform: none;
+  }
+}
+
 .post-list-item {
   margin-bottom: var(--spacing-10);
 }

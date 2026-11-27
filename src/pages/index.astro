@@ -1,10 +1,12 @@
 ---
 import { getCollection } from "astro:content"
 import Layout from "../layouts/Layout.astro"
+import { getDays, shortDate } from "../lib/daily"
 import { excerpt, formatDate } from "../lib/text.js"
 import { site, url } from "../site.js"
 
 const posts = (await getCollection("blog")).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+const [latestDay] = await getDays()
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -29,6 +31,15 @@ const jsonLd = {
     ) : (
       <>
       <h1 class="visually-hidden">Posts</h1>
+      {latestDay && (
+        <a class="daily-bar" href={url("daily/")}>
+          <span class="daily-bar-dot" aria-hidden="true"></span>
+          <span class="daily-bar-text">
+            <b>Daily · {shortDate(latestDay.date)}</b> · {latestDay.items.length} stories in AI
+          </span>
+          <span class="daily-bar-go">Read →</span>
+        </a>
+      )}
       <ol class="post-list">
         {posts.map(post => (
           <li class="post-list-item">
