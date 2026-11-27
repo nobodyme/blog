@@ -1,0 +1,12 @@
+---
+// /daily/ always shows the newest day; each day also has its own page.
+import DailyDay from "../../components/DailyDay.astro"
+import Layout from "../../layouts/Layout.astro"
+import { getDays } from "../../lib/daily"
+
+const [latest, older] = await getDays()
+---
+
+<Layout title="Daily AI news" description={latest?.items[0].headline}>
+  {latest ? <DailyDay day={latest} older={older} /> : <p>No days yet.</p>}
+</Layout>

@@ -1,0 +1,204 @@
+{
+  "days": [
+    {
+      "date": "2026-11-27",
+      "source": "Your X feed and wider X news",
+      "items": [
+        {
+          "tag": "Agents",
+          "headline": "Mar de Haym laid out the six layers of a working agentic system.",
+          "hook": "Start agents from events, not a chat box.",
+          "body": "It's a production blueprint. Keep run state in Postgres so a run can resume. Put the guarantees in unit-tested tools, not the prompt. Give each domain its own scoped context. Test against a golden set with a human approval gate. Send every model call through one LLM gateway. It's very bookmarkable: 2.5k likes and about 9.1k bookmarks.",
+          "links": [
+            {
+              "label": "Mar de Haym's post",
+              "url": "https://x.com/mardehaym/status/2125913331915784509"
+            }
+          ]
+        },
+        {
+          "tag": "Open source",
+          "headline": "Deedy Das built Chatarunga, an open-source Rust chess engine.",
+          "hook": "An Elo he puts at 3533, for about $50 of compute.",
+          "body": "He used Fable, Neon and Astra plus Modal (204 likes). The useful part is his lessons: always define a minimum viable run first, use Rust's compiler and tests as guardrails, keep a single paper.pdf as the ground truth for experiments, and act as the agents' scheduler.",
+          "links": [
+            {
+              "label": "Deedy's post",
+              "url": "https://x.com/deedydas/status/2126140365208224057"
+            }
+          ]
+        },
+        {
+          "tag": "Tools",
+          "headline": "Five more from builders.",
+          "hook": "UI built for agents, a prototype as a spec, a $15 smog fix, a 3D pipeline and 354 launch videos.",
+          "body": "",
+          "links": [],
+          "subitems": [
+            {
+              "headline": "shadcn posted a video on shadcn/ui, Base UI and why they're building UI SDK.",
+              "body": "1.8k likes, 1.4k bookmarks. A quick tip from the same day: in UI SDK, `presentation=auto` makes any popup a popover on desktop and a sheet on mobile (1.3k likes).",
+              "links": [
+                {
+                  "label": "shadcn's video",
+                  "url": "https://x.com/shadcn/status/2126032449582813307"
+                }
+              ]
+            },
+            {
+              "headline": "Steve Ruiz is thinking of building a data-free React prototype for his agents.",
+              "body": "Native-app iteration is so slow that he wants a prototype that exactly matches his designs, as an interactive reference for his agents. It's a good pattern to borrow (455 likes).",
+              "links": [
+                {
+                  "label": "Steve's post",
+                  "url": "https://x.com/steveruizok/status/2125882271169417354"
+                }
+              ]
+            },
+            {
+              "headline": "Greg Isenberg retold a project where Claude finds why a 1994 Jeep kept failing smog.",
+              "body": "Claude reads the engine computer through a $3 chip. It's said to be about $15 in parts and free on GitHub. I haven't checked the repo (1.5k likes).",
+              "links": [
+                {
+                  "label": "Greg's post",
+                  "url": "https://x.com/gregisenberg/status/2126004403052445733"
+                }
+              ]
+            },
+            {
+              "headline": "mattworkman ran a 3D asset pipeline in Unreal Engine 5.9 Preview 2 with Claude Code over MCP.",
+              "body": "With Opus 5.5: concept art in Unreal Canvas, a mesh from Rodin, then rigging to the UE Mannequin. It's a small post, 61 likes, but a clear method.",
+              "links": [
+                {
+                  "label": "mattworkman's post",
+                  "url": "https://x.com/mattworkman/status/2125770983302713463"
+                }
+              ]
+            },
+            {
+              "headline": "emmaguetta shared a library of 354 launch videos that did well on X.",
+              "body": "From Claude, Cursor, Notion, Stripe, Raycast and others, tagged by technique, so you can hand your agent a real reference before it makes a motion video. It's a small account, 17 likes.",
+              "links": [
+                {
+                  "label": "emmaguetta's post",
+                  "url": "https://x.com/emmaguetta/status/2126010222728696065"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "Models",
+          "headline": "\"Opus Next\" is a rumour, not an announcement.",
+          "hook": "A launch-style video drew 600k views. Anthropic hasn't announced anything.",
+          "body": "shneural posted an Anthropic-style launch video he says came from \"Opus Next (5.6/6)\" (7.3k likes, about 4k bookmarks, 600k views; posted late 25 Nov UTC), and Simon Willison quoted it with \"Yeah this is pretty great\" (1.9k likes). Small accounts claim Opus 5.6 and Sonnet 5.6 have been showing up in Claude Code since 24 Nov. Anthropic still hasn't announced either model, and one user points out that many \"Opus 5.6 early access\" comparisons are just labelled that way. It's a sign a launch may be close, not a model you can officially use yet.",
+          "links": [
+            {
+              "label": "shneural's video",
+              "url": "https://x.com/shneural/status/2125816458911600681"
+            },
+            {
+              "label": "Simon's quote",
+              "url": "https://x.com/simonw/status/2125816458911600681"
+            },
+            {
+              "label": "the pushback",
+              "url": "https://x.com/shmopixbzn/status/2125888815466242219"
+            }
+          ]
+        },
+        {
+          "tag": "Tools",
+          "headline": "Six product updates.",
+          "hook": "Rex in the App Store, local agents, meeting notes, a fast local model and a usage reset.",
+          "body": "",
+          "links": [],
+          "subitems": [
+            {
+              "headline": "Rex is in the App Store.",
+              "body": "You still need a Rex Server running on another device, which may hint that a public release is close (2.3k likes).",
+              "links": [
+                {
+                  "label": "Mitchell's post",
+                  "url": "https://x.com/mitchellh/status/2126047712596631876"
+                }
+              ]
+            },
+            {
+              "headline": "Omarchy v4.6.0 RC1 lets coding agents run on local models.",
+              "body": "On your machine or across your tailnet (412 likes).",
+              "links": [
+                {
+                  "label": "Omarchy's post",
+                  "url": "https://x.com/omarchy/status/2126119015877607928"
+                }
+              ]
+            },
+            {
+              "headline": "Hex now does meetings.",
+              "body": "Your agents can follow along live and search past transcripts. It's free and runs locally (604 likes).",
+              "links": [
+                {
+                  "label": "Kit's post",
+                  "url": "https://x.com/kitlangton/status/2126102192264523896"
+                }
+              ]
+            },
+            {
+              "headline": "Nate Berkopec ran Inkling 2 Mini on a Mac.",
+              "body": "He reports about 60 tokens per second, 500 tokens per second prefill and under a second to first token, thanks to checkpointing (181 likes, 186 bookmarks).",
+              "links": [
+                {
+                  "label": "Nate's post",
+                  "url": "https://x.com/nateberkopec/status/2126120042089832535"
+                }
+              ]
+            },
+            {
+              "headline": "A Claude usage reminder, via Addy Osmani.",
+              "body": "Pro, Max, Ultra and Team plans have a full usage reset from 10 Nov waiting in Settings > Usage until 10 Dec, and Max and Ultra can claim $100 or $200 in monthly API credits (1.8k likes).",
+              "links": [
+                {
+                  "label": "Addy's post",
+                  "url": "https://x.com/addyosmani/status/2126034792424919200"
+                }
+              ]
+            },
+            {
+              "headline": "Perplexity Time Machine is reported, not confirmed.",
+              "body": "It's said to be an API feature that searches the web as it was on a past date, useful for leak-free evals. It only showed up through X News and a small account, not an official Perplexity post.",
+              "links": [
+                {
+                  "label": "the small account",
+                  "url": "https://x.com/joho_no_todai/status/2125893867354653176"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "Industry",
+          "headline": "A paint maker founded in 1946 replaced its agencies with a \"software factory\".",
+          "hook": "One developer built it, and the business loves it.",
+          "body": "Gergely Orosz wrote about it. The factory was built by Joshua Warren (548 likes, 633 bookmarks).",
+          "links": [
+            {
+              "label": "Gergely's post",
+              "url": "https://x.com/GergelyOrosz/status/2125846489662369851"
+            }
+          ]
+        }
+      ],
+      "prompts": [],
+      "tryThis": {
+        "text": "Use Deedy's verification habit on your next long agent run. Ask the agent to define the minimum viable run and what it expects to see before starting, and keep one running results doc as the ground truth it has to update.",
+        "links": [
+          {
+            "label": "Deedy's post",
+            "url": "https://x.com/deedydas/status/2126140365208224057"
+          }
+        ]
+      }
+    }
+  ]
+}

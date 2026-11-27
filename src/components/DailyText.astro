@@ -1,0 +1,12 @@
+---
+// Daily text is plain, except `backticks`, which become code.
+import { codeSpans } from "../lib/daily"
+
+interface Props {
+  text: string
+}
+
+const { text } = Astro.props
+---
+
+{codeSpans(text).map(part => (part.code ? <code>{part.text}</code> : part.text))}

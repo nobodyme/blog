@@ -1,0 +1,947 @@
+---
+// One day of the daily AI news. The page is the List view, as plain HTML; the
+// script at the bottom adds the Cards view (one story per card) by showing these
+// same elements one at a time, so Cards costs no extra HTML or requests.
+import DailyLinks from "./DailyLinks.astro"
+import DailyText from "./DailyText.astro"
+import { type Day, fullDate, readMinutes, shortDate, tagStyle, weekday } from "../lib/daily"
+import { url } from "../site.js"
+
+interface Props {
+  day: Day
+  older?: Day
+  newer?: Day
+}
+
+const { day, older, newer } = Astro.props
+const pad = (n: number) => String(n).padStart(2, "0")
+const stories = day.items.length
+const prompts = day.prompts.length
+const cards = stories + prompts + (day.tryThis ? 1 : 0)
+const dayUrl = (d: Day) => url(`daily/${d.date}/`)
+---
+
+<article class="daily" data-daily data-view="list">
+  <nav class="daily-nav" aria-label="Days">
+    {
+      older ? (
+        <a href={dayUrl(older)} rel="prev" data-day="older">‹ {shortDate(older.date)}</a>
+      ) : (
+        <span class="daily-off">‹ Earlier</span>
+      )
+    }
+    <div class="daily-views" role="group" aria-label="View" hidden>
+      <button type="button" data-view-set="list" aria-pressed="true">List</button>
+      <button type="button" data-view-set="cards" aria-pressed="false">Cards</button>
+    </div>
+    {
+      newer ? (
+        <a href={dayUrl(newer)} rel="next" data-day="newer">{shortDate(newer.date)} ›</a>
+      ) : (
+        <span class="daily-off">Later ›</span>
+      )
+    }
+  </nav>
+
+  <header class="daily-head">
+    <span class="daily-kicker">Daily · AI news</span>
+    <h1>{weekday(day.date)}</h1>
+    <p class="daily-date">{fullDate(day.date)}</p>
+    <p class="daily-stats">
+      <span><b>{stories}</b> {stories === 1 ? "story" : "stories"}</span>
+      {prompts > 0 && <span><b>{prompts}</b> {prompts === 1 ? "prompt" : "prompts"}</span>}
+      <span>{readMinutes(day)} min read</span>
+    </p>
+    <div class="daily-spectrum">
+      {
+        day.items.map((item, i) => (
+          <a href={`#story-${i + 1}`} style={tagStyle(item.tag)} aria-label={`Story ${i + 1}, ${item.tag}`} />
+        ))
+      }
+    </div>
+  </header>
+
+  <div class="daily-cardbar">
+    <div class="daily-cardbar-row">
+      <span>{weekday(day.date)} · {shortDate(day.date).replace(/^\w+ /, "")}</span>
+      <span class="daily-count" aria-live="polite">01 / {pad(cards)}</span>
+    </div>
+    <span class="daily-progress" aria-hidden="true"></span>
+    <span class="daily-hint">← → or drag the card</span>
+  </div>
+
+  {
+    day.items.map((item, i) => (
+      <section class="daily-story" id={`story-${i + 1}`} style={tagStyle(item.tag)} data-card>
+        <div class="daily-band">
+          <div class="daily-band-top">
+            <span>{item.tag}</span>
+            <span>
+              {pad(i + 1)}
+              <span class="daily-of"> of {pad(stories)}</span>
+            </span>
+          </div>
+          <span class="daily-numeral" aria-hidden="true">{pad(i + 1)}</span>
+          {item.hook && <p class="daily-hook">{item.hook}</p>}
+        </div>
+        <div class="daily-text">
+          <h2>
+            <DailyText text={item.headline} />
+          </h2>
+          {item.body && (
+            <p class="daily-body">
+              <DailyText text={item.body} />
+            </p>
+          )}
+          {item.subitems.length > 0 && (
+            <ol class="daily-subs">
+              {item.subitems.map((sub, j) => (
+                <li>
+                  <span class="daily-sub-n" aria-hidden="true">{j + 1}</span>
+                  <div>
+                    <h3>
+                      <DailyText text={sub.headline} />
+                    </h3>
+                    {sub.body && (
+                      <p>
+                        <DailyText text={sub.body} />
+                      </p>
+                    )}
+                    <DailyLinks links={sub.links} />
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+          <DailyLinks links={item.links} />
+        </div>
+      </section>
+    ))
+  }
+
+  {
+    prompts > 0 ? (
+      day.prompts.map((p, j) => (
+        <figure class="daily-prompt" data-card>
+          <div class="daily-text">
+            <span class="daily-kicker">
+              Prompt {prompts > 1 ? `${j + 1} of ${prompts}` : "of the day"}
+            </span>
+            <p class="daily-prompt-line">
+              {p.setup && <>{p.setup} </>}
+              <mark>{p.prompt}</mark>
+            </p>
+            <figcaption>
+              <span>
+                <b>{p.author}</b>
+                {p.credit && <> · {p.credit}</>}
+                {p.likes !== undefined && <> · {p.likes.toLocaleString("en-US")} likes</>}
+              </span>
+              <button type="button" class="daily-copy" data-copy={p.prompt} hidden>
+                Copy
+              </button>
+            </figcaption>
+            {p.why && <p class="daily-body">{p.why}</p>}
+            <DailyLinks links={p.links} />
+          </div>
+        </figure>
+      ))
+    ) : (
+      <p class="daily-none">No prompts today: nothing from a respected builder made the cut.</p>
+    )
+  }
+
+  {
+    day.tryThis && (
+      <section class="daily-try" data-card>
+        <div class="daily-text">
+          <span class="daily-kicker">Try this today</span>
+          <p class="daily-body">
+            <DailyText text={day.tryThis.text} />
+          </p>
+          <DailyLinks links={day.tryThis.links} lead="From" />
+        </div>
+      </section>
+    )
+  }
+
+  {
+    older && (
+      <a class="daily-prev" href={dayUrl(older)}>
+        <span class="daily-kicker">Previous day</span>
+        <b>
+          {weekday(older.date)} {fullDate(older.date).replace(/ \d{4}$/, "")}
+        </b>
+        <span class="daily-prev-hl">{older.items[0].headline}</span>
+        <span class="daily-mini" aria-hidden="true">
+          {older.items.map(item => (
+            <i style={tagStyle(item.tag)} />
+          ))}
+        </span>
+      </a>
+    )
+  }
+
+  {day.source && <p class="daily-source">Source: {day.source}</p>}
+</article>
+
+<script>
+  // The Cards view: one story per card, stacked in the same grid cell. Drag the
+  // card (finger or mouse) and it follows; let go past a threshold and it flies
+  // off, showing the next card behind it. Left or up is the next card, right or
+  // down the previous one, and the arrow keys do the same. It shows the List's
+  // own elements one at a time, and remembers the view you picked.
+  const root = document.querySelector<HTMLElement>("[data-daily]")
+  if (root) {
+    const cards = Array.from(root.querySelectorAll<HTMLElement>("[data-card]"))
+    const views = root.querySelector<HTMLElement>(".daily-views")!
+    const cardbar = root.querySelector<HTMLElement>(".daily-cardbar")!
+    const count = root.querySelector<HTMLElement>(".daily-count")!
+    const progress = root.querySelector<HTMLElement>(".daily-progress")!
+    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)")
+    const pad = (n: number) => String(n).padStart(2, "0")
+    const FLY_MS = 240
+    let current = 0
+    let flying = false
+
+    for (const card of cards) {
+      const seg = document.createElement("i")
+      seg.style.cssText = card.style.cssText
+      progress.append(seg)
+    }
+
+    // Keep the deck at the top of the screen, with the card filling the rest.
+    const pin = () => {
+      const margin = parseFloat(getComputedStyle(cardbar).scrollMarginTop)
+      const above = margin + cardbar.offsetHeight + parseFloat(getComputedStyle(root).rowGap)
+      root.style.setProperty("--cards-above", `${Math.round(above + margin)}px`)
+      if (Math.abs(cardbar.getBoundingClientRect().top - margin) > 4) cardbar.scrollIntoView({ block: "start" })
+    }
+
+    const show = (i: number) => {
+      current = Math.max(0, Math.min(cards.length - 1, i))
+      cards.forEach((card, j) => {
+        card.classList.toggle("is-current", j === current)
+        card.classList.remove("is-behind")
+        for (const p of ["transform", "transition", "opacity"]) card.style.removeProperty(p)
+      })
+      Array.from(progress.children).forEach((seg, j) => {
+        seg.className = j < current ? "done" : j === current ? "now" : ""
+      })
+      count.textContent = `${pad(current + 1)} / ${pad(cards.length)}`
+      cards[current].querySelector(".daily-text")?.scrollTo(0, 0)
+    }
+
+    // The card behind the current one, for a move in direction dir (+1 next, -1 previous).
+    const behind = (dir: number) => {
+      cards.forEach(card => card.classList.remove("is-behind"))
+      const card = cards[current + dir]
+      card?.classList.add("is-behind")
+      return card
+    }
+
+    // Throws the current card off (left or up for the next card, right or down
+    // for the previous one) and brings the one behind it forward.
+    const go = (dir: number, axis: "x" | "y" = "x") => {
+      if (flying) return
+      const target = cards[current + dir]
+      const card = cards[current]
+      if (!target) return snapBack(card)
+      if (reduceMotion.matches) return show(current + dir)
+      flying = true
+      behind(dir)
+      const away = dir > 0 ? -1 : 1
+      card.style.transition = `transform ${FLY_MS}ms cubic-bezier(0.4, 0, 1, 1), opacity ${FLY_MS}ms`
+      card.style.transform =
+        axis === "x" ? `translateX(${away * 115}%) rotate(${away * 10}deg)` : `translateY(${away * 105}%)`
+      card.style.opacity = "0"
+      target.style.transition = `transform ${FLY_MS}ms var(--ease-out)`
+      target.style.transform = "none"
+      setTimeout(() => {
+        show(current + dir)
+        flying = false
+      }, FLY_MS)
+    }
+
+    const snapBack = (card: HTMLElement) => {
+      card.style.transition = "transform 200ms var(--ease-out)"
+      card.style.removeProperty("transform")
+      cards.forEach(c => c !== card && c.style.removeProperty("transform"))
+      setTimeout(() => {
+        if (!flying) show(current)
+      }, 200)
+    }
+
+    const setView = (view: string, onLoad = false) => {
+      root.dataset.view = view
+      views.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.viewSet === view)))
+      if (!onLoad) {
+        try {
+          localStorage.setItem("daily-view", view)
+        } catch {}
+      }
+      if (view !== "cards") return
+      // Start at the story in the URL (#story-3), if there is one.
+      const fromHash = cards.findIndex(card => `#${card.id}` === location.hash)
+      show(fromHash >= 0 ? fromHash : current)
+      // iOS Safari scrolls too far if asked before the page has finished loading.
+      if (!onLoad) pin()
+      else if (document.readyState === "complete") setTimeout(pin)
+      else addEventListener("load", () => setTimeout(pin), { once: true })
+    }
+
+    views.hidden = false
+    views.addEventListener("click", e => {
+      const view = (e.target as Element).closest<HTMLButtonElement>("[data-view-set]")?.dataset.viewSet
+      if (view) setView(view)
+    })
+
+    let saved = "list"
+    try {
+      saved = localStorage.getItem("daily-view") ?? "list"
+    } catch {}
+    if (saved === "cards") setView("cards", true)
+
+    // Keyboard: → or ↓ (or J) for the next card, ← or ↑ (or K) for the previous one.
+    document.addEventListener("keydown", e => {
+      if (root.dataset.view !== "cards" || e.metaKey || e.ctrlKey || e.altKey) return
+      if ((e.target as Element).closest?.("input, textarea, [contenteditable]")) return
+      if (e.key === "ArrowRight" || e.key === "j") go(1, "x")
+      else if (e.key === "ArrowDown") go(1, "y")
+      else if (e.key === "ArrowLeft" || e.key === "k") go(-1, "x")
+      else if (e.key === "ArrowUp") go(-1, "y")
+      else return
+      e.preventDefault()
+    })
+
+    // Dragging. The card follows the pointer once it has moved 8px, along the
+    // axis it moved most. Sideways drags work anywhere on the card; up and down
+    // drags on the colour band (the text scrolls instead, see the touch handler).
+    type Drag = { id: number; x: number; y: number; t: number; axis?: "x" | "y"; band: boolean; card: HTMLElement }
+    let drag: Drag | null = null
+    let dragged = false
+    const THRESHOLD = 0.22 // of the card's width or height
+
+    root.addEventListener("pointerdown", e => {
+      const card = (e.target as Element).closest<HTMLElement>("[data-card].is-current")
+      if (root.dataset.view !== "cards" || !card || flying || (e.pointerType === "mouse" && e.button !== 0)) return
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, t: e.timeStamp, band: !!(e.target as Element).closest(".daily-band"), card }
+      dragged = false
+    })
+
+    root.addEventListener("pointermove", e => {
+      if (!drag || e.pointerId !== drag.id) return
+      const dx = e.clientX - drag.x
+      const dy = e.clientY - drag.y
+      if (!drag.axis) {
+        if (Math.hypot(dx, dy) < 8) return
+        drag.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y"
+        if (drag.axis === "y" && !drag.band) {
+          drag = null
+          return
+        }
+        dragged = true
+        drag.card.setPointerCapture(e.pointerId)
+        drag.card.style.transition = "none"
+        root.classList.add("is-dragging")
+        getSelection()?.removeAllRanges()
+      }
+      const d = drag.axis === "x" ? dx : dy
+      behind(d < 0 ? 1 : -1)
+      drag.card.style.transform =
+        drag.axis === "x" ? `translateX(${dx}px) rotate(${dx / 24}deg)` : `translateY(${dy}px)`
+    })
+
+    const endDrag = (e: PointerEvent) => {
+      if (!drag || e.pointerId !== drag.id) return
+      const { card, axis } = drag
+      root.classList.remove("is-dragging")
+      if (axis) {
+        const d = axis === "x" ? e.clientX - drag.x : e.clientY - drag.y
+        const size = axis === "x" ? card.offsetWidth : card.offsetHeight
+        const fast = Math.abs(d) / Math.max(1, e.timeStamp - drag.t) > 0.5 && Math.abs(d) > 30
+        if (e.type === "pointerup" && (Math.abs(d) > size * THRESHOLD || fast)) go(d < 0 ? 1 : -1, axis)
+        else snapBack(card)
+      }
+      drag = null
+    }
+    root.addEventListener("pointerup", endDrag)
+    root.addEventListener("pointercancel", endDrag)
+
+    // A drag shouldn't also open a link it started on.
+    root.addEventListener(
+      "click",
+      e => {
+        if (dragged) {
+          e.preventDefault()
+          e.stopPropagation()
+          dragged = false
+        }
+      },
+      true,
+    )
+
+    // Up and down on the text: the text scrolls, and a swipe past its end turns
+    // the card (up at the bottom for the next card, down at the top for the previous).
+    let swipe: { y: number; x: number; atTop: boolean; atEnd: boolean } | null = null
+    root.addEventListener(
+      "touchstart",
+      e => {
+        const text = (e.target as Element).closest<HTMLElement>("[data-card].is-current .daily-text")
+        if (root.dataset.view !== "cards" || !text || e.touches.length > 1) return
+        const t = e.touches[0]
+        swipe = {
+          x: t.clientX,
+          y: t.clientY,
+          atTop: text.scrollTop <= 1,
+          atEnd: text.scrollTop + text.clientHeight >= text.scrollHeight - 1,
+        }
+      },
+      { passive: true },
+    )
+    root.addEventListener(
+      "touchend",
+      e => {
+        if (!swipe) return
+        const t = e.changedTouches[0]
+        const dx = t.clientX - swipe.x
+        const dy = t.clientY - swipe.y
+        if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+          if (dy < 0 && swipe.atEnd) go(1, "y")
+          else if (dy > 0 && swipe.atTop) go(-1, "y")
+        }
+        swipe = null
+      },
+      { passive: true },
+    )
+
+    // Copy buttons on prompts.
+    root.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach(button => {
+      button.hidden = false
+      button.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(button.dataset.copy ?? "")
+          button.textContent = "Copied"
+          setTimeout(() => (button.textContent = "Copy"), 1600)
+        } catch {
+          getSelection()?.selectAllChildren(button.closest("figure")!.querySelector("mark")!)
+        }
+      })
+    })
+  }
+</script>
+
+<style is:global>
+  /* Daily. Colours come from the blog's tokens, except each story's tag colour:
+     --c is the band, --ci the text on it, mixed with black in dark mode (--daily-fm). */
+  .daily {
+    display: grid;
+    gap: var(--spacing-5);
+  }
+
+  /* Worked out on each element that sets a tag colour, so it uses that colour */
+  [style*="--c:"] {
+    --band: color-mix(in oklab, var(--c) var(--daily-fm), #000);
+  }
+
+  .daily-kicker {
+    color: var(--color-text-lighter);
+    font-family: var(--font-heading);
+    font-size: 0.72rem;
+    font-weight: var(--fontWeight-semibold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .daily-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-3);
+    font-family: var(--font-heading);
+    font-size: var(--fontSize-0);
+    font-weight: var(--fontWeight-medium);
+  }
+
+  .daily-nav a {
+    color: var(--color-text-light);
+    text-decoration: none;
+    padding: var(--spacing-2) 0;
+  }
+
+  .daily-nav a:hover {
+    color: var(--color-heading);
+  }
+
+  .daily-off {
+    color: var(--color-text-lighter);
+    opacity: 0.6;
+  }
+
+  .daily-views {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--color-accent);
+    border-radius: 99px;
+    background: var(--color-background-secondary);
+  }
+
+  .daily-views[hidden] {
+    display: none;
+  }
+
+  .daily-views button {
+    min-height: 32px;
+    padding: 0 var(--spacing-3);
+    border: 0;
+    border-radius: 99px;
+    background: transparent;
+    color: var(--color-text-light);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .daily-views button[aria-pressed="true"] {
+    background: var(--color-background);
+    color: var(--color-heading);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+  }
+
+  .daily-head {
+    display: grid;
+    gap: var(--spacing-1);
+  }
+
+  .daily-head h1 {
+    margin: 0;
+    font-size: clamp(2.2rem, 9vw, 3rem);
+    line-height: 1;
+    letter-spacing: -0.035em;
+  }
+
+  .daily-date {
+    margin: var(--spacing-1) 0 0;
+    color: var(--color-text-light);
+    font-size: var(--fontSize-2);
+  }
+
+  .daily-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-1) var(--spacing-4);
+    margin: var(--spacing-1) 0 0;
+    color: var(--color-text-lighter);
+    font-size: var(--fontSize-0);
+  }
+
+  .daily-stats b {
+    color: var(--color-heading);
+  }
+
+  .daily-spectrum {
+    display: flex;
+    gap: 3px;
+    height: 6px;
+    margin-top: var(--spacing-2);
+  }
+
+  .daily-spectrum a,
+  .daily-mini i,
+  .daily-progress i {
+    flex: 1;
+    border-radius: 3px;
+    background: var(--c);
+    background: var(--band);
+  }
+
+  .daily-story,
+  .daily-prompt,
+  .daily-try {
+    margin: 0;
+    border: 1px solid var(--color-accent);
+    border-radius: 14px;
+    overflow: hidden;
+    scroll-margin-top: var(--spacing-4);
+  }
+
+  .daily-try,
+  .daily-prompt {
+    background: var(--color-background-secondary);
+    border-color: transparent;
+  }
+
+  .daily-band {
+    position: relative;
+    display: grid;
+    gap: var(--spacing-2);
+    padding: var(--spacing-3) var(--spacing-5) var(--spacing-4);
+    background: var(--c);
+    background: var(--band);
+    color: var(--ci);
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .daily-band-top {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-heading);
+    font-size: 0.72rem;
+    font-weight: var(--fontWeight-semibold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.9;
+  }
+
+  .daily-of,
+  .daily-numeral {
+    display: none;
+  }
+
+  .daily-hook {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.07rem;
+    font-weight: var(--fontWeight-semibold);
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  .daily-text {
+    padding: var(--spacing-4) var(--spacing-5) var(--spacing-5);
+  }
+
+  .daily-text h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+  }
+
+  .daily-body {
+    margin: var(--spacing-2) 0 0;
+    line-height: var(--lineHeight-relaxed);
+  }
+
+  .daily-text .daily-kicker + .daily-body {
+    margin-top: var(--spacing-1);
+  }
+
+  .daily-subs {
+    list-style: none;
+    margin: var(--spacing-3) 0 0;
+    padding: 0;
+  }
+
+  .daily-subs li {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: var(--spacing-3);
+    margin: 0;
+    padding: var(--spacing-3) 0 var(--spacing-2);
+    border-top: 1px solid var(--color-accent);
+  }
+
+  .daily-sub-n {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    border-radius: 50%;
+    background: var(--c);
+    background: var(--band);
+    color: var(--ci);
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    font-weight: var(--fontWeight-semibold);
+  }
+
+  .daily-subs h3 {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  .daily-subs p {
+    margin: var(--spacing-1) 0 0;
+    color: var(--color-text-light);
+    line-height: 1.55;
+  }
+
+  .daily-cite {
+    margin: var(--spacing-2) 0 0;
+    color: var(--color-text-lighter);
+    font-size: var(--fontSize-0);
+  }
+
+  .daily-prompt-line {
+    margin: var(--spacing-2) 0 0;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    line-height: 1.4;
+  }
+
+  .daily-prompt-line mark {
+    padding: 0.05em 0.15em;
+    border-radius: 0.2em;
+    background: var(--blue-50);
+    color: var(--color-heading);
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  .daily-prompt figcaption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-3);
+    margin-top: var(--spacing-3);
+    color: var(--color-text-lighter);
+    font-size: var(--fontSize-0);
+  }
+
+  .daily-prompt figcaption b {
+    color: var(--color-heading);
+  }
+
+  .daily-copy {
+    min-height: 36px;
+    padding: 0 var(--spacing-4);
+    border: 1px solid var(--color-accent);
+    border-radius: 99px;
+    background: var(--color-background);
+    color: var(--color-heading);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .daily-copy[hidden] {
+    display: none;
+  }
+
+  .daily-none,
+  .daily-source {
+    margin: 0;
+    color: var(--color-text-lighter);
+    font-size: var(--fontSize-0);
+  }
+
+  .daily-prev {
+    display: grid;
+    gap: var(--spacing-1);
+    padding: var(--spacing-4);
+    border: 1px solid var(--color-accent);
+    border-radius: 14px;
+    color: var(--color-text);
+    text-decoration: none;
+    transition: transform 160ms var(--ease-out);
+  }
+
+  .daily-prev:hover {
+    background: var(--color-background-secondary);
+    text-decoration: none;
+  }
+
+  .daily-prev:active {
+    transform: scale(0.98);
+  }
+
+  .daily-prev b {
+    color: var(--color-heading);
+    font-size: var(--fontSize-2);
+  }
+
+  .daily-prev-hl {
+    color: var(--color-text-muted);
+    font-size: var(--fontSize-0);
+  }
+
+  .daily-mini {
+    display: flex;
+    gap: 2px;
+    height: 4px;
+    margin-top: var(--spacing-1);
+  }
+
+  .daily-cardbar {
+    display: none;
+  }
+
+  /* ---- Cards view ----
+     Every card sits in the same grid cell (row 3, under the day nav and the
+     card bar), so the one behind shows as the top one is dragged away. The card
+     fills the screen below the bar: --cards-above is set by the script from the
+     bar's real height. svh is the height with Safari's toolbars showing. */
+  .daily[data-view="cards"] {
+    --card-h: max(360px, calc(100svh - var(--cards-above, 96px)));
+    overflow-x: clip;
+  }
+
+  .daily[data-view="cards"] .daily-head,
+  .daily[data-view="cards"] .daily-none,
+  .daily[data-view="cards"] .daily-prev,
+  .daily[data-view="cards"] .daily-source,
+  .daily[data-view="cards"] [data-card]:not(.is-current, .is-behind) {
+    display: none;
+  }
+
+  .daily[data-view="cards"] .daily-cardbar {
+    display: grid;
+    gap: var(--spacing-2);
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: var(--fontWeight-semibold);
+    scroll-margin-top: var(--spacing-4);
+  }
+
+  .daily-cardbar-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--spacing-3);
+  }
+
+  .daily-count {
+    color: var(--color-text-lighter);
+    font-size: var(--fontSize-0);
+    font-weight: var(--fontWeight-medium);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Touch screens learn to swipe; mice and keyboards get told */
+  .daily-hint {
+    display: none;
+    color: var(--color-text-lighter);
+    font-size: 0.75rem;
+    font-weight: var(--fontWeight-normal);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .daily-hint {
+      display: block;
+    }
+  }
+
+  .daily-progress {
+    display: flex;
+    gap: 3px;
+    height: 4px;
+  }
+
+  .daily-progress i {
+    opacity: 0.25;
+  }
+
+  /* Prompt and "Try this" cards have no tag colour */
+  .daily-progress i:not([style*="--c:"]) {
+    background: var(--color-text-lighter);
+  }
+
+  .daily-progress i.done {
+    opacity: 0.55;
+  }
+
+  .daily-progress i.now {
+    opacity: 1;
+  }
+
+  .daily[data-view="cards"] [data-card] {
+    grid-row: 3;
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    height: var(--card-h);
+    background-color: var(--color-background);
+    /* Sideways drags come to the script; up and down still scroll the text */
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .daily[data-view="cards"] .daily-try,
+  .daily[data-view="cards"] .daily-prompt {
+    background-color: var(--color-background-secondary);
+  }
+
+  .daily[data-view="cards"] .is-current {
+    z-index: 1;
+    cursor: grab;
+  }
+
+  .daily.is-dragging .is-current {
+    cursor: grabbing;
+  }
+
+  /* The next (or previous) card waits underneath, slightly smaller */
+  .daily[data-view="cards"] .is-behind {
+    z-index: 0;
+    transform: scale(0.95);
+  }
+
+  .daily[data-view="cards"] .daily-band {
+    flex: none;
+    min-height: 34%;
+    align-content: space-between;
+    padding: var(--spacing-4) var(--spacing-5) var(--spacing-5);
+    /* On the band, up and down drags turn the card too, instead of scrolling */
+    touch-action: none;
+  }
+
+  .daily[data-view="cards"] .daily-of {
+    display: inline;
+  }
+
+  .daily[data-view="cards"] .daily-numeral {
+    display: block;
+    position: absolute;
+    z-index: -1;
+    right: -0.03em;
+    bottom: -0.19em;
+    color: color-mix(in oklab, currentColor 15%, transparent);
+    font-family: var(--font-heading);
+    font-size: clamp(120px, 24svh, 190px);
+    font-weight: var(--fontWeight-bold);
+    line-height: 0.8;
+    letter-spacing: -0.075em;
+  }
+
+  .daily[data-view="cards"] .daily-hook {
+    max-width: 90%;
+    font-size: 1.3rem;
+    line-height: 1.2;
+  }
+
+  .daily[data-view="cards"] .daily-text {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .daily[data-view="cards"] .daily-try .daily-text,
+  .daily[data-view="cards"] .daily-prompt .daily-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  @media (max-width: 700px) {
+    .daily-band,
+    .daily-text {
+      padding-inline: var(--spacing-4);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .daily-prev:active {
+      transform: none;
+    }
+
+    .daily[data-view="cards"] .is-behind {
+      transform: none;
+    }
+  }
+</style>

@@ -52,4 +52,75 @@ const likedPosts = defineCollection({
   }),
 })
 
-export const collections = { blog, likedPosts }
+// The daily AI news: one JSON file per month (content/daily/2026-11.json), each
+// holding that month's days. content/daily/AGENTS.md is the contract for whoever
+// writes them; src/lib/daily.ts checks what a schema can't (dates match the file,
+// no day twice).
+export const DAILY_TAGS = [
+  "Models",
+  "Research",
+  "Agents",
+  "Tools",
+  "Safety",
+  "Policy",
+  "Industry",
+  "Deals",
+  "Security",
+  "Open source",
+  "Hardware",
+  "Reads",
+] as const
+
+const link = z.object({
+  label: z.string().min(1),
+  url: z.string().regex(/^https:\/\//, "Daily links must be https URLs"),
+})
+
+const dailyDay = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date must be YYYY-MM-DD"),
+  source: z.string().optional(),
+  items: z
+    .array(
+      z.object({
+        tag: z.enum(DAILY_TAGS),
+        headline: z.string().min(1),
+        hook: z.string().optional(),
+        body: z.string().default(""),
+        links: z.array(link).default([]),
+        subitems: z
+          .array(
+            z.object({
+              headline: z.string().min(1),
+              body: z.string().default(""),
+              links: z.array(link).default([]),
+            }),
+          )
+          .default([]),
+      }),
+    )
+    .min(1),
+  prompts: z
+    .array(
+      z.object({
+        author: z.string().min(1),
+        name: z.string().optional(),
+        credit: z.string().optional(),
+        likes: z.number().int().nonnegative().optional(),
+        setup: z.string().optional(),
+        prompt: z.string().min(1),
+        why: z.string().optional(),
+        links: z.array(link).default([]),
+      }),
+    )
+    .default([]),
+  tryThis: z
+    .object({ text: z.string().min(1), links: z.array(link).default([]) })
+    .optional(),
+})
+
+const daily = defineCollection({
+  loader: glob({ pattern: "*.json", base: "./content/daily" }),
+  schema: z.object({ days: z.array(dailyDay).min(1) }),
+})
+
+export const collections = { blog, likedPosts, daily }
