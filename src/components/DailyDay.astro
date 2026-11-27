@@ -61,9 +61,13 @@ const dayUrl = (d: Day) => url(`daily/${d.date}/`)
     </div>
   </header>
 
-  <div class="daily-cardbar" aria-hidden="true">
-    <span>{weekday(day.date)} · {shortDate(day.date).replace(/^\w+ /, "")}</span>
-    <span class="daily-progress"></span>
+  <div class="daily-cardbar">
+    <div class="daily-cardbar-row">
+      <span>{weekday(day.date)} · {shortDate(day.date).replace(/^\w+ /, "")}</span>
+      <span class="daily-count" aria-live="polite">01 / {pad(cards)}</span>
+    </div>
+    <span class="daily-progress" aria-hidden="true"></span>
+    <span class="daily-hint">← → or drag the card</span>
   </div>
 
   {
@@ -161,12 +165,6 @@ const dayUrl = (d: Day) => url(`daily/${d.date}/`)
     )
   }
 
-  <div class="daily-controls" aria-label="Cards" role="group">
-    <button type="button" data-step="-1" aria-label="Previous card">↑</button>
-    <span class="daily-count" aria-live="polite">01 / {pad(cards)}</span>
-    <button type="button" data-step="1" aria-label="Next card">↓</button>
-  </div>
-
   {
     older && (
       <a class="daily-prev" href={dayUrl(older)}>
@@ -188,17 +186,23 @@ const dayUrl = (d: Day) => url(`daily/${d.date}/`)
 </article>
 
 <script>
-  // The Cards view: one story per card, flipped with the arrows, the keyboard,
-  // or a swipe up/down on a phone. It shows the List's own elements one at a
-  // time, and remembers the view you picked.
+  // The Cards view: one story per card, stacked in the same grid cell. Drag the
+  // card (finger or mouse) and it follows; let go past a threshold and it flies
+  // off, showing the next card behind it. Left or up is the next card, right or
+  // down the previous one, and the arrow keys do the same. It shows the List's
+  // own elements one at a time, and remembers the view you picked.
   const root = document.querySelector<HTMLElement>("[data-daily]")
   if (root) {
     const cards = Array.from(root.querySelectorAll<HTMLElement>("[data-card]"))
     const views = root.querySelector<HTMLElement>(".daily-views")!
+    const cardbar = root.querySelector<HTMLElement>(".daily-cardbar")!
     const count = root.querySelector<HTMLElement>(".daily-count")!
     const progress = root.querySelector<HTMLElement>(".daily-progress")!
+    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)")
     const pad = (n: number) => String(n).padStart(2, "0")
+    const FLY_MS = 240
     let current = 0
+    let flying = false
 
     for (const card of cards) {
       const seg = document.createElement("i")
@@ -206,24 +210,68 @@ const dayUrl = (d: Day) => url(`daily/${d.date}/`)
       progress.append(seg)
     }
 
-    const cardbar = root.querySelector<HTMLElement>(".daily-cardbar")!
-    const show = (i: number, scroll = true) => {
+    // Keep the deck at the top of the screen, with the card filling the rest.
+    const pin = () => {
+      const margin = parseFloat(getComputedStyle(cardbar).scrollMarginTop)
+      const above = margin + cardbar.offsetHeight + parseFloat(getComputedStyle(root).rowGap)
+      root.style.setProperty("--cards-above", `${Math.round(above + margin)}px`)
+      if (Math.abs(cardbar.getBoundingClientRect().top - margin) > 4) cardbar.scrollIntoView({ block: "start" })
+    }
+
+    const show = (i: number) => {
       current = Math.max(0, Math.min(cards.length - 1, i))
-      cards.forEach((card, j) => card.classList.toggle("is-current", j === current))
+      cards.forEach((card, j) => {
+        card.classList.toggle("is-current", j === current)
+        card.classList.remove("is-behind")
+        for (const p of ["transform", "transition", "opacity"]) card.style.removeProperty(p)
+      })
       Array.from(progress.children).forEach((seg, j) => {
         seg.className = j < current ? "done" : j === current ? "now" : ""
       })
       count.textContent = `${pad(current + 1)} / ${pad(cards.length)}`
       cards[current].querySelector(".daily-text")?.scrollTo(0, 0)
-      // Keep the deck at the top of the screen: the card is sized to fit below
-      // it with the arrows (--card-h), which a phone can't do under the header.
-      if (scroll && Math.abs(cardbar.getBoundingClientRect().top - parseFloat(getComputedStyle(cardbar).scrollMarginTop)) > 4) {
-        cardbar.scrollIntoView({ block: "start" })
-      }
     }
 
-    // onLoad: the view remembered from last time. iOS Safari scrolls too far if
-    // asked before the page has finished loading, so the scroll waits for "load".
+    // The card behind the current one, for a move in direction dir (+1 next, -1 previous).
+    const behind = (dir: number) => {
+      cards.forEach(card => card.classList.remove("is-behind"))
+      const card = cards[current + dir]
+      card?.classList.add("is-behind")
+      return card
+    }
+
+    // Throws the current card off (left or up for the next card, right or down
+    // for the previous one) and brings the one behind it forward.
+    const go = (dir: number, axis: "x" | "y" = "x") => {
+      if (flying) return
+      const target = cards[current + dir]
+      const card = cards[current]
+      if (!target) return snapBack(card)
+      if (reduceMotion.matches) return show(current + dir)
+      flying = true
+      behind(dir)
+      const away = dir > 0 ? -1 : 1
+      card.style.transition = `transform ${FLY_MS}ms cubic-bezier(0.4, 0, 1, 1), opacity ${FLY_MS}ms`
+      card.style.transform =
+        axis === "x" ? `translateX(${away * 115}%) rotate(${away * 10}deg)` : `translateY(${away * 105}%)`
+      card.style.opacity = "0"
+      target.style.transition = `transform ${FLY_MS}ms var(--ease-out)`
+      target.style.transform = "none"
+      setTimeout(() => {
+        show(current + dir)
+        flying = false
+      }, FLY_MS)
+    }
+
+    const snapBack = (card: HTMLElement) => {
+      card.style.transition = "transform 200ms var(--ease-out)"
+      card.style.removeProperty("transform")
+      cards.forEach(c => c !== card && c.style.removeProperty("transform"))
+      setTimeout(() => {
+        if (!flying) show(current)
+      }, 200)
+    }
+
     const setView = (view: string, onLoad = false) => {
       root.dataset.view = view
       views.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.viewSet === view)))
@@ -232,26 +280,20 @@ const dayUrl = (d: Day) => url(`daily/${d.date}/`)
           localStorage.setItem("daily-view", view)
         } catch {}
       }
-      if (view === "cards") {
-        // Start at the story in the URL (#story-3), if there is one.
-        const fromHash = cards.findIndex(card => `#${card.id}` === location.hash)
-        show(fromHash >= 0 ? fromHash : current, !onLoad)
-        if (onLoad) {
-          const settle = () => requestAnimationFrame(() => show(current))
-          if (document.readyState === "complete") settle()
-          else addEventListener("load", settle, { once: true })
-        }
-      }
+      if (view !== "cards") return
+      // Start at the story in the URL (#story-3), if there is one.
+      const fromHash = cards.findIndex(card => `#${card.id}` === location.hash)
+      show(fromHash >= 0 ? fromHash : current)
+      // iOS Safari scrolls too far if asked before the page has finished loading.
+      if (!onLoad) pin()
+      else if (document.readyState === "complete") setTimeout(pin)
+      else addEventListener("load", () => setTimeout(pin), { once: true })
     }
 
     views.hidden = false
     views.addEventListener("click", e => {
       const view = (e.target as Element).closest<HTMLButtonElement>("[data-view-set]")?.dataset.viewSet
       if (view) setView(view)
-    })
-    root.querySelector(".daily-controls")!.addEventListener("click", e => {
-      const step = (e.target as Element).closest<HTMLButtonElement>("[data-step]")?.dataset.step
-      if (step) show(current + Number(step))
     })
 
     let saved = "list"
@@ -260,34 +302,99 @@ const dayUrl = (d: Day) => url(`daily/${d.date}/`)
     } catch {}
     if (saved === "cards") setView("cards", true)
 
-    // Keyboard: ↑/↓ or K/J move between cards, ←/→ go to the earlier or later day.
+    // Keyboard: → or ↓ (or J) for the next card, ← or ↑ (or K) for the previous one.
     document.addEventListener("keydown", e => {
       if (root.dataset.view !== "cards" || e.metaKey || e.ctrlKey || e.altKey) return
-      if ((e.target as Element).closest("input, textarea, [contenteditable]")) return
-      if (e.key === "ArrowDown" || e.key === "j") show(current + 1)
-      else if (e.key === "ArrowUp" || e.key === "k") show(current - 1)
-      else if (e.key === "ArrowLeft") root.querySelector<HTMLAnchorElement>('[data-day="older"]')?.click()
-      else if (e.key === "ArrowRight") root.querySelector<HTMLAnchorElement>('[data-day="newer"]')?.click()
+      if ((e.target as Element).closest?.("input, textarea, [contenteditable]")) return
+      if (e.key === "ArrowRight" || e.key === "j") go(1, "x")
+      else if (e.key === "ArrowDown") go(1, "y")
+      else if (e.key === "ArrowLeft" || e.key === "k") go(-1, "x")
+      else if (e.key === "ArrowUp") go(-1, "y")
       else return
       e.preventDefault()
     })
 
-    // Swipe up for the next card, down for the previous one. On the colour band a
-    // swipe always flips; on the text only once it's scrolled to that end.
-    let start: { x: number; y: number; atTop: boolean; atEnd: boolean; band: boolean } | null = null
+    // Dragging. The card follows the pointer once it has moved 8px, along the
+    // axis it moved most. Sideways drags work anywhere on the card; up and down
+    // drags on the colour band (the text scrolls instead, see the touch handler).
+    type Drag = { id: number; x: number; y: number; t: number; axis?: "x" | "y"; band: boolean; card: HTMLElement }
+    let drag: Drag | null = null
+    let dragged = false
+    const THRESHOLD = 0.22 // of the card's width or height
+
+    root.addEventListener("pointerdown", e => {
+      const card = (e.target as Element).closest<HTMLElement>("[data-card].is-current")
+      if (root.dataset.view !== "cards" || !card || flying || (e.pointerType === "mouse" && e.button !== 0)) return
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, t: e.timeStamp, band: !!(e.target as Element).closest(".daily-band"), card }
+      dragged = false
+    })
+
+    root.addEventListener("pointermove", e => {
+      if (!drag || e.pointerId !== drag.id) return
+      const dx = e.clientX - drag.x
+      const dy = e.clientY - drag.y
+      if (!drag.axis) {
+        if (Math.hypot(dx, dy) < 8) return
+        drag.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y"
+        if (drag.axis === "y" && !drag.band) {
+          drag = null
+          return
+        }
+        dragged = true
+        drag.card.setPointerCapture(e.pointerId)
+        drag.card.style.transition = "none"
+        root.classList.add("is-dragging")
+        getSelection()?.removeAllRanges()
+      }
+      const d = drag.axis === "x" ? dx : dy
+      behind(d < 0 ? 1 : -1)
+      drag.card.style.transform =
+        drag.axis === "x" ? `translateX(${dx}px) rotate(${dx / 24}deg)` : `translateY(${dy}px)`
+    })
+
+    const endDrag = (e: PointerEvent) => {
+      if (!drag || e.pointerId !== drag.id) return
+      const { card, axis } = drag
+      root.classList.remove("is-dragging")
+      if (axis) {
+        const d = axis === "x" ? e.clientX - drag.x : e.clientY - drag.y
+        const size = axis === "x" ? card.offsetWidth : card.offsetHeight
+        const fast = Math.abs(d) / Math.max(1, e.timeStamp - drag.t) > 0.5 && Math.abs(d) > 30
+        if (e.type === "pointerup" && (Math.abs(d) > size * THRESHOLD || fast)) go(d < 0 ? 1 : -1, axis)
+        else snapBack(card)
+      }
+      drag = null
+    }
+    root.addEventListener("pointerup", endDrag)
+    root.addEventListener("pointercancel", endDrag)
+
+    // A drag shouldn't also open a link it started on.
+    root.addEventListener(
+      "click",
+      e => {
+        if (dragged) {
+          e.preventDefault()
+          e.stopPropagation()
+          dragged = false
+        }
+      },
+      true,
+    )
+
+    // Up and down on the text: the text scrolls, and a swipe past its end turns
+    // the card (up at the bottom for the next card, down at the top for the previous).
+    let swipe: { y: number; x: number; atTop: boolean; atEnd: boolean } | null = null
     root.addEventListener(
       "touchstart",
       e => {
-        const card = (e.target as Element).closest("[data-card]")
-        if (root.dataset.view !== "cards" || !card || e.touches.length > 1) return
-        const text = card.querySelector<HTMLElement>(".daily-text")!
+        const text = (e.target as Element).closest<HTMLElement>("[data-card].is-current .daily-text")
+        if (root.dataset.view !== "cards" || !text || e.touches.length > 1) return
         const t = e.touches[0]
-        start = {
+        swipe = {
           x: t.clientX,
           y: t.clientY,
           atTop: text.scrollTop <= 1,
           atEnd: text.scrollTop + text.clientHeight >= text.scrollHeight - 1,
-          band: !!(e.target as Element).closest(".daily-band"),
         }
       },
       { passive: true },
@@ -295,15 +402,15 @@ const dayUrl = (d: Day) => url(`daily/${d.date}/`)
     root.addEventListener(
       "touchend",
       e => {
-        if (!start) return
+        if (!swipe) return
         const t = e.changedTouches[0]
-        const dx = t.clientX - start.x
-        const dy = t.clientY - start.y
-        if (Math.abs(dy) > 50 && Math.abs(dy) > Math.abs(dx) * 1.2) {
-          if (dy < 0 && (start.band || start.atEnd)) show(current + 1)
-          else if (dy > 0 && (start.band || start.atTop)) show(current - 1)
+        const dx = t.clientX - swipe.x
+        const dy = t.clientY - swipe.y
+        if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+          if (dy < 0 && swipe.atEnd) go(1, "y")
+          else if (dy > 0 && swipe.atTop) go(-1, "y")
         }
-        start = null
+        swipe = null
       },
       { passive: true },
     )
@@ -659,22 +766,25 @@ const dayUrl = (d: Day) => url(`daily/${d.date}/`)
     margin-top: var(--spacing-1);
   }
 
-  .daily-cardbar,
-  .daily-controls {
+  .daily-cardbar {
     display: none;
   }
 
-  /* ---- Cards view ---- */
-  /* The card fills the screen below the day and progress bar (~40px) with room
-     for the arrows (~70px). svh: the height with Safari's toolbars showing. */
+  /* ---- Cards view ----
+     Every card sits in the same grid cell (row 3, under the day nav and the
+     card bar), so the one behind shows as the top one is dragged away. The card
+     fills the screen below the bar: --cards-above is set by the script from the
+     bar's real height. svh is the height with Safari's toolbars showing. */
   .daily[data-view="cards"] {
-    --card-h: clamp(360px, calc(100svh - 150px), 680px);
+    --card-h: max(360px, calc(100svh - var(--cards-above, 96px)));
+    overflow-x: clip;
   }
 
   .daily[data-view="cards"] .daily-head,
   .daily[data-view="cards"] .daily-none,
   .daily[data-view="cards"] .daily-prev,
-  .daily[data-view="cards"] [data-card]:not(.is-current) {
+  .daily[data-view="cards"] .daily-source,
+  .daily[data-view="cards"] [data-card]:not(.is-current, .is-behind) {
     display: none;
   }
 
@@ -685,6 +795,34 @@ const dayUrl = (d: Day) => url(`daily/${d.date}/`)
     font-family: var(--font-heading);
     font-weight: var(--fontWeight-semibold);
     scroll-margin-top: var(--spacing-4);
+  }
+
+  .daily-cardbar-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--spacing-3);
+  }
+
+  .daily-count {
+    color: var(--color-text-lighter);
+    font-size: var(--fontSize-0);
+    font-weight: var(--fontWeight-medium);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Touch screens learn to swipe; mice and keyboards get told */
+  .daily-hint {
+    display: none;
+    color: var(--color-text-lighter);
+    font-size: 0.75rem;
+    font-weight: var(--fontWeight-normal);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .daily-hint {
+      display: block;
+    }
   }
 
   .daily-progress {
@@ -711,9 +849,36 @@ const dayUrl = (d: Day) => url(`daily/${d.date}/`)
   }
 
   .daily[data-view="cards"] [data-card] {
+    grid-row: 3;
+    grid-column: 1;
     display: flex;
     flex-direction: column;
     height: var(--card-h);
+    background-color: var(--color-background);
+    /* Sideways drags come to the script; up and down still scroll the text */
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .daily[data-view="cards"] .daily-try,
+  .daily[data-view="cards"] .daily-prompt {
+    background-color: var(--color-background-secondary);
+  }
+
+  .daily[data-view="cards"] .is-current {
+    z-index: 1;
+    cursor: grab;
+  }
+
+  .daily.is-dragging .is-current {
+    cursor: grabbing;
+  }
+
+  /* The next (or previous) card waits underneath, slightly smaller */
+  .daily[data-view="cards"] .is-behind {
+    z-index: 0;
+    transform: scale(0.95);
   }
 
   .daily[data-view="cards"] .daily-band {
@@ -721,7 +886,7 @@ const dayUrl = (d: Day) => url(`daily/${d.date}/`)
     min-height: 34%;
     align-content: space-between;
     padding: var(--spacing-4) var(--spacing-5) var(--spacing-5);
-    /* Swipes on the band flip cards instead of scrolling the page */
+    /* On the band, up and down drags turn the card too, instead of scrolling */
     touch-action: none;
   }
 
@@ -737,7 +902,7 @@ const dayUrl = (d: Day) => url(`daily/${d.date}/`)
     bottom: -0.19em;
     color: color-mix(in oklab, currentColor 15%, transparent);
     font-family: var(--font-heading);
-    font-size: clamp(120px, 24svh, 170px);
+    font-size: clamp(120px, 24svh, 190px);
     font-weight: var(--fontWeight-bold);
     line-height: 0.8;
     letter-spacing: -0.075em;
@@ -763,39 +928,6 @@ const dayUrl = (d: Day) => url(`daily/${d.date}/`)
     justify-content: center;
   }
 
-  .daily[data-view="cards"] .daily-controls {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-4);
-  }
-
-  .daily-controls button {
-    display: grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    border: 1px solid var(--color-accent);
-    border-radius: 50%;
-    background: var(--color-background);
-    color: var(--color-heading);
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: transform 160ms var(--ease-out);
-  }
-
-  .daily-controls button:active {
-    transform: scale(0.94);
-  }
-
-  .daily-count {
-    min-width: 64px;
-    color: var(--color-text-lighter);
-    font-size: var(--fontSize-0);
-    font-variant-numeric: tabular-nums;
-    text-align: center;
-  }
-
   @media (max-width: 700px) {
     .daily-band,
     .daily-text {
@@ -804,8 +936,11 @@ const dayUrl = (d: Day) => url(`daily/${d.date}/`)
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .daily-prev:active,
-    .daily-controls button:active {
+    .daily-prev:active {
+      transform: none;
+    }
+
+    .daily[data-view="cards"] .is-behind {
       transform: none;
     }
   }
